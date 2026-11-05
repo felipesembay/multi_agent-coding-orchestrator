@@ -1,0 +1,38 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.db
+.env
+
+# Python
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.coverage
+htmlcov/
+
+# Ambientes virtuais
+venv/
+env/
+
+# Configurações locais e credenciais
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Logs e dados locais
+*.log
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# IDE e sistema operacional
+.vscode/
+.idea/
+.DS_Store
+
+# Arquivos temporários
+*.tmp
+*.bak
