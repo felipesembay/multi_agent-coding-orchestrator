@@ -8,10 +8,13 @@ import shutil
 import sqlite3
 import subprocess
 import uuid
+from contextlib import closing
 from pathlib import Path
 from typing import TypedDict
 
 from langgraph.graph import END, StateGraph
+
+from .repository_lock import lock_fd, repository_lock
 
 
 class State(TypedDict, total=False):
@@ -25,6 +28,7 @@ class State(TypedDict, total=False):
     review: dict
     status: str
     error: str
+    managed: bool
 
 
 SCHEMA = '''
@@ -70,6 +74,7 @@ def run_command(argv: list[str], cwd: str, timeout: int = 600,
         result = subprocess.run(
             argv, cwd=cwd, text=True, capture_output=True,
             timeout=timeout, env=env, check=False,
+            pass_fds=() if lock_fd.get() is None else (lock_fd.get(),),
         )
     except subprocess.TimeoutExpired as exc:
         raise RuntimeError(f'{argv[0]} timed out after {timeout}s') from exc
@@ -245,6 +250,8 @@ def coding_agent(prompt: str, cwd: str, role: str, state: State | None = None) -
 
 
 def plan(state: State) -> State:
+    if state.get('managed'):
+        event(state, 'stage_started', {'stage': 'plan', 'role': 'planner'})
     prompt = (
         'You are a technical lead. Return ONLY JSON with '
         '{"tasks":[{"id":"T1","title":"...","instructions":"...",'
@@ -276,6 +283,8 @@ def plan(state: State) -> State:
 
 
 def implement(state: State) -> State:
+    if state.get('managed'):
+        event(state, 'stage_started', {'stage': 'implementation', 'role': 'implementer'})
     task = state['plan']['tasks'][state['task_index']]
     attempts = state.get('attempts', 0)
     feedback = state.get('review', {}) if attempts else {}
@@ -300,6 +309,8 @@ def implement(state: State) -> State:
 
 
 def review(state: State) -> State:
+    if state.get('managed'):
+        event(state, 'stage_started', {'stage': 'review', 'role': 'reviewer'})
     task = state['plan']['tasks'][state['task_index']]
     worktree = state['worktree']
     test_cmd = os.getenv('ORCH_TEST_COMMAND', '').strip()
@@ -445,20 +456,28 @@ def _invoke(state: State, entry_point: str) -> State:
 
 
 def execute(repo: str, scope_file: str) -> State:
-    repo_path = Path(repo).resolve()
     scope = Path(scope_file).resolve().read_text(encoding='utf-8')
+    return execute_scope(repo, scope)
+
+
+def execute_scope(repo: str, scope: str, run_id: str | None = None, *, managed: bool = False) -> State:
+    """Shared entry point: CLI reads its file; the manager supplies saved requirements."""
     if len(scope) > 100_000:
         raise ValueError('Scope exceeds 100k characters')
-    run_id = 'run-' + uuid.uuid4().hex[:12]
-    worktree = prepare(repo_path, run_id)
-    state: State = {
-        'run_id': run_id, 'repo': str(repo_path),
-        'worktree': str(worktree), 'scope': scope,
-    }
-    event(state, 'started', {
-        'repo': str(repo_path), 'worktree': str(worktree),
-    })
-    return _invoke(state, 'plan')
+    run_id = run_id or 'run-' + uuid.uuid4().hex[:12]
+    if not re.fullmatch(r'run-[0-9a-f]{12}', run_id):
+        raise ValueError('Invalid run_id')
+    repo_path = Path(repo).resolve()
+    with repository_lock(repo_path):
+        worktree = prepare(repo_path, run_id)
+        state: State = {
+            'run_id': run_id, 'repo': str(repo_path),
+            'worktree': str(worktree), 'scope': scope, 'managed': managed,
+        }
+        event(state, 'started', {
+            'repo': str(repo_path), 'worktree': str(worktree),
+        })
+        return _invoke(state, 'plan')
 
 
 def _load_events(run_id: str):
@@ -521,6 +540,10 @@ def _recovery_position(events: list, tasks: list) -> tuple[int, int, dict, str]:
 def resume(run_id: str, dry_run: bool = False) -> State:
     if not re.fullmatch(r'run-[0-9a-f]{12}', run_id):
         raise ValueError('Invalid run_id')
+    with closing(db(db_path())) as conn:
+        has_manager = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='managed_runs'").fetchone()
+        if has_manager and conn.execute('SELECT 1 FROM managed_runs WHERE run_id=?', (run_id,)).fetchone():
+            raise ValueError('Execução gerenciada: inspecione a worktree e autorize uma nova execução pelo projeto. Retomada gerenciada ainda não está disponível.')
     events = _load_events(run_id)
     if not events:
         raise ValueError(f'Run not found: {run_id}')
@@ -561,8 +584,9 @@ def resume(run_id: str, dry_run: bool = False) -> State:
     if dry_run:
         return {**state, 'entry_point': entry_point}
 
-    event(state, 'resumed', {
-        'task_index': task_index, 'task': tasks[task_index]['id'],
-        'attempts': attempts, 'entry_point': entry_point,
-    })
-    return _invoke(state, entry_point)
+    with repository_lock(repo):
+        event(state, 'resumed', {
+            'task_index': task_index, 'task': tasks[task_index]['id'],
+            'attempts': attempts, 'entry_point': entry_point,
+        })
+        return _invoke(state, entry_point)
