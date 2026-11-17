@@ -19,6 +19,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { request } from '../../lib/api'
 import { Button } from '../ui/button'
+import { ThemeToggle } from '../ThemeToggle'
 const links = [
   { to: '/', label: 'Projetos', icon: FolderGit2 },
   { to: '/overview', label: 'Overview', icon: LayoutDashboard },
@@ -121,6 +122,7 @@ export function Layout() {
             <strong>{page}</strong>
           </div>
           <div className="topbar-right">
+            <ThemeToggle />
             <span
               className={`connection ${health.isError ? 'offline' : ''}`}
               role="status"

@@ -216,7 +216,7 @@ def get_project(project_id, conn=None):
     if conn is None:
         with connection() as owned:
             return get_project(project_id, owned)
-    row = conn.execute(PROJECT_SELECT + ' WHERE p.id=?', (project_id,)).fetchone()
+    row = conn.execute(PROJECT_SELECT + ' WHERE p.id=? AND p.deleted_at IS NULL', (project_id,)).fetchone()
     if row is None:
         raise ProjectError('Projeto não encontrado.', 404)
     return dict(row)
@@ -259,12 +259,13 @@ def create(confirmation):
 
 def list_projects():
     with connection() as conn:
-        rows = conn.execute(PROJECT_SELECT + ''' ORDER BY p.updated_at DESC, p.rowid DESC''').fetchall()
+        rows = conn.execute(PROJECT_SELECT + ''' WHERE p.deleted_at IS NULL ORDER BY p.updated_at DESC, p.rowid DESC''').fetchall()
         return [dict(row, request_count=conn.execute('SELECT COUNT(*) FROM project_requests WHERE project_id=?', (row['id'],)).fetchone()[0]) for row in rows]
 
 
 def update_project(project_id, data):
     with connection() as conn:
+        conn.execute('BEGIN IMMEDIATE')
         get_project(project_id, conn)
         conn.execute('UPDATE projects SET name=?,description=?,objectives=?,state=?,updated_at=CURRENT_TIMESTAMP WHERE id=?',
                      (data.name, data.description, data.objectives, data.state, project_id))
@@ -291,3 +292,27 @@ def submit_request(project_id, data):
         audit(conn, 'request.created', project_id, request_id=request_id)
         conn.commit()
         return dict(conn.execute('SELECT * FROM project_requests WHERE id=?', (request_id,)).fetchone())
+
+
+class ProjectDeletion(BaseModel):
+    model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
+    confirmed: Literal[True]
+    project_name: str = Field(min_length=1, max_length=120)
+
+
+def delete_project(project_id, data):
+    """Logical deletion of the catalog entry; never touches Git or the filesystem."""
+    with connection() as conn:
+        conn.execute('BEGIN IMMEDIATE')
+        project = get_project(project_id, conn)
+        if data.project_name != project['name']:
+            raise ProjectError('O nome do projeto mudou. Atualize a página e confirme novamente.', 409)
+        busy = conn.execute("SELECT 1 FROM managed_runs WHERE project_id=? AND (status IN ('queued','running') OR orphaned=1) LIMIT 1", (project_id,)).fetchone()
+        if busy:
+            raise ProjectError('Não é possível excluir um projeto com execução na fila, em andamento ou com processo órfão pendente.', 409)
+        conn.execute('UPDATE projects SET deleted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?', (project_id,))
+        # Invalidate old create confirmations so they cannot restore a deleted entry.
+        conn.execute('DELETE FROM project_previews WHERE project_id=?', (project_id,))
+        audit(conn, 'project.deleted', project_id, name=project['name'], repository_preserved=True)
+        conn.commit()
+    return dict(deleted=True, project_id=project_id)

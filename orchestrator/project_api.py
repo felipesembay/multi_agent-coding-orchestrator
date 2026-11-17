@@ -42,6 +42,11 @@ def update_project(project_id: str, data: projects.ProjectUpdate):
     return projects.update_project(project_id, data)
 
 
+@router.delete('/projects/{project_id}')
+def delete_project(project_id: str, data: projects.ProjectDeletion):
+    return projects.delete_project(project_id, data)
+
+
 @router.get('/projects/{project_id}/requests')
 def list_requests(project_id: str):
     return projects.requests(project_id)

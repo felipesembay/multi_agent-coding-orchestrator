@@ -11,6 +11,7 @@ export type ParsedEvent = RawEvent & {
   raw: unknown
 }
 export type Run = {
+  project_deleted?: boolean
   project_id?: string
   project_name?: string
   request_id?: string

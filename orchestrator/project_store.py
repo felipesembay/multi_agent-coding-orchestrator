@@ -76,6 +76,13 @@ def connection():
             for statement in EXECUTION_MIGRATION:
                 conn.execute(statement)
             conn.commit()
+        if not conn.execute('SELECT 1 FROM platform_migrations WHERE version=3').fetchone():
+            conn.execute('BEGIN IMMEDIATE')
+            # Recheck after acquiring the writer lock: another connection may have migrated.
+            if not conn.execute('SELECT 1 FROM platform_migrations WHERE version=3').fetchone():
+                conn.execute('ALTER TABLE projects ADD COLUMN deleted_at TEXT')
+                conn.execute('INSERT INTO platform_migrations(version) VALUES(3)')
+            conn.commit()
         yield conn
     except Exception:
         conn.rollback()

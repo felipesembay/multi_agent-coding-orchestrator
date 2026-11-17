@@ -9,6 +9,7 @@ const variants = cva('button', {
       default: 'button-primary',
       outline: 'button-outline',
       ghost: 'button-ghost',
+      destructive: 'button-danger',
     },
     size: { default: '', sm: 'button-sm', icon: 'button-icon' },
   },

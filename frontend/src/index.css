@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './styles/theme.css';
 :root {
   font-family:
     'Inter',
@@ -6,12 +7,11 @@
     -apple-system,
     BlinkMacSystemFont,
     sans-serif;
-  color: #e5e7eb;
-  background: #0c0e12;
+  color: var(--tone-neutral-100);
+  background: var(--tone-neutral-950);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  color-scheme: dark;
 }
 * {
   box-sizing: border-box;
@@ -39,11 +39,11 @@ button:disabled {
   opacity: 0.4;
 }
 :focus-visible {
-  outline: 2px solid #91b6ff;
+  outline: 2px solid var(--tone-blue-200);
   outline-offset: 4px;
 }
 ::selection {
-  background: #344b74;
+  background: var(--tone-blue-600);
 }
 button,
 a,

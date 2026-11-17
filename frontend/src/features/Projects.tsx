@@ -12,7 +12,12 @@ import {
   Search,
   ShieldCheck,
 } from 'lucide-react'
-import { Link, useNavigate, useOutletContext } from 'react-router-dom'
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useOutletContext,
+} from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Empty, ErrorState, Loading } from '../components/shared'
 import { date } from '../lib/events'
@@ -22,6 +27,7 @@ import type { Project, ProjectInput, ProjectPreview } from '../types'
 
 export function ProjectsPage() {
   const { interval } = useOutletContext<DashboardContext>()
+  const location = useLocation()
   const projects = useProjects(interval)
   const [search, setSearch] = useState('')
   const [state, setState] = useState('active')
@@ -59,6 +65,11 @@ export function ProjectsPage() {
           </Button>
         </div>
       </div>
+      {typeof location.state?.notice === 'string' && (
+        <p role="status" className="success-notice">
+          {location.state.notice}
+        </p>
+      )}
       <div className="project-intro">
         <span className="project-intro-icon">
           <FolderGit2 size={25} />

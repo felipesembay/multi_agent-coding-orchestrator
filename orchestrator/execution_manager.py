@@ -190,6 +190,7 @@ def preflight(project_id):
 
 def submit(project_id, request_id, data):
     with connection() as conn:
+        projects.get_project(project_id, conn)
         previous = conn.execute('SELECT * FROM managed_runs WHERE idempotency_key=?', (data.idempotency_key,)).fetchone()
         if previous:
             if previous['project_id'] != project_id or previous['request_id'] != request_id:
@@ -235,7 +236,7 @@ def submit(project_id, request_id, data):
 
 def get_managed(run_id):
     with connection() as conn:
-        row = conn.execute('''SELECT m.*, p.name AS project_name FROM managed_runs m
+        row = conn.execute('''SELECT m.*, p.name AS project_name, p.deleted_at AS project_deleted_at FROM managed_runs m
                               JOIN projects p ON p.id=m.project_id WHERE run_id=?''', (run_id,)).fetchone()
         return dict(row) if row else None
 
@@ -247,6 +248,7 @@ def consolidated(row, events):
     if row['started_at'] and row['finished_at']:
         from .dashboard import timestamp
         summary['duration_seconds'] = max(0, timestamp(row['finished_at']) - timestamp(row['started_at']))
+    summary['project_deleted'] = bool(row.get('project_deleted_at'))
     summary.update(project_id=row['project_id'], project_name=row['project_name'], request_id=row['request_id'],
                    request_title=row['request_title'], created_at=row['created_at'], error=row['error'],
                    configuration=json.loads(row['config']), manager_status=row['status'], orphaned=bool(row['orphaned']))
@@ -261,7 +263,7 @@ def all_summaries(conn):
     from .dashboard import read_runs
     legacy = {summary['run_id']: (summary, events) for summary, events in read_runs(conn)}
     with connection() as owned:
-        rows = owned.execute('SELECT m.*,p.name AS project_name FROM managed_runs m JOIN projects p ON p.id=m.project_id').fetchall()
+        rows = owned.execute('SELECT m.*,p.name AS project_name, p.deleted_at AS project_deleted_at FROM managed_runs m JOIN projects p ON p.id=m.project_id').fetchall()
     for row in rows:
         events = legacy.get(row['run_id'], ({}, []))[1]
         legacy[row['run_id']] = (consolidated(dict(row), events), events)

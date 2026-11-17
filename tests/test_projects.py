@@ -247,3 +247,33 @@ def test_git_missing_fails_before_creating_directory(client, monkeypatch):
     assert client.get('/project-policy').json()['git_available'] is False
     assert client.post('/projects/preview', json=input_data(client)).status_code == 503
     assert not (client.root / 'movies').exists()
+
+
+def test_delete_project_hides_catalog_but_preserves_repository_and_audit(client):
+    project = create(client)
+    url = '/projects/' + project['id']
+    client.post(url + '/requests', json={'title': 'Incomplete task', 'content': 'Saved requirements'})
+    head = git(project['repo_path'], 'rev-parse', 'HEAD')
+    response = client.request('DELETE', url, json={'confirmed': True, 'project_name': project['name']})
+    assert response.status_code == 200, response.text
+    assert response.json()['deleted'] is True
+    assert client.get('/projects').json() == []
+    for path in [url, url + '/requests', url + '/runs']:
+        assert client.get(path).status_code == 404
+    assert git(project['repo_path'], 'rev-parse', 'HEAD') == head
+    assert (client.root / 'movies' / 'README.md').exists()
+    with connection() as conn:
+        assert conn.execute('SELECT deleted_at FROM projects WHERE id=?', (project['id'],)).fetchone()[0]
+        assert conn.execute('SELECT COUNT(*) FROM project_requests WHERE project_id=?', (project['id'],)).fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM platform_audit WHERE action='project.deleted'").fetchone()[0] == 1
+        assert conn.execute('SELECT COUNT(*) FROM project_previews WHERE project_id=?', (project['id'],)).fetchone()[0] == 0
+
+
+def test_deletion_requires_confirmation_current_name_and_csrf(client):
+    project = create(client)
+    url = '/projects/' + project['id']
+    assert client.request('DELETE', url, json={'confirmed': False, 'project_name': project['name']}).status_code == 422
+    assert client.request('DELETE', url, json={'confirmed': True, 'project_name': 'wrong name'}).status_code == 409
+    assert client.request('DELETE', url, json={'confirmed': True, 'project_name': project['name']}, headers={'X-Orchestrator-CSRF': 'wrong'}).status_code == 403
+    assert client.get(url).status_code == 200
+    assert client.request('DELETE', '/projects/missing', json={'confirmed': True, 'project_name': 'Missing'}).status_code == 404

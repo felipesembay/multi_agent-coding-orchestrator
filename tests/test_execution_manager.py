@@ -304,3 +304,52 @@ def test_worker_without_directory_policy_reports_its_own_configuration_error(set
     assert result['error'].startswith('Worker: Diretório não autorizado.')
     assert 'ORCH_ALLOWED_ROOTS' in result['error']
     assert not Path(project['repo_path']).with_name('tasks-agent-worktrees').exists()
+
+
+@pytest.mark.parametrize('status,orphaned', [('queued', 0), ('running', 0), ('interrupted', 1)])
+def test_delete_project_blocks_active_or_orphaned_execution(setup, status, orphaned):
+    client, project, request, _ = setup
+    run_id = client.post(url(project, request), json=body(project)).json()['run_id']
+    with connection() as conn:
+        conn.execute('UPDATE managed_runs SET status=?,orphaned=? WHERE run_id=?', (status, orphaned, run_id))
+        conn.commit()
+    response = client.request('DELETE', '/projects/' + project['id'], json={'confirmed': True, 'project_name': project['name']})
+    assert response.status_code == 409
+    assert client.get('/projects/' + project['id']).status_code == 200
+
+
+@pytest.mark.parametrize('status', ['failed', 'interrupted', 'blocked', 'ready_for_human_review'])
+def test_delete_finished_project_retains_execution_evidence_and_blocks_new_jobs(setup, status):
+    client, project, request, _ = setup
+    run_id = client.post(url(project, request), json=body(project)).json()['run_id']
+    with connection() as conn:
+        conn.execute('UPDATE managed_runs SET status=?,orphaned=0 WHERE run_id=?', (status, run_id))
+        conn.commit()
+    core.event({'run_id': run_id}, 'manager_error', {'message': 'Preserved evidence'})
+    assert client.request('DELETE', '/projects/' + project['id'], json={'confirmed': True, 'project_name': project['name']}).status_code == 200
+    detail = client.get('/runs/' + run_id).json()
+    assert detail['project_deleted'] is True
+    assert detail['status'] == status
+    assert detail['events'][0]['stage'] == 'manager_error'
+    assert client.post(url(project, request), json=body(project, 'new-intent-after-deletion')).status_code == 404
+    assert client.post(url(project, request), json=body(project)).status_code == 404
+
+
+def test_delete_and_submit_cannot_both_win_the_reservation_race(setup):
+    _, project, request, _ = setup
+    payload = manager.StartInput(**body(project))
+    confirmation = projects.ProjectDeletion(confirmed=True, project_name=project['name'])
+    def action(kind):
+        try:
+            if kind == 'submit':
+                manager.submit(project['id'], request['id'], payload)
+            else:
+                projects.delete_project(project['id'], confirmation)
+            return kind
+        except projects.ProjectError as exc:
+            return exc.status
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(action, ['submit', 'delete']))
+    assert not ('submit' in results and 'delete' in results)
+    assert 'submit' in results or 'delete' in results
+    assert any(value in (404, 409) for value in results)

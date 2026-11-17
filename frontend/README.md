@@ -2,7 +2,7 @@
 
 Plataforma local para organizar projetos e requisitos, com observabilidade das execuções reais do Multi-Agent Coding Orchestrator.
 
-**Projetos e solicitações implementados:** cadastro e edição de projetos, associação de repositórios Git existentes, criação confirmada de diretório/repositório e solicitações em linguagem natural persistidas no SQLite. A página inicial agora é **Projetos**; o dashboard anterior continua em `/overview`.
+**Projetos e solicitações implementados:** cadastro e edição de projetos, associação de repositórios Git existentes, criação confirmada de diretório/repositório e solicitações em linguagem natural persistidas no SQLite. Projetos também podem ser excluídos logicamente mediante confirmação pelo nome, preservando arquivos e histórico. A página inicial agora é **Projetos**; o dashboard anterior continua em `/overview`.
 
 **Execution Manager implementado:** cada solicitação existente tem uma ação “Iniciar execução”, com confirmação e preflight. A API persiste o vínculo projeto–solicitação–run e um worker independente supervisiona o LangGraph real. Aprovação de planos e revisão humana persistida de diffs continuam como entregas futuras. O CLI permanece disponível. Consulte [o guia do Execution Manager](../docs/execution-manager.md).
 
@@ -89,6 +89,12 @@ A allowlist impede operações do navegador em diretórios não autorizados. Ela
 | `PATCH /projects/{id}` | Editar nome, descrição, objetivos e estado |
 | `GET/POST /projects/{id}/requests` | Consultar e registrar solicitações |
 | `GET /projects/{id}/runs` | Runs vinculados e histórico legado do mesmo repositório |
+
+## Temas e exclusão
+
+O botão de sol/lua da topbar alterna o tema claro/escuro e salva a preferência no navegador (`orch-theme`). O padrão é escuro e a escolha é aplicada antes da primeira renderização. A paleta compartilhada fica em `src/styles/theme.css`, cobrindo layout, formulários, logs, estados e dialogs.
+
+No workspace, **Excluir projeto** exige digitar seu nome atual. O backend registra `deleted_at` (migração 3), oculta projeto e solicitações dos endpoints de catálogo e preserva os arquivos, as execuções e a auditoria. `DELETE /projects/{id}` exige JSON `{confirmed: true, project_name: "nome atual"}` e as mesmas proteções de escrita. A operação é bloqueada se houver execução na fila, em andamento ou órfão pendente. O histórico de runs continua consultável, com indicação de projeto excluído. Reinicie a API após atualizar para disponibilizar esse endpoint.
 
 ## Telas
 

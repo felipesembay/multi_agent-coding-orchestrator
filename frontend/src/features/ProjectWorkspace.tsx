@@ -12,6 +12,7 @@ import {
   Play,
   RefreshCw,
   Target,
+  Trash2,
 } from 'lucide-react'
 import { Link, useOutletContext, useParams } from 'react-router-dom'
 import type { DashboardContext } from '../components/layout/Layout'
@@ -33,6 +34,7 @@ import {
 } from '../lib/projects'
 import type { Project, ProjectRequest, Run } from '../types'
 import { StartExecution } from './StartExecution'
+import { DeleteProject } from './DeleteProject'
 
 export function ProjectWorkspacePage() {
   const { projectId = '' } = useParams(),
@@ -44,6 +46,7 @@ export function ProjectWorkspacePage() {
   const [selectedRequest, setSelectedRequest] = useState<ProjectRequest | null>(
     null,
   )
+  const [deleting, setDeleting] = useState(false)
   const [tab, setTab] = useState('requests'),
     [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(''),
@@ -102,6 +105,10 @@ export function ProjectWorkspacePage() {
                 <Button onClick={() => setEditing(!editing)}>
                   <Pencil size={14} />
                   {editing ? 'Fechar edição' : 'Editar projeto'}
+                </Button>
+                <Button variant="destructive" onClick={() => setDeleting(true)}>
+                  <Trash2 size={14} />
+                  Excluir projeto
                 </Button>
               </div>
             </div>
@@ -349,6 +356,20 @@ export function ProjectWorkspacePage() {
                 pending={runs.isPending}
                 error={runs.error}
                 retry={runs.refetch}
+              />
+            )}
+            {deleting && (
+              <DeleteProject
+                project={project.data}
+                busy={Boolean(
+                  runs.data?.some(
+                    (run) =>
+                      run.project_id === project.data.id &&
+                      (['queued', 'running'].includes(run.status) ||
+                        run.orphaned),
+                  ),
+                )}
+                onClose={() => setDeleting(false)}
               />
             )}
             {selectedRequest && (

@@ -52,10 +52,16 @@ export function DetailsPage() {
     <>
       <Link
         className="back-link"
-        to={run?.project_id ? `/projects/${run.project_id}` : '/executions'}
+        to={
+          run?.project_id && !run.project_deleted
+            ? `/projects/${run.project_id}`
+            : '/executions'
+        }
       >
         <ArrowLeft size={14} />
-        {run?.project_name ?? 'Todas as execuções'}
+        {run?.project_deleted
+          ? 'Todas as execuções'
+          : (run?.project_name ?? 'Todas as execuções')}
       </Link>
       <div className="page-heading">
         <div>
@@ -82,6 +88,12 @@ export function DetailsPage() {
       ) : (
         run && (
           <>
+            {run.project_deleted && (
+              <div className="info-note">
+                Este projeto foi excluído do cadastro. O histórico desta
+                execução foi preservado para consulta.
+              </div>
+            )}
             {run.manager_status === 'queued' && (
               <div className="info-note">
                 Solicitação persistida na fila. O worker iniciará o workflow

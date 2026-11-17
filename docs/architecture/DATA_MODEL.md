@@ -1,0 +1,72 @@
+# Modelo de dados
+
+## 1. Atual (migrações 1–3)
+
+Ver [CURRENT_STATE_AUDIT.md §6](CURRENT_STATE_AUDIT.md#6-persistência-sqlite). Resumo:
+
+```mermaid
+erDiagram
+    repositories ||--o{ projects : "repository_id"
+    projects ||--o{ project_requests : "project_id"
+    projects ||--o{ managed_runs : "project_id"
+    project_requests ||--o{ managed_runs : "request_id"
+    managed_runs ||--o{ events : "run_id (lógico, sem FK)"
+    projects ||--o{ platform_audit : "project_id"
+```
+
+`events.run_id` não tem chave estrangeira: runs legados do CLI só existem em `events`.
+
+## 2. Proposto (migrações 4+)
+
+Regras: migrações apenas **aditivas**; nenhuma coluna existente removida ou renomeada; `events` permanece fonte da timeline; cada migração tem número próprio em `platform_migrations` e teste de upgrade a partir de um banco v3.
+
+```mermaid
+erDiagram
+    workflow_definitions ||--o{ workflow_versions : ""
+    workflow_versions ||--o{ managed_runs : "workflow_version_id"
+    managed_runs ||--o{ step_executions : ""
+    step_executions ||--o{ usage_records : ""
+    price_catalog_versions ||--o{ price_entries : ""
+    price_entries ||--o{ usage_records : "price_entry_id"
+    projects ||--o{ budgets : ""
+    managed_runs ||--o{ approvals : ""
+    provider_configs ||--o{ usage_records : ""
+    managed_runs ||--o{ run_artifacts : ""
+```
+
+### Migração 4 — workflows e providers (F2)
+
+| Tabela | Colunas principais | Observação |
+|---|---|---|
+| `workflow_definitions` | `id`, `name`, `description`, `is_preset`, `created_at`, `archived_at` | Presets de sistema com `is_preset=1`, somente leitura |
+| `workflow_versions` | `id`, `definition_id`, `version`, `schema_version`, `body` (JSON), `digest`, `created_at` | **Imutável**; editar cria nova versão |
+| `provider_configs` | `id`, `kind` (`agent_runtime`/`model_provider`), `adapter`, `display_name`, `settings` (JSON sem segredo), `credential_ref`, `enabled` | `credential_ref` aponta para o keyring |
+| `managed_runs` (+) | `workflow_version_id`, `bindings` (JSON), `workflow_digest` | Colunas novas, nulas para runs antigos |
+
+### Migração 5 — uso e custos (F3)
+
+| Tabela | Colunas principais |
+|---|---|
+| `step_executions` | ver migração 6 (criada aqui se F3 vier antes) |
+| `usage_records` | `id`, `run_id`, `step_execution_id`, `project_id`, `role`, `provider_config_id`, `adapter`, `model`, `call_index`, `started_at`, `duration_ms`, `input_tokens`, `output_tokens`, `cache_read_tokens`, `cache_write_tokens`, `reasoning_tokens`, `token_source`, `billing_mode`, `reported_cost_usd`, `estimated_cost_usd`, `price_entry_id`, `currency`, `error_kind`, `retry_of`, `raw_usage` (JSON redigido) |
+| `price_catalog_versions` | `id`, `source` (`manual`/`openrouter_api`/…), `fetched_at`, `notes` |
+| `price_entries` | `id`, `catalog_version_id`, `adapter`, `model`, `unit` (`per_1m_tokens`), `input_price`, `output_price`, `cache_read_price`, `cache_write_price`, `reasoning_price`, `currency`, `effective_from`, `effective_to` |
+| `budgets` | `id`, `scope` (`project`/`run`/`global`), `scope_id`, `limit_usd`, `period` (`run`/`month`/`total`), `warn_ratio`, `action` (`warn`/`block`) |
+| `budget_events` | `id`, `budget_id`, `run_id`, `kind` (`warn`/`block`/`override`), `at`, `details` |
+
+### Migração 6 — resiliência (F4)
+
+| Tabela | Colunas principais |
+|---|---|
+| `step_executions` | `id`, `run_id`, `node`, `task_id`, `attempt`, `role`, `idempotency_key` (`run_id:node:task:attempt`), `status` (`started`/`completed`/`failed`/`needs_inspection`/`skipped`), `side_effects` (`none`/`worktree_write`/`exec`), `git_head_before`, `tree_digest_before`, `tree_digest_after`, `started_at`, `finished_at`, `error` |
+| `approvals` | `id`, `run_id`, `kind` (`plan`/`result`/`resume`/`budget_override`/`sensitive_action`), `status` (`pending`/`approved`/`rejected`), `requested_at`, `decided_at`, `decided_by`, `comment`, `subject_digest` |
+| `run_artifacts` | `id`, `run_id`, `kind` (`plan`/`diff`/`test_report`/`review`/`handoff`), `path_or_blob`, `digest`, `created_at` |
+| `managed_runs.status` | Novo valor `paused`/`awaiting_approval` exige recriar CHECK → **avaliar**: SQLite não altera CHECK; alternativa é coluna nova `phase` mantendo `status` compatível. Decisão em [PERSISTENCE.md](../specifications/PERSISTENCE.md) |
+
+Checkpoints LangGraph ficam em **arquivo separado** (`<ORCH_DB>.checkpoints.db`) gerenciado por `langgraph-checkpoint-sqlite`, para isolar contenção de escrita e o esquema da biblioteca.
+
+## 3. Regras de integridade
+
+- Nenhuma coluna armazena segredo; `raw_usage` passa por redator antes de gravar.
+- `usage_records.token_source` ∈ {`provider_reported`, `cli_reported`, `estimated`, `unavailable`}; `estimated_cost_usd` nulo quando não há preço.
+- `workflow_versions.body` validado pelo schema da sua `schema_version` antes de inserir.

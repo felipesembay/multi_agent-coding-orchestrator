@@ -28,7 +28,7 @@ O foco atual é **desenvolvimento local supervisionado**, com rastreabilidade e 
 
 | Área | Disponível hoje |
 | --- | --- |
-| Projetos | Cadastro, busca, edição, arquivamento e reativação de projetos nomeados |
+| Projetos | Cadastro, busca, edição, arquivamento, reativação e exclusão lógica de projetos nomeados |
 | Repositórios | Associação de repositórios existentes e criação confirmada de diretório, Git, README e commit inicial local |
 | Requisitos | Solicitações persistidas em linguagem natural, sem exigir arquivos Markdown escritos manualmente |
 | Início pelo navegador | Ação **Iniciar execução** por solicitação, com confirmação dos requisitos e da configuração |
@@ -39,7 +39,7 @@ O foco atual é **desenvolvimento local supervisionado**, com rastreabilidade e 
 | Implementação e QA | Ciclo de implementação, testes, revisão independente e novas tentativas quando necessário |
 | Observabilidade | Timeline, etapa registrada, plano, tentativas, testes, findings, erros e caminho da worktree |
 | Persistência | Projetos, solicitações, lifecycle, resultados, eventos e auditoria no SQLite |
-| Interface | Dark mode, navegação por projetos, filtros, paginação, estados de erro e layout responsivo |
+| Interface | Temas claro e escuro com preferência persistida, navegação por projetos, filtros, paginação, estados de erro e layout responsivo |
 | CLI | Comandos para executar escopos, consultar eventos e retomar conservadoramente runs legados |
 
 **A aprovação automática do Reviewer não é aprovação humana.** O estado `ready_for_human_review` informa que o motor concluiu o workflow e entregou o resultado para análise do operador.
@@ -255,6 +255,8 @@ Reinicie API e worker após alterações de código ou de configuração. O hot 
 
 ## Uso pelo navegador
 
+O botão de sol/lua na barra superior alterna entre os temas claro e escuro em todas as páginas. A escolha fica salva no navegador e é aplicada antes de a interface carregar; o padrão inicial é escuro.
+
 ### Criar ou conectar um projeto
 
 1. Na página **Projetos**, clique em **Novo projeto**.
@@ -288,6 +290,12 @@ Enquanto um run gerenciado estiver em `queued` ou `running`, a página consulta 
 Ao receber `ready_for_human_review`, inspecione o código na worktree e avalie as evidências antes de integrar alterações manualmente. A interface atual não registra aprovação humana de diffs nem realiza integração Git.
 
 Projetos podem ser arquivados e reativados. Arquivar preserva os dados e bloqueia novas solicitações e inícios de execução; não equivale a cancelar um workflow já em andamento.
+
+### Excluir projetos com erro ou que não serão continuados
+
+No workspace, clique em **Excluir projeto**, confira o aviso e digite o nome atual do projeto para habilitar a confirmação. A exclusão é lógica: o projeto e suas solicitações deixam de aparecer no cadastro; os registros históricos permanecem no SQLite. Runs anteriores continuam consultáveis na área de execuções e identificam que o projeto foi excluído.
+
+O backend bloqueia a exclusão se houver run desse projeto na fila, em andamento ou com processo órfão pendente. Essa verificação e o início de uma execução usam transações para impedir que ambos sejam aceitos simultaneamente. A ação é auditada e não apaga repositórios, branches, commits ou worktrees. Para remover apenas um projeto sem execuções ativas, não é necessário recriar ou limpar sua pasta Git.
 
 ## Configuração
 
@@ -420,6 +428,7 @@ A documentação interativa está em `/docs` quando a API local estiver em execu
 | `POST /projects` | Confirmar o cadastro e, quando solicitado, criar o repositório |
 | `GET /projects/{project_id}` | Consultar um projeto |
 | `PATCH /projects/{project_id}` | Editar nome, descrição, objetivos e estado |
+| `DELETE /projects/{project_id}` | Excluir logicamente mediante confirmação e nome atual; bloquear runs ativos ou órfãos |
 | `GET/POST /projects/{project_id}/requests` | Consultar ou registrar requisitos |
 | `GET /projects/{project_id}/execution-config` | Configuração e verificações antes de executar |
 | `POST /projects/{project_id}/requests/{request_id}/runs` | Confirmar e enfileirar uma execução real |
@@ -556,9 +565,18 @@ As proteções de requisições locais não equivalem a isolamento contra um pro
 
 ## Evolução planejada
 
-Os próximos passos são aprovação e versionamento de planos, revisão humana persistida de alterações, continuidade controlada de projetos e retomada com checkpoints. Outros incrementos incluem metadados mais completos por agente, observabilidade de custos, projeções de resumo para maior volume, SSE e execução isolada com concorrência controlada.
+O planejamento da versão 2.0 está documentado em [docs/planning/IMPLEMENTATION_PLAN.md](docs/planning/IMPLEMENTATION_PLAN.md), ponto de entrada para pessoas e agentes que forem continuar o desenvolvimento. Os temas planejados são:
 
-Esses itens descrevem o roadmap; não representam funcionalidades disponíveis na interface atual.
+- arquitetura extensível de provedores, separando agentes CLI (Claude Code, Codex, Antigravity) de modelos via API (OpenRouter e outros);
+- workflows configuráveis, com papéis desacoplados dos modelos, presets e validação;
+- contabilidade de tokens e custos com distinção entre valores reportados, estimados e indisponíveis;
+- checkpoints, retomada controlada e aprovação humana persistida;
+- aplicação desktop com Tauri 2 para Ubuntu;
+- reforço de segurança local e governança dos agentes.
+
+Roadmap, backlog, decisões arquiteturais e questões em aberto estão em [docs/planning/](docs/planning/ROADMAP.md) e [docs/architecture/DECISIONS/](docs/architecture/DECISIONS/).
+
+**Nada disso está implementado.** Esses itens descrevem o roadmap; não representam funcionalidades disponíveis na interface atual. O comportamento atual é o descrito nas seções anteriores deste README.
 
 ## Contribuindo
 
