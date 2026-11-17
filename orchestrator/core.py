@@ -14,6 +14,10 @@ from typing import TypedDict
 
 from langgraph.graph import END, StateGraph
 
+from .providers.base import InvocationRequest
+from .providers.runtimes.antigravity import AntigravityRuntime
+from .providers.runtimes.claude_code import ClaudeCodeRuntime
+from .providers.runtimes.codex_cli import CodexCliRuntime
 from .repository_lock import lock_fd, repository_lock
 
 
@@ -98,17 +102,16 @@ def extract_json(value: str) -> dict:
 
 
 def claude(prompt: str, cwd: str, timeout: int = 600) -> str:
-    return run_command(
-        ['claude', '-p', '--permission-mode', 'acceptEdits', prompt],
-        cwd, timeout,
-    )
+    return ClaudeCodeRuntime(run_command).invoke(InvocationRequest(
+        prompt=prompt, cwd=cwd, timeout_s=timeout, permission='workspace_write',
+    )).text
 
 
 def codex(prompt: str, cwd: str, timeout: int = 600) -> str:
-    return run_command(
-        ['codex', 'exec', '--sandbox', 'read-only', prompt],
-        cwd, timeout,
-    )
+    return CodexCliRuntime(run_command).invoke(InvocationRequest(
+        prompt=prompt, cwd=cwd, timeout_s=timeout, permission='read_only',
+    )).text
+
 
 def antigravity(
     prompt: str,
@@ -117,60 +120,13 @@ def antigravity(
     mode: str = 'plan',
     model: str | None = None
 ) -> str:
-    """
-    Executa o Antigravity CLI e retorna somente
-    o texto produzido pelo agente.
-    """
+    """Compatibility facade retaining legacy arguments and patch points."""
     if mode not in ('plan', 'accept-edits'):
         raise ValueError(f'Invalid Antigravity mode: {mode}')
-
-    if model is None:
-        model = os.getenv(
-            'ORCH_ANTIGRAVITY_MODEL',
-            'gemini-4-argon-medium'
-        )
-
-    argv = [
-        'agy',
-        '--print',
-        prompt,
-        '--model',
-        model,
-        '--mode',
-        mode,
-        '--output-format',
-        'json'
-    ]
-
-    raw = run_command(argv, cwd, timeout)
-
-    try:
-        result = json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise RuntimeError(
-            'Antigravity returned invalid CLI JSON'
-        ) from exc
-
-    if result.get('status') != 'SUCCESS':
-        raise RuntimeError(
-            f'Antigravity failed: {result.get("status")}'
-        )
-
-    denied_actions = result.get('denied_actions') or []
-
-    if denied_actions:
-        raise RuntimeError(
-            'Antigravity denied requiredactions: '
-            + json.dumps(denied_actions, ensure_ascii=False)
-        )
-    response = result.get('response')
-
-    if not isinstance(response, str) or not response.strip():
-        raise RuntimeError(
-            'Antigravity returned an empty or invalid response'
-        )
-
-    return response
+    return AntigravityRuntime(run_command).invoke(InvocationRequest(
+        prompt=prompt, cwd=cwd, timeout_s=timeout, model=model,
+        permission='read_only' if mode == 'plan' else 'workspace_write',
+    )).text
 
 
 def coding_agent(prompt: str, cwd: str, role: str, state: State | None = None) -> str:

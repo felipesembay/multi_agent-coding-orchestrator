@@ -60,3 +60,32 @@
 8. Próxima tarefa: V2-CORE-001, sem mudança de comportamento.
 9. Aceite: caracterizar argv antes da refatoração e preservar testes/patch points existentes.
 10. Comandos: baseline em IMPLEMENTATION_PLAN; `python scripts/check_docs.py`.
+
+### V2-CORE-001 — caracterização antes da extração
+
+- Baseline de desenvolvimento commitado em `f8e6949`; árvore limpa antes da tarefa.
+- Novo `tests/providers/test_argv_characterization.py` executado contra o core original, antes de mover adapters: 22 casos novos + 7 testes existentes de fallback = 29 passed, 1 warning.
+- Cobre argv/cwd/timeout/env/pass_fds de Claude planner/implementer, agy planner/implementer com/sem modelo, Codex reviewer, modelos diretos, fallback, erros agy e defaults.
+- Nenhuma chamada real a CLI; `shutil.which` e `subprocess.run` substituídos por mocks. Refatoração só começa após este marco verde.
+
+### V2-CORE-001 — extração e compatibilidade
+
+- Extraídos adapters para `orchestrator/providers/runtimes/` e contrato mínimo Pydantic/Protocol em `base.py`.
+- Fachadas `core.claude/codex/antigravity` continuam retornando texto, com mesma assinatura, flags e timeouts. Runner injetado a cada chamada preserva patches `core.run_command`; `coding_agent`, fallback, prompts e eventos permanecem iguais.
+- `InvocationResult` contém somente texto nesta tarefa; uso/eventos em CORE-002, manifests/probe/registry em CORE-003. Não antecipados modos read-only de Claude ou workspace-write de Codex.
+- Falha inicial de coleta: Pydantic em Python 3.9 não avalia união `str | None`; corrigido usando Optional, sem atualizar Python/dependências. Caracterização + fallback voltaram a 29 passed após a extração.
+
+### V2-CORE-001 — fechamento para commit em dev
+
+1. **Planejado:** extrair AgentRuntime e adapters mantendo comportamento legado, caracterizando argv antes da refatoração.
+2. **Implementado:** contratos mínimos Pydantic e Protocol; adapters ClaudeCodeRuntime, CodexCliRuntime, AntigravityRuntime; fachadas compatíveis; runner injetado sem dependência circular do core. CORE-001 concluída após revisão independente `review_core001` (35 testes repetidos, sem achados bloqueantes).
+3. **Arquivos:** core.py, providers/{__init__,base}.py, providers/runtimes/{__init__,claude_code,codex_cli,antigravity}.py; tests/providers/test_{argv_characterization,runtime_contract}.py; CURRENT_STATE, NEXT_STEPS, SESSION_LOG, BACKLOG e IMPLEMENTATION_PLAN. Código somente nos caminhos autorizados por NEXT_STEPS; exceção documental necessária ao protocolo. Estatística final será registrada no commit (arquivos novos antes não apareciam em git diff --stat).
+4. **Testes:** caracterização antes/depois da extração + fallback: 29 passed; contratos adicionais: suíte focada 35 passed. `ORCH_DB="$(mktemp -d)/events.db" python -m pytest -q -p no:cacheprovider` → 109 passed, 1 warning em 8,13 s. Frontend no baseline: 32 vitest, build/lint verdes, sem alteração posterior. check_docs e diff --check verdes; E2E não executado.
+5. **Decisões:** nenhuma decisão humana presumida; mudanças de padrões, permissões, versões e quota ficam nas tarefas próprias. Sem manifest/probe nesta extração, previstos em CORE-003; metadata/usage previstos em CORE-002.
+6. **Problemas:** coleta inicial incompatível com uniões Pydantic no Python 3.9; corrigida com Optional, sem instalar dependências. Patch points core.run_command/core.claude/core.antigravity mantidos; não precisou alterar asserts existentes.
+7. **Pendências:** Q2–Q12/ADRs; F0-002 continua bloqueada apenas para tarefas dependentes; quota real não autorizada. Segurança legada preservada nesta extração, correções em SEC-*.
+8. **Próxima tarefa:** V2-CORE-002, com dependência CORE-001 satisfeita.
+9. **Aceite:** completar InvocationResult/UsageReport e um agent_call por chamada, provider/modelo/duração; uso unavailable até parsers, dashboard compatível, testes mockados e revisão distinta.
+10. **Comandos:** ativar .venv, pytest com ORCH_DB temporário, npm --prefix frontend test, python scripts/check_docs.py; build/lint conforme IMPLEMENTATION_PLAN. Commits apenas dev; não fazer merge/push/deploy.
+
+- Registro final: commit de CORE-001 criado em dev; estatística preparada antes do commit: 14 arquivos, 369 inserções, 96 remoções. Árvore limpa após commit; CURRENT_STATE ajustado no mesmo commit para refletir conclusão. Consulte `git log -1` para o hash final.

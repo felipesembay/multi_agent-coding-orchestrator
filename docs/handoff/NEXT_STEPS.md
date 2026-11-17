@@ -1,10 +1,17 @@
 # Próximos passos
 
-## Agora (decisões humanas — bloqueiam núcleo v2)
-1. **V2-F0-001** — em andamento: operador autorizou baseline e novos commits em `dev` após testes; sem merge/push. Preservar WIP.
-2. **V2-F0-002** — `blocked`: operador informará decisões depois; revisar ADRs e responder Q2–Q12 (no mínimo Q2, Q3, Q5, Q10). Não assumir respostas.
+## Próxima tarefa: V2-CORE-002
 
-## Primeira tarefa de código: V2-CORE-001
+**Objetivo:** completar `InvocationResult`/`UsageReport` e registrar `agent_call` (provider, modelo, duração) em todas as chamadas. Dependência CORE-001 concluída.
+
+**Aceite:** resultados estruturados com uso `unavailable` até parsers verificados; um evento por chamada, incluindo tentativas de fallback; eventos novos não quebram o dashboard nem contratos legados. Sem quota real, segredos em logs ou mudanças nas flags. Ler PROVIDER_SYSTEM e TOKEN_ACCOUNTING antes de implementar, escrever testes com mocks, revisar e registrar handoff.
+
+## Decisões humanas pendentes
+
+- V2-F0-001 concluída: baseline `f8e6949` em `dev`, preservando o WIP. Novos commits em dev autorizados após testes; sem merge/push.
+- V2-F0-002 `blocked`: Q2–Q12 e ADRs aguardam revisão humana. Não impedem CORE-002/003. Quota real segue não autorizada.
+
+## Referência concluída: V2-CORE-001
 
 **Objetivo:** extrair `AgentRuntime` e adapters `claude_code`, `codex_cli`, `antigravity` para `orchestrator/providers/`, mantendo `core.claude`, `core.codex`, `core.antigravity` e `core.coding_agent` como fachadas compatíveis.
 
@@ -17,7 +24,7 @@
 1. Novo teste `tests/providers/test_argv_characterization.py` cobre: planner claude, implementer claude, planner antigravity, implementer antigravity (com e sem modelo), reviewer codex, fallback planner claude→antigravity — e prova que o `argv` passado a `subprocess.run` é idêntico ao atual (escrever e rodar o teste **antes** da refatoração, contra o código atual).
 2. Todos os testes existentes passam sem alteração de asserts.
 3. `tests/test_planner_fallback.py` continua verde (patch points podem precisar de shim compatível — documentar).
-4. Nenhum arquivo fora de `orchestrator/core.py`, `orchestrator/providers/**` e `tests/providers/**` alterado.
+4. Código restrito a `orchestrator/core.py`, `orchestrator/providers/**` e `tests/providers/**`; documentos de status/handoff atualizados conforme protocolo obrigatório.
 
 **Comandos**
 ```bash

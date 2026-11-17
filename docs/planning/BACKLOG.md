@@ -22,7 +22,7 @@ Fonte única de status das tarefas. Atualize a linha da tarefa ao iniciar (`doin
 
 | ID | Título | Status | P | C | Deps | Perfil | Critério de aceite | Testes |
 |---|---|---|---|---|---|---|---|---|
-| V2-CORE-001 | Interface `AgentRuntime` + adapters Claude/Codex/agy sem mudança de comportamento | todo | P0 | M | F0-001 | BE | `core.claude/codex/antigravity/coding_agent` delegam aos adapters; argv idêntico | Caracterização de argv por papel/provider; 72 testes atuais verdes |
+| V2-CORE-001 | Interface `AgentRuntime` + adapters Claude/Codex/agy sem mudança de comportamento | done | P0 | M | F0-001 | BE | `core.claude/codex/antigravity/coding_agent` delegam aos adapters; argv idêntico | 22 casos de caracterização antes/depois; 6 contratos; 109 pytest verdes; revisão review_core001 (2026-11-17) |
 | V2-CORE-002 | `InvocationResult`/`UsageReport` estruturados + evento `agent_call` (provider, modelo, duração) | todo | P0 | M | CORE-001 | BE | Todas as chamadas geram `agent_call`; uso `unavailable` até parsers | Teste de evento por chamada; dashboard ignora estágio novo sem quebrar |
 | V2-CORE-003 | Registry + `CapabilityManifest` + entry points | todo | P0 | S | CORE-001 | BE | `GET /providers` lista built-ins e fake de entry point | Teste com entry point fake |
 | V2-CORE-004 | Bindings papel→runtime/modelo substituindo leitura direta de env no core | todo | P0 | M | CORE-003 | BE | Env vira fonte do preset `legacy-v1`; reviewer configurável internamente | Testes de config/digest atualizados mantendo compat |

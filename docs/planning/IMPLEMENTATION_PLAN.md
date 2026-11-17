@@ -3,7 +3,7 @@
 > **Ponto de entrada para qualquer agente (Claude, Codex, Antigravity ou humano) que assumir o projeto.**
 > Leia este arquivo primeiro. Ele indica o que ler, qual é o estado atual e qual tarefa executar em seguida.
 
-Última atualização: 2026-11-17 · Fase atual: **F0 — Auditoria e arquitetura** · Autor da sessão: Claude (planejamento)
+Última atualização: 2026-11-17 · Fase atual: **F1 — Núcleo extensível + segurança** (decisões F0 pendentes) · Autor da sessão: Codex
 
 ## 1. Regra de ouro
 
@@ -38,15 +38,16 @@ Não é necessário ler toda a pasta `docs/`. Leia apenas a especificação da �
 
 ## 4. Estado atual resumido
 
-- v1 funcional: projetos, solicitações, fila SQLite, worker supervisionado, LangGraph linear plan → implement → review, worktrees Git, frontend React. Testes: **72 pytest + 32 vitest passando** (2026-11-17).
-- Existe trabalho **não commitado** (tema claro/escuro, exclusão lógica de projeto, migração v3). Ver [CURRENT_STATE.md](../handoff/CURRENT_STATE.md).
-- Nenhuma funcionalidade v2 do produto implementada. Infraestrutura `V2-DOC-001` concluída: verificador de documentação; 81 pytest / 32 vitest, build e lint verdes (2026-11-17).
+- v1 funcional preservada: projetos, solicitações, fila SQLite, worker separado, LangGraph linear e worktrees Git. Baseline testado e revisado em `dev`: `f8e6949`.
+- WIP de tema claro/escuro, exclusão lógica e migração v3 preservado e commitado em `dev`, conforme autorização do operador. Sem merge/push/main/master.
+- `V2-DOC-001` e `V2-CORE-001` concluídas: verificador de documentação e extração dos adapters CLI com contratos mínimos `AgentRuntime`, sem mudança de comportamento.
+- Validação: **109 pytest / 32 vitest**, build/lint e documentação verdes (2026-11-17). Nenhum agente CLI real executado; E2E não executado.
 
 ## 5. Próxima tarefa
 
-1. **`V2-F0-001`** — baseline em `dev` autorizado pelo operador, testado e revisado em 2026-11-17.
-2. **`V2-F0-002`** — bloqueado: operador informará decisões depois; revisão humana dos ADRs e de [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).
-3. **`V2-CORE-001`** — primeira tarefa de código: extrair interface `AgentRuntime` e mover adapters Claude/Codex/Antigravity para trás dela **sem mudança de comportamento**, com testes de caracterização do `argv` atual.
+1. **`V2-CORE-002`** — completar `InvocationResult`/`UsageReport` e evento `agent_call`; uso sempre `unavailable` até parsers verificados. Depende só de CORE-001, já concluída.
+2. **`V2-F0-002`** — pendente de revisão humana dos ADRs e de [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md). Não assumir respostas; bloquear apenas tarefas dependentes.
+3. Depois: CORE-003 registry/capabilities ou tarefas de segurança independentes, uma por vez.
 
 Detalhes e comandos: [NEXT_STEPS.md](../handoff/NEXT_STEPS.md).
 
