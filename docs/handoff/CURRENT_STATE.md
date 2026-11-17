@@ -1,38 +1,40 @@
 # Estado atual
 
-Atualizado: 2026-11-17 · Por: Codex (V2-CORE-001)
+Atualizado: 2026-11-17 · Por: Codex (V2-CORE-002)
 
 ## Repositório
-- Branch: `dev`, criada pelo operador. Baseline: `f8e6949` (`V2-F0-001: establish reviewed development baseline`).
-- Operador autorizou implementação e novos commits em `dev`, após testes. Não fazer merge/push/deploy nem integrar main/master.
-- WIP anterior de tema claro/escuro, exclusão lógica e migração v3 foi preservado, revisado por `review_baseline_dev`, testado e incluído no baseline, junto com planejamento e V2-DOC-001. A orientação anterior de preservar sem commit foi substituída pela autorização de commits em dev.
-- V2-CORE-001 registrada em dev no commit `V2-CORE-001: extract CLI runtimes behind compatible facades`, após revisão independente `review_core001`; consulte `git log -1`. Nenhum WIP restante identificado.
+- Branch: `dev`, criada pelo operador. Baseline: `f8e6949`; extração dos runtimes: `87a034f` (CORE-001).
+- Operador autorizou implementação e commits em `dev` após testes; sem merge/push/deploy/main/master.
+- WIP anterior (tema, exclusão lógica, migração v3) preservado, revisado e incluído no baseline.
+- CORE-002 testada e aprovada por `review_core002`, registrada nesta sessão no commit `V2-CORE-002: record structured invocation metadata`; consulte `git log -1` para hash final. Nenhum WIP externo identificado.
 
 ## Implementado
-- v1 funcional conforme [CURRENT_STATE_AUDIT.md](../architecture/CURRENT_STATE_AUDIT.md), com tema/exclusão/migração v3 do baseline.
-- **V2-DOC-001 done:** `scripts/check_docs.py` valida links locais/âncoras/referências, IDs completos do backlog e data deste documento contra último commit de código. Sem rede/dependências novas.
-- **V2-F0-001 done:** baseline em dev testado, revisado e commitado em `f8e6949`.
-- **V2-CORE-001 done:** `orchestrator/providers/base.py` contém contratos mínimos Pydantic `InvocationRequest`, `InvocationResult(text)` e Protocol `AgentRuntime`; adapters Claude/Codex/Antigravity extraídos para `providers/runtimes/`.
-- Fachadas `core.claude/codex/antigravity` preservam assinatura e retorno texto; `coding_agent` mantém seleção/fallback. `core.run_command` é injetado por chamada para manter mocks/lock/execução existentes.
-- Nenhuma mudança de flags, prompts, timeout, fallback ou eventos. `InvocationResult` completo/uso/eventos pertencem a CORE-002; manifestos/probe/registry a CORE-003. Claude continua com `acceptEdits`; Codex continua read-only; correções de segurança seguem no backlog.
+- v1 preservada, conforme [CURRENT_STATE_AUDIT.md](../architecture/CURRENT_STATE_AUDIT.md), mais tema/exclusão/migração v3 do baseline.
+- **V2-DOC-001 done:** verificador de links/âncoras/referências, IDs do backlog e data do handoff, sem rede.
+- **V2-F0-001 done:** baseline `f8e6949` testado/revisado em dev.
+- **V2-CORE-001 done:** adapters Claude/Codex/Antigravity com runner injetado e fachadas compatíveis.
+- **V2-CORE-002 done:** `UsageReport`, `InvocationResult` completo, `AgentCall`, duração monotônica, códigos de erro normalizados e um evento `agent_call` por tentativa real de runtime associada ao run (inclusive falha/fallback).
+- Eventos incluem provider, papel, modelo solicitado (ou null para CLI default desconhecido), duração, call_id, uso e código de erro; excluem prompt/output/ambiente/cwd/mensagens de erro e usage.raw.
+- Uso sempre `unavailable`, tokens/custo nulos, billing `unknown`. Sem parsers não há modelo reportado/session_id/structured. Exceções e fallback legados preservados. Falha no observer durante erro preserva exceção original e emite warning sem conteúdo; após sucesso, falha de persistência é propagada.
+- Contexto por run/papel resetado em finally; implementer recebe state e reviewer usa contexto. Fachadas continuam retornando texto, com assinaturas e patch points preservados. Standalone sem run retorna metadados sem evento órfão; mock integral da fachada não gera chamada artificial.
+- Dashboard conserva etapa/status/tentativas/resultados ao receber agent_call; last_event continua sendo atividade. Frontend preserva o payload como evento adicional.
+- Flags/prompts/seleção inalterados. Claude continua acceptEdits e Codex read-only; segurança permanece nas tarefas SEC. Manifestos/probe/registry ficam em CORE-003 e usage_records em OBS-001.
 
 ## Testes desta sessão
 | Comando | Resultado |
 |---|---|
-| `ORCH_DB=<tmp> python -m pytest -q -p no:cacheprovider` | Baseline 81 passed; final 109 passed, 1 warning LangGraph |
-| `python -m pytest -q -p no:cacheprovider tests/providers tests/test_planner_fallback.py` | 35 passed; revisão independente repetiu com sucesso |
-| Caracterização antes de alterar core | 22 testes novos + 7 fallback: 29 passed |
-| `npm --prefix frontend test` | 32 passed (6 arquivos), no baseline; frontend não alterado depois |
-| `npm --prefix frontend run build` / `run lint` | sucesso, no baseline |
+| `ORCH_DB=<tmp> python -m pytest -q -p no:cacheprovider` | Baseline 109 passed; final 130 passed, 1 warning LangGraph |
+| `python -m pytest -q -p no:cacheprovider tests/providers tests/test_planner_fallback.py` | 55 passed; revisão independente repetiu com sucesso |
+| `npm --prefix frontend test` | Baseline 32; final 33 passed (6 arquivos) |
+| `npm --prefix frontend run build` / `run lint` | sucesso |
 | `python scripts/check_docs.py` / `git diff --check` | sucesso |
-| E2E / execução real de agentes | não executados |
+| E2E / CLIs de agentes reais | não executados |
 
-A suíte completa Python requer sair do sandbox neste ambiente para TestClient/sockets/subprocessos locais; execução autorizada automaticamente. Nenhum CLI de agente real chamado nos testes.
+Suíte completa Python executada fora do sandbox com autorização automática para sockets locais e subprocessos mockados. Sem quota real.
 
 ## Próximas etapas e pendências
-- V2-CORE-002 ou V2-CORE-003 liberadas após CORE-001; executar uma por vez. Recomendação: CORE-002, resultado/uso/eventos estruturados.
-- V2-F0-002 permanece `blocked`: Q2–Q12 aguardam decisão humana; nenhum ADR aceito/rejeitado por presunção. Isso não bloqueia as tarefas CORE cuja dependência é só CORE-001.
-- Quota real não autorizada. Não iniciar F0-003/validação real SEC-003. Demais decisões só bloqueiam suas tarefas indicadas em OPEN_QUESTIONS.
+- Próxima tarefa: CORE-003 registry/manifests/probe/entry points com opt-in; testar plugins/executáveis simulados, sem segredos ou inferência de quota.
+- F0-002 continua blocked: Q2–Q12 e revisão humana dos ADRs pendentes. Não bloqueia CORE-003. Não assumir decisões nem iniciar spikes reais sem autorização.
 
 ## Ambiente observado
-Python 3.9.7 (.venv), LangGraph 0.6.11, Node 22.18.0; CLIs `claude` 2.1.92, `codex` 0.166.0, `agy` 1.5.1, `ollama` observados na auditoria anterior; Rust/cargo presentes; Tauri CLI ausente na auditoria. Compatibilidade Pydantic em Python 3.9 mantida com Optional, sem dependências novas.
+Python 3.9.7 (.venv), LangGraph 0.6.11, Node 22.18.0. Sem dependências novas; Pydantic usa Optional compatível com Python 3.9. Versões de CLIs seguem apenas a auditoria anterior, sem nova verificação ou execução.

@@ -71,6 +71,14 @@ class ModelProvider(Protocol):
     def generate(self, req: InvocationRequest, context: list[ContextItem]) -> InvocationResult: ...
 ```
 
+### Implementação incremental de CORE-002 (2026-11-17)
+
+`InvocationResult` inclui os campos descritos em §6.1 e `error_code` opcional. O `CommandRuntime` mede duração com relógio monotônico e informa um observer opcional por tentativa. Erros são classificados conservadoramente para metadados; a exceção original continua sendo propagada, preservando o fallback legado. Falha ao persistir metadados de uma chamada já falha gera warning sem conteúdo, sem ocultar o erro original; persistência malsucedida após sucesso é propagada.
+
+O core associa as invocações ao run/papel por contexto local, sem mudar assinaturas das fachadas. O evento `agent_call` inclui `call_id`, `provider`, `role`, `model` (solicitado; null = default desconhecido), `model_reported`, `session_id`, `duration_ms`, `usage`, `billing_mode` e `error_code`. Não contém prompt, saída, ambiente, cwd, mensagem bruta de erro ou `usage.raw`. Uma tentativa de fallback gera outro call_id/evento. Chamadas independentes sem run só retornam metadados, sem criar runs órfãos.
+
+Até parsers verificados, todos os built-ins devolvem uso `unavailable` com contagens/custo nulos; modelo reportado, session e saída estruturada ficam nulos. Campo indisponível nunca vira zero. Billing permanece `unknown`, pois a autenticação CLI não foi verificada. O dashboard conserva etapa/status/resultados ao receber metadados; last_event continua registrando a atividade. Persistência de `usage_records` fica em OBS-001; manifests/probe/registry em CORE-003.
+
 ### 6.2 Manifestos iniciais (a confirmar)
 
 | Adapter | Kind | Capacidades previstas | Permissões → flags | Uso | Verificado |

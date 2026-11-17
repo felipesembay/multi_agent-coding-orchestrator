@@ -1,10 +1,19 @@
 # Próximos passos
 
-## Próxima tarefa: V2-CORE-002
+## Próxima tarefa: V2-CORE-003
 
-**Objetivo:** completar `InvocationResult`/`UsageReport` e registrar `agent_call` (provider, modelo, duração) em todas as chamadas. Dependência CORE-001 concluída.
+**Objetivo:** registry de providers built-in, `CapabilityManifest`, probe e entry points (`orchestrator.providers`), expondo `GET /providers`. Dependência CORE-001 concluída.
 
-**Aceite:** resultados estruturados com uso `unavailable` até parsers verificados; um evento por chamada, incluindo tentativas de fallback; eventos novos não quebram o dashboard nem contratos legados. Sem quota real, segredos em logs ou mudanças nas flags. Ler PROVIDER_SYSTEM e TOKEN_ACCOUNTING antes de implementar, escrever testes com mocks, revisar e registrar handoff.
+**Aceite:** listar Claude/Codex/Antigravity com capacidades, disponibilidade e status de verificação honestos; entry point fake aparece sem alteração do core; plugins de terceiros só carregados por opt-in explícito. Nenhum segredo exposto; não inferir quota ou autenticação a partir de executável encontrado. Ler PROVIDER_SYSTEM e ADR-0004, testar sem rede/CLIs reais, revisar e registrar handoff antes do commit em dev.
+
+## CORE-002 concluída
+
+- `UsageReport` completo e `InvocationResult` medido, com valores desconhecidos nulos e source `unavailable` em todos os built-ins até parsers verificados.
+- Evento `agent_call` por tentativa real de runtime vinculada ao run, inclusive falha/fallback; provider canônico, papel, modelo solicitado ou null, duração monotônica, call_id, erro normalizado e uso. Billing `unknown` até autenticação verificada.
+- Eventos não incluem prompt, resposta, ambiente, cwd, mensagens de erro ou usage.raw. Exceções legadas preservadas; observer com falha durante erro não substitui a causa original (warning sem conteúdo).
+- Fachadas preservadas; runtime independente sem run devolve metadata sem criar eventos órfãos. Mocks integrais de fachadas não geram invocações artificiais. Implementer agora recebe state; reviewer usa contexto por run/papel.
+- API ignora agent_call para etapa/status/resultado, mantendo atividade em last_event. Frontend conserva o evento no fallback genérico.
+- Evidências: 130 pytest / 33 vitest, 55 focados, build/lint/docs verdes; revisão `review_core002`. E2E não executado.
 
 ## Decisões humanas pendentes
 

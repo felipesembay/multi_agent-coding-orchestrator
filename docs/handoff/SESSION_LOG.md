@@ -89,3 +89,36 @@
 10. **Comandos:** ativar .venv, pytest com ORCH_DB temporário, npm --prefix frontend test, python scripts/check_docs.py; build/lint conforme IMPLEMENTATION_PLAN. Commits apenas dev; não fazer merge/push/deploy.
 
 - Registro final: commit de CORE-001 criado em dev; estatística preparada antes do commit: 14 arquivos, 369 inserções, 96 remoções. Árvore limpa após commit; CURRENT_STATE ajustado no mesmo commit para refletir conclusão. Consulte `git log -1` para o hash final.
+
+## 2026-11-17 — Codex — V2-CORE-002 início
+
+- [FATO] `dev`, HEAD `87a034f`, árvore limpa; sem divergências do handoff. Operador autorizou CORE-002 e mantém autorização de commits testados em dev.
+- Escopo: completar InvocationResult/UsageReport; medir invocações e normalizar códigos de erro sem alterar exceções legadas; eventos agent_call por tentativa de runtime vinculada ao run. Não capturar texto/prompt/ambiente ou raw de CLIs.
+- Sem parsers de telemetria: tokens/custos/modelo reportado/session_id permanecem indisponíveis. Sem alterações de flags ou de seleção de agente.
+
+### CORE-002 — marco de testes antes da implementação
+
+- Baseline confirmado: 109 pytest passed (1 warning), 32 vitest passed.
+- Escrito `tests/providers/test_invocation_metadata.py` cobrindo duração determinística, uso unavailable, erros preservados/códigos normalizados, fallback por tentativa, privacidade, contexto e planner/implementer/reviewer.
+- Vermelho esperado na coleta: UsageReport ainda não existe. Nenhum CLI real executado.
+
+### CORE-002 — marco verde e revisão
+
+- Contratos completos UsageReport/InvocationResult, AgentCall e medição monotônica em CommandRuntime; códigos normalizados em providers/errors.py, exceções originais preservadas para fallback legado.
+- Runtime recebe observer opcional. Core usa contexto local por run/papel, resetado em finally, preservando assinaturas das fachadas e seus mocks. Implementer passa state; reviewer associa contexto sem alterar argv.
+- Eventos contêm apenas metadados, excluem usage.raw, prompt/output/cwd/env/erros brutos. Sem telemetria verificada: source unavailable, valores nulos, billing unknown, modelo reportado/session nulos. Modelo agy solicitado é registrado após resolver default/env; Claude/Codex defaults desconhecidos permanecem nulos.
+- 55 testes focados passed, 1 warning; check_docs válido. Adicionadas regressões API e frontend para agent_call como evento adicional, preservando etapa/status/resultados.
+- Chamadas independentes de runtime sem contexto de run retornam metadados; não criam runs/eventos órfãos. Quando uma fachada é substituída por mock integral, não há invocação real de adapter nem evento artificial.
+
+### 2026-11-17 — Codex — fechamento V2-CORE-002
+
+1. **Planejado:** resultados/uso estruturados e evento por invocação de runtime vinculada ao run, mantendo contratos e fallback legados.
+2. **Implementado:** UsageReport/InvocationResult/AgentCall; medição monotônica e observer no CommandRuntime; normalização conservadora de erros preservando exceções; contexto por run/papel nas fachadas; implementer com state e reviewer com contexto; dashboard ignora telemetria como etapa. Nenhuma mudança de argv/prompts/seleção.
+3. **Arquivos:** core.py, dashboard.py, providers/base.py, providers/errors.py (novo), três runtimes; tests/providers/test_invocation_metadata.py (novo), test_dashboard_api.py; frontend/src/lib/events.test.ts; BACKLOG, IMPLEMENTATION_PLAN, PROVIDER_SYSTEM e documentos de handoff. `git diff --stat` antes da finalização documental: 11 arquivos rastreados, 216 inserções, 24 remoções; novos arquivos e estatística final no commit.
+4. **Testes:** baseline 109 pytest / 32 vitest; teste novo vermelho por UsageReport inexistente antes de implementar. Final: ORCH_DB temporário pytest → 130 passed, 1 warning em 8,30 s; testes focados → 55 passed; vitest → 33 passed; build/lint → sucesso; check_docs/diff --check → sucesso. E2E não executado. Nenhuma rede/CLI real/quota consumida pelos testes.
+5. **Decisões:** detalhes de implementação documentados em PROVIDER_SYSTEM, coerentes com ADR-0004/0006 propostos; não aceitaram decisões humanas pendentes. Usage unavailable/campos nulos e billing unknown até evidência; sem parsers/usage_records nesta tarefa.
+6. **Problemas:** sem bloqueantes. Observer que falha durante erro não oculta causa original; warning sem mensagens/segredos. Persistência que falha após sucesso é propagada. Sem contexto de run não cria evento órfão; mocks integrais de fachadas não simulam chamadas reais.
+7. **Pendências:** F0-002/Q2–Q12; parsers reais dependem de autorização de quota e spike F0-003. Revisão independente `review_core002` aprovada, 55 testes focados repetidos e documentação validada, sem achados bloqueantes.
+8. **Próxima tarefa:** V2-CORE-003, registry e CapabilityManifest.
+9. **Aceite:** GET /providers com built-ins e fake de entry point; plugins de terceiros só por opt-in; probes sem segredos, nenhuma inferência de quota; testes mockados, revisão e handoff.
+10. **Comandos:** .venv; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test; npm --prefix frontend run build; npm --prefix frontend run lint; python scripts/check_docs.py. Commit em dev autorizado, sem merge/push/deploy.

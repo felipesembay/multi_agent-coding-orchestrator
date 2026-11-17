@@ -8,13 +8,14 @@ import shutil
 import sqlite3
 import subprocess
 import uuid
-from contextlib import closing
+from contextlib import closing, contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 from typing import TypedDict
 
 from langgraph.graph import END, StateGraph
 
-from .providers.base import InvocationRequest
+from .providers.base import AgentCall, InvocationRequest
 from .providers.runtimes.antigravity import AntigravityRuntime
 from .providers.runtimes.claude_code import ClaudeCodeRuntime
 from .providers.runtimes.codex_cli import CodexCliRuntime
@@ -101,14 +102,39 @@ def extract_json(value: str) -> dict:
     return result
 
 
+# Scope metadata to a run without changing public facade signatures or patch points.
+_agent_context = ContextVar('agent_context', default=None)
+
+
+@contextmanager
+def _agent_call_context(state, role):
+    token = _agent_context.set((state, role))
+    try:
+        yield
+    finally:
+        _agent_context.reset(token)
+
+
+def _request(**kwargs):
+    context = _agent_context.get()
+    return InvocationRequest(role=context[1] if context else 'legacy', **kwargs)
+
+
+def _record_agent_call(call: AgentCall):
+    context = _agent_context.get()
+    if context is not None and context[0] is not None:
+        # Explicitly exclude raw usage, even when future parsers populate it.
+        event(context[0], 'agent_call', call.model_dump(exclude={'usage': {'raw'}}))
+
+
 def claude(prompt: str, cwd: str, timeout: int = 600) -> str:
-    return ClaudeCodeRuntime(run_command).invoke(InvocationRequest(
+    return ClaudeCodeRuntime(run_command, observer=_record_agent_call).invoke(_request(
         prompt=prompt, cwd=cwd, timeout_s=timeout, permission='workspace_write',
     )).text
 
 
 def codex(prompt: str, cwd: str, timeout: int = 600) -> str:
-    return CodexCliRuntime(run_command).invoke(InvocationRequest(
+    return CodexCliRuntime(run_command, observer=_record_agent_call).invoke(_request(
         prompt=prompt, cwd=cwd, timeout_s=timeout, permission='read_only',
     )).text
 
@@ -123,14 +149,19 @@ def antigravity(
     """Compatibility facade retaining legacy arguments and patch points."""
     if mode not in ('plan', 'accept-edits'):
         raise ValueError(f'Invalid Antigravity mode: {mode}')
-    return AntigravityRuntime(run_command).invoke(InvocationRequest(
+    return AntigravityRuntime(run_command, observer=_record_agent_call).invoke(_request(
         prompt=prompt, cwd=cwd, timeout_s=timeout, model=model,
         permission='read_only' if mode == 'plan' else 'workspace_write',
     )).text
 
 
 def coding_agent(prompt: str, cwd: str, role: str, state: State | None = None) -> str:
-    """Seleciona o agente responsável pelo planejamento ou implementação."""
+    """Select the legacy provider with metadata scoped to this run and role."""
+    with _agent_call_context(state, role):
+        return _coding_agent(prompt, cwd, role, state)
+
+
+def _coding_agent(prompt: str, cwd: str, role: str, state: State | None = None) -> str:
     if role not in ('planner', 'implementer'):
         raise ValueError(f'Invalid agent role: {role}')
 
@@ -257,7 +288,7 @@ def implement(state: State) -> State:
         'Summarize changed files and test commands in your final response.'
     )
     # A failed agent call is NOT counted as a completed implementation.
-    result = coding_agent(prompt, state['worktree'], 'implementer')
+    result = coding_agent(prompt, state['worktree'], 'implementer', state=state)
     event(state, 'implementation', {
         'task': task['id'], 'attempt': attempts + 1, 'output': result[-6000:],
     })
@@ -311,9 +342,10 @@ def review(state: State) -> State:
         f'Diff excerpt: {diff[:16000]}\n'
         f'Automated test results: {json.dumps(test_result)}'
     )
-    result = extract_json(codex(
-        prompt, worktree, int(os.getenv('AGENT_TIMEOUT', '900')),
-    ))
+    with _agent_call_context(state, 'reviewer'):
+        result = extract_json(codex(
+            prompt, worktree, int(os.getenv('AGENT_TIMEOUT', '900')),
+        ))
     if not isinstance(result.get('approved'), bool) or not isinstance(
         result.get('findings'), list
     ):

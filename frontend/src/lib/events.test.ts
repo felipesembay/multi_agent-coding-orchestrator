@@ -65,3 +65,18 @@ it('validates known review and task fields without losing the original payload',
   ])
   expect(e.raw).toHaveProperty('approved', 'true')
 })
+
+it('preserves agent_call metadata through the additional-event fallback', () => {
+  const payload = {
+    provider: 'codex_cli',
+    role: 'reviewer',
+    model: null,
+    duration_ms: 120,
+    usage: { source: 'unavailable', input_tokens: null },
+  }
+  const parsed = event(JSON.stringify(payload), 'agent_call')
+  expect(parsed.malformed).toBe(false)
+  expect(parsed.raw).toEqual(payload)
+  expect(parsed.data).toEqual(payload)
+  expect(eventSummary(parsed)).toContain('Evento adicional')
+})

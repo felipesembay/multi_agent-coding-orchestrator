@@ -110,3 +110,26 @@ def test_incomplete_and_wrongly_typed_payloads_remain_unknown(client):
     assert result['duration_seconds'] is None
     record('finished', {'status': ['success']})
     assert client.get('/runs/run-one').json()['status'] == 'unknown'
+
+
+def test_agent_call_metadata_preserves_workflow_stage_and_result(client):
+    record('started', {})
+    record('stage_started', {'stage': 'review', 'role': 'reviewer'})
+    payload = {'provider': 'codex_cli', 'role': 'reviewer', 'model': None,
+               'duration_ms': 120, 'usage': {'source': 'unavailable'}}
+    record('agent_call', payload, at='2026-11-05 12:01:00')
+    detail = client.get('/runs/run-one').json()
+    assert detail['current_stage'] == 'review'
+    assert detail['status'] == 'running'
+    assert detail['attempts'] == 0
+    assert detail['last_event'] == '2026-11-05 12:01:00'
+    assert client.get('/runs/run-one/events').json()[-1]['stage'] == 'agent_call'
+    record('review', {'approved': True, 'test_result': {'passed': True}})
+    record('finished', {'status': 'ready_for_human_review'}, at='2026-11-05 12:02:00')
+    record('agent_call', payload, at='2026-11-05 12:03:00')
+    summary = client.get('/runs').json()[0]
+    assert summary['current_stage'] == 'finished'
+    assert summary['status'] == 'ready_for_human_review'
+    assert summary['tests_passed'] is True
+    assert summary['duration_seconds'] == 120
+    assert client.get('/overview').json()['counts'] == {'ready_for_human_review': 1}

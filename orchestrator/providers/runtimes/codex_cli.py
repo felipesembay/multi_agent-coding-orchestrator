@@ -3,7 +3,9 @@ from ..base import CommandRuntime, InvocationRequest, InvocationResult
 
 
 class CodexCliRuntime(CommandRuntime):
-    def invoke(self, req: InvocationRequest) -> InvocationResult:
+    provider = 'codex_cli'
+
+    def _invoke(self, req: InvocationRequest) -> InvocationResult:
         if req.permission != 'read_only':
             raise ValueError('Legacy Codex runtime requires read_only')
         text = self._run(

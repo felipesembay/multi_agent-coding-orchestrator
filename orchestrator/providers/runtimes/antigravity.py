@@ -6,11 +6,16 @@ from ..base import CommandRuntime, InvocationRequest, InvocationResult
 
 
 class AntigravityRuntime(CommandRuntime):
-    def invoke(self, req: InvocationRequest) -> InvocationResult:
+    provider = 'antigravity'
+
+    def _resolve_model(self, req: InvocationRequest):
+        return req.model if req.model is not None else os.getenv(
+            'ORCH_ANTIGRAVITY_MODEL', 'gemini-4-argon-medium',
+        )
+
+    def _invoke(self, req: InvocationRequest) -> InvocationResult:
         mode = 'plan' if req.permission == 'read_only' else 'accept-edits'
         model = req.model
-        if model is None:
-            model = os.getenv('ORCH_ANTIGRAVITY_MODEL', 'gemini-4-argon-medium')
         raw = self._run([
             'agy', '--print', req.prompt, '--model', model,
             '--mode', mode, '--output-format', 'json',
