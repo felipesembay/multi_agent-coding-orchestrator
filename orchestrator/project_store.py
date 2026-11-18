@@ -57,6 +57,49 @@ EXECUTION_MIGRATION = [
 ]
 
 
+WORKFLOW_MIGRATION = [
+    """CREATE TABLE workflow_definitions (
+        id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        is_preset INTEGER NOT NULL DEFAULT 0 CHECK(is_preset IN (0,1)),
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, archived_at TEXT)""",
+    """CREATE TABLE workflow_versions (
+        id TEXT PRIMARY KEY NOT NULL,
+        definition_id TEXT NOT NULL REFERENCES workflow_definitions(id),
+        version INTEGER NOT NULL CHECK(typeof(version)='integer' AND version>=1),
+        schema_version INTEGER NOT NULL CHECK(typeof(schema_version)='integer' AND schema_version>=1),
+        body TEXT NOT NULL CHECK(CASE WHEN json_valid(body) THEN json_type(body)='object' ELSE 0 END),
+        digest TEXT NOT NULL CHECK(length(digest)=64 AND digest NOT GLOB '*[^0-9a-f]*'),
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(definition_id,version))""",
+    """CREATE TRIGGER workflow_versions_no_update BEFORE UPDATE ON workflow_versions
+        BEGIN SELECT RAISE(ABORT, 'Workflow versions are immutable'); END""",
+    """CREATE TRIGGER workflow_versions_no_delete BEFORE DELETE ON workflow_versions
+        BEGIN SELECT RAISE(ABORT, 'Workflow versions are immutable'); END""",
+    # REPLACE can delete conflicts without firing DELETE triggers when recursive
+    # triggers are disabled (SQLite's default). Refuse replacement before it runs.
+    """CREATE TRIGGER workflow_versions_no_replace BEFORE INSERT ON workflow_versions
+        WHEN EXISTS(SELECT 1 FROM workflow_versions WHERE id=NEW.id
+                    OR (definition_id=NEW.definition_id AND version=NEW.version))
+        BEGIN SELECT RAISE(ABORT, 'Workflow versions are immutable'); END""",
+    """CREATE TABLE provider_configs (
+        id TEXT PRIMARY KEY NOT NULL,
+        kind TEXT NOT NULL CHECK(kind IN ('agent_runtime','model_provider')),
+        adapter TEXT NOT NULL, display_name TEXT NOT NULL,
+        settings TEXT NOT NULL DEFAULT '{}'
+            CHECK(CASE WHEN json_valid(settings) THEN json_type(settings)='object' ELSE 0 END),
+        credential_ref TEXT,
+        enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN (0,1)))""",
+    'ALTER TABLE managed_runs ADD COLUMN workflow_version_id TEXT REFERENCES workflow_versions(id)',
+    """ALTER TABLE managed_runs ADD COLUMN bindings TEXT
+        CHECK(bindings IS NULL OR CASE WHEN json_valid(bindings) THEN json_type(bindings)='object' ELSE 0 END)""",
+    """ALTER TABLE managed_runs ADD COLUMN workflow_digest TEXT
+        CHECK(workflow_digest IS NULL OR (length(workflow_digest)=64 AND workflow_digest NOT GLOB '*[^0-9a-f]*'))""",
+    'CREATE INDEX runs_by_workflow_version ON managed_runs(workflow_version_id)',
+    'INSERT INTO platform_migrations(version) VALUES(4)',
+]
+
+
 @contextmanager
 def connection():
     path = Path(db_path()).expanduser()
@@ -82,6 +125,14 @@ def connection():
             if not conn.execute('SELECT 1 FROM platform_migrations WHERE version=3').fetchone():
                 conn.execute('ALTER TABLE projects ADD COLUMN deleted_at TEXT')
                 conn.execute('INSERT INTO platform_migrations(version) VALUES(3)')
+            conn.commit()
+        if not conn.execute('SELECT 1 FROM platform_migrations WHERE version=4').fetchone():
+            conn.execute('BEGIN IMMEDIATE')
+            # The pre-lock read is only a fast path. A competing opener may have
+            # committed the complete migration while this connection waited.
+            if not conn.execute('SELECT 1 FROM platform_migrations WHERE version=4').fetchone():
+                for statement in WORKFLOW_MIGRATION:
+                    conn.execute(statement)
             conn.commit()
         yield conn
     except Exception:

@@ -45,13 +45,14 @@ Não é necessário ler toda a pasta `docs/`. Leia apenas a especificação da �
 - `V2-SEC-002` concluída: ambiente por allowlist de escopo, nomes congelados no snapshot/digest e marcador de supervisão preservado.
 - `V2-SEC-006` concluída: política Git compartilhada com hooks/fsmonitor/conversores desligados e recusa de filtros executáveis, inclusive condicionais por branch.
 - `V2-WF-001` concluída: schema versionado e validação pura de estrutura/bindings; sem execução/migração/API/presets.
-- Validação: **398 pytest / 38 vitest**, build/lint/docs verdes; revisão independente (2026-11-18). E2E não reexecutado em WF-001; última execução SEC-002: 9 passed / 2 skipped com mocks. Nenhum CLI de agente real.
+- `V2-WF-002` concluída: migração aditiva v4 para workflows/provider_configs, novas colunas anuláveis e versões imutáveis; sem integração ao executor/API ou seeds.
+- Validação: **424 pytest / 38 vitest**, build/lint/docs verdes; revisão independente (2026-11-18). E2E não reexecutado em WF-002; última execução SEC-002: 9 passed / 2 skipped com mocks. Nenhum CLI de agente real.
 
 ## 5. Próxima tarefa
 
-1. **`V2-WF-002`** — migração aditiva v4 para workflows/provider_configs e colunas managed_runs, preservando dados v3; schema/validação WF-001 prontos.
+1. **`V2-WF-003`** — compilador definição→StateGraph, com equivalência comprovada ao grafo legado; schema/validação WF-001 e migração WF-002 prontos.
 2. **`V2-F0-002`** — pendente de revisão humana dos ADRs e de [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md). Não assumir respostas; bloquear apenas tarefas dependentes.
-3. Depois: WF-003 ou demais tarefas liberadas, uma por vez. SEC-003 exige validação real autorizada; SEC-004 também tem revisão humana obrigatória conforme especificação.
+3. Depois: WF-004 (Q2 pendente) ou demais tarefas liberadas, uma por vez. SEC-003 exige validação real autorizada; SEC-004 também tem revisão humana obrigatória conforme especificação.
 
 Detalhes e comandos: [NEXT_STEPS.md](../handoff/NEXT_STEPS.md).
 

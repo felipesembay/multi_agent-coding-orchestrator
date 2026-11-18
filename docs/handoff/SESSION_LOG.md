@@ -337,3 +337,26 @@
 - Decisões: ADR-0005 continua proposto, sem alteração de ADR/padrão. Faixas de servidor e refinamentos do schema documentados em WORKFLOW_ENGINE §6.2.1. Sem bypass legacy por nome; compatibilidade no caminho atual e futura equivalência WF-003/004.
 - Pendências: compilador/migração/API/presets fora desta tarefa; F0-002 decisões humanas ainda pendentes. Sem merge/push/deploy; commit local em dev autorizado.
 - Próxima tarefa recomendada V2-WF-002: migração aditiva v4 preservando dados v3 e snapshots/digests; upgrade/reabertura idempotente com DB temporário. Ler DATA_MODEL/PERSISTENCE/WORKFLOW_ENGINE e iniciar com git status/log, baseline pytest isolado e npm --prefix frontend test. Handoff, revisão e commit dev após verdes.
+
+
+## 2026-11-18 — Codex — V2-WF-002 início
+- Planejado: migração aditiva v4 conforme DATA_MODEL, WORKFLOW_ENGINE e PERSISTENCE, com upgrade v3, atomicidade/reabertura e concorrência. CORE/WF-001 prontos; ADR-0005 proposto consultado. Q2–Q12 não bloqueiam esta tarefa, sem presumir respostas.
+- Dev limpa em caee20e, 4 commits à frente de origin/dev sem autorização nova de push; sem divergência com handoff. Baseline ORCH_DB temporário python -m pytest -q -p no:cacheprovider: 398 passed, 1 warning (14,49 s); npm --prefix frontend test: 38 passed.
+
+### WF-002 — testes vermelhos
+- Criados tests/workflows/test_migration.py e fixture SQL v3 congelada de caee20e, independente das constantes atuais. 14 falhas esperadas antes da implementação: versão 4/tabelas/colunas ausentes. Cobertura de preservação integral de linhas e índices, fresh/reopen, concorrência, rollback, integridade de referências/JSON e imutabilidade de versões.
+
+### WF-002 — migração verde / revisão
+- 26 testes novos passaram após WORKFLOW_MIGRATION e aplicação em transação BEGIN IMMEDIATE com rechecagem sob lock. Schema congelado garante independência do teste de upgrade.
+- Tabelas workflow_definitions/workflow_versions/provider_configs, colunas managed_runs anuláveis, índice de FK e constraints básicas. Triggers recusam update/delete/replace de versões. Sem seed/provider habilitado, sem inferir Q2/Q5; estado padrão legado intacto.
+- Contrato de implantação: JSON1 disponível no SQLite 3.36.0 local; checks apenas integridade JSON básica. Validação Pydantic de body deve ser aplicada no futuro caminho de escrita, ainda inexistente nesta tarefa de migração.
+
+### WF-002 — fim / revisão aprovada
+- Implementado V2-WF-002: migração v4 aditiva em orchestrator/project_store.py; três tabelas e três colunas nullable, índice/FKs/JSON/digests, versões imutáveis inclusive REPLACE. Nenhuma tabela legada recriada, nenhum dado alterado/seed inserido. Registry/execução permanecem iguais.
+- Arquivos: project_store.py, tests/workflows/test_migration.py, tests/fixtures/platform_v3.sql, DATA_MODEL, IMPLEMENTATION_PLAN, BACKLOG e três documentos de handoff. Estatísticas finais inspecionadas no staged diff antes do commit.
+- Testes: ORCH_DB temporário python -m pytest -q -p no:cacheprovider: 424 passed, 1 warning LangGraph, 15,09s; 26 novos casos de migração. npm --prefix frontend test: 38 passed no baseline (frontend intacto); npm --prefix frontend run build e run lint: sucesso. python scripts/check_docs.py e git diff --check: sucesso. E2E não reexecutado; nenhum agente CLI real ou quota consumida.
+- Revisão review_wf002: 101 testes de workflows verdes, aprovada sem bloqueios. SQL v3 congelado garante que upgrade não reaproveita schema novo como baseline.
+- Decisões: ADR-0005 permanece proposto; nenhuma resposta Q2–Q12 presumida. JSON1 requerido e disponível no SQLite3.36.0; provider_configs vazio/enabled default0. Escrita futura de body deve validar Pydantic e impedir segredos em settings; não há CRUD/API/caminho de escrita nesta tarefa, apenas constraintsSQL básicas. Imutabilidade impõe nova versão para editar.
+- Problemas: nenhum bloqueio; triggers incluem proteção BEFORE INSERT para REPLACE, que pode omitir DELETE triggers com configuração SQLite padrão. Rollback/concurrency/failure injection e preservação de sequência de eventos cobertos.
+- Pendências: Q2–Q12, integração de CRUD/API, presets, compilador e snapshot no executor em tarefas próprias. Sem merge/push/deploy; commit local dev autorizado após testes/revisão.
+- Próxima recomendada: V2-WF-003. Aceite: equivalência legacy-v1 ao core.graph, snapshot de topologia e suíte existente. Ler WORKFLOW_ENGINE/ADR-0005/core/bindings; compatibilidade explícita sem bypass por nome ou mudanças dependentes de Q2/Q5. Comandos: git status/log; source .venv/bin/activate; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test; revisão/handoff/commit dev após verdes.

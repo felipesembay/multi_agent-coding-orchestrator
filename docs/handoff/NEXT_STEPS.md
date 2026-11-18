@@ -1,10 +1,18 @@
 # Próximos passos
 
-## Próxima tarefa recomendada: V2-WF-002
+## Próxima tarefa recomendada: V2-WF-003
 
-**Objetivo:** migração aditiva v4 com workflow_definitions, workflow_versions, provider_configs e colunas em managed_runs. Dependência WF-001 concluída.
+**Objetivo:** compilador definição→StateGraph com equivalência ao grafo atual. Dependências WF-001 e CORE-004 concluídas.
 
-**Aceite:** upgrade a partir de banco v3 preserva dados e comportamento; reabrir banco é idempotente. Ler DATA_MODEL, PERSISTENCE e WORKFLOW_ENGINE; não persistir segredos nem antecipar compilador/API/presets. Preservar snapshots/digests antigos. Testes de upgrade com DB temporário, revisão independente, handoff e commit em dev após testes. Sem push/merge/deploy.
+**Aceite:** CA1 de WORKFLOW_ENGINE: legacy-v1 conserva comportamento, com snapshot de topologia e suíte existente passando. Ler WORKFLOW_ENGINE, ADR-0005, core.graph e contratos de bindings. Compatibilidade legada deve ser explícita, sem bypass de segurança baseado apenas no nome de workflow. Não ativar novos presets/padrões dependentes de Q2/Q5; não consumir quota real. Revisão independente obrigatória também pela especificação, handoff e commit em dev após testes; sem push/merge/deploy.
+
+## WF-002 concluída
+
+- Migração v4 aditiva: workflow_definitions, workflow_versions, provider_configs e managed_runs.workflow_version_id/bindings/workflow_digest, nulos para runs antigos. Dados/configs/events/índices antigos preservados.
+- BEGIN IMMEDIATE com rechecagem sob lock, rollback total de DDL e reabertura/concorrência testados. FK/JSON/digests e versões imutáveis, inclusive contra OR REPLACE. Tabelas vazias, provider_configs.enabled default 0; nenhum seed ou novo comportamento de execução.
+- Evidência: 424 pytest / 38 vitest, build/lint/docs verdes; 26 novos casos de migração; revisor review_wf002 aprovou e rodou 101 testes de workflows. Fixture SQL v3 congelada em caee20e. SQLite JSON1 requerido e verificado local3.36.0.
+- Não existe CRUD de workflow/provider nesta tarefa; o futuro escritor deve aplicar schema Pydantic ao body e impedir segredos em settings. A migração só impõe integridade SQL básica; credential_ref é referência opcional, sem integração ao keyring. Sem API/compilador/presets/snapshot de workflow no executor.
+- Decisões Q2–Q12 continuam em aberto e não foram necessárias para WF-002; não presumir respostas ao avançar.
 
 ## WF-001 concluída
 
@@ -65,7 +73,7 @@
 ## Decisões humanas pendentes
 
 - V2-F0-001 concluída: baseline `f8e6949` em `dev`, preservando o WIP. Novos commits em dev autorizados após testes; sem merge/push.
-- V2-F0-002 `blocked`: Q2–Q12 e ADRs aguardam revisão humana. Não impedem WF-002; SEC-003 requer autorização de validação real. Quota real segue não autorizada.
+- V2-F0-002 `blocked`: Q2–Q12 e ADRs aguardam revisão humana. Não impedem o trabalho de equivalência WF-003; SEC-003 requer autorização de validação real. Quota real segue não autorizada.
 
 ## Referência concluída: V2-CORE-001
 
