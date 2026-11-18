@@ -5,6 +5,7 @@ from importlib.metadata import PackageNotFoundError, version
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from starlette.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 
 from .project_api import router as project_router
 from .projects import ProjectError
@@ -14,10 +15,24 @@ from .core import db, db_path
 from .providers.registry import ProviderInfo, ProviderRegistry, get_provider_registry
 from .dashboard import summarize
 from .execution_manager import all_summaries, get_managed, consolidated
+from .workflow_api import router as workflow_router, field_errors
+from .workflows.snapshot import WorkflowSnapshotError
 
 app = FastAPI(title='Multi-Agent Orchestrator — local project platform')
 app.middleware('http')(protect_routes)
 app.include_router(project_router)
+app.include_router(workflow_router)
+
+
+@app.exception_handler(RequestValidationError)
+async def invalid_request(request, exc):
+    # Never echo rejected credential/command fields or raw input values.
+    return JSONResponse({'detail': field_errors(exc)}, status_code=422)
+
+
+@app.exception_handler(WorkflowSnapshotError)
+async def workflow_error(request, exc):
+    return JSONResponse({'detail': str(exc)}, status_code=422)
 
 
 @app.exception_handler(ProjectError)

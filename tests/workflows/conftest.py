@@ -1,4 +1,12 @@
 import pytest
+import json
+from pathlib import Path
+import shlex
+import sys
+
+from orchestrator import projects
+from orchestrator.worker import Worker
+from orchestrator.providers.base import InvocationResult
 from types import SimpleNamespace
 
 from orchestrator.project_store import connection
@@ -48,3 +56,38 @@ def snapshot_case(tmp_path, monkeypatch, definition):
         'review': {'provider_config_id': 'pc', 'model': 'review-model'},
     })
     return selection, Registry(), definition
+
+
+@pytest.fixture
+def managed_case(snapshot_case, tmp_path, monkeypatch):
+    selection, registry, definition = snapshot_case
+    root = tmp_path / 'projects'
+    root.mkdir()
+    monkeypatch.setenv('ORCH_ALLOWED_ROOTS', str(root))
+    command = [sys.executable, '-c', "from pathlib import Path; assert Path('output.txt').read_text() == 'done'"]
+    monkeypatch.setenv('ORCH_TEST_COMMAND', shlex.join(command))
+    monkeypatch.setenv('ORCH_ALLOWED_TEST_COMMANDS', json.dumps([command]))
+    monkeypatch.delenv('ORCH_WORKTREES', raising=False)
+    monkeypatch.delenv('ORCH_ENV_ALLOWLIST', raising=False)
+    preview = projects.preview(projects.ProjectInput(name='Snapshot test', repo_path=str(root / 'repo'), mode='create'))
+    project = projects.create(projects.ProjectConfirmation(preview_token=preview['preview_token'], confirmed=True))
+    request = projects.submit_request(project['id'], projects.RequestInput(title='Task', content='Original scope'))
+    worker = Worker()
+    worker.heartbeat()
+    seen = []
+    get = registry.get
+    def runtime(adapter):
+        provider = get(adapter)
+        def invoke(request):
+            seen.append(request)
+            if request.role == 'planner':
+                return InvocationResult(text=json.dumps({'tasks': [{'id': 'T1', 'title': 'Write output',
+                    'instructions': 'Write done', 'acceptance': ['output file exists']}]}))
+            if request.role == 'implementer':
+                Path(request.cwd, 'output.txt').write_text('done')
+                return InvocationResult(text='Updated output.txt')
+            return InvocationResult(text='{"approved":true,"findings":[]}')
+        provider.invoke = invoke
+        return provider
+    registry.get = runtime
+    return selection, registry, definition, project, request, worker, seen

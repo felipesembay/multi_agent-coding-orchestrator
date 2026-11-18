@@ -52,7 +52,15 @@ beforeAll(() => {
   }
 })
 function setup(
-  options: { offline?: boolean; fail?: boolean; pending?: boolean } = {},
+  options: {
+    offline?: boolean
+    fail?: boolean
+    pending?: boolean
+    customWorkflow?: boolean
+    presetReady?: boolean
+    presetTrio?: boolean
+    prototypeStep?: boolean
+  } = {},
 ) {
   let failed = false
   const fetcher = vi.fn(
@@ -63,6 +71,153 @@ function setup(
         status,
         json: async () => data,
       })
+      const definition = {
+        schema_version: 1,
+        name: 'Meu workflow',
+        steps: [
+          { id: 'plan', type: 'plan', role: 'planner', requires: ['planning'] },
+          {
+            id: options.prototypeStep ? 'constructor' : 'impl',
+            type: 'implement',
+            role: 'implementer',
+            requires: ['code_edit'],
+            per_task: true,
+          },
+          {
+            id: 'review',
+            type: 'review',
+            role: 'reviewer',
+            requires: ['review'],
+            per_task: true,
+          },
+        ],
+      }
+      const version = (id: string, number: number) => ({
+        id,
+        version: number,
+        definition,
+      })
+      const hints = options.presetTrio
+        ? {
+            plan: {
+              provider_config_id: 'pc-claude',
+              permission: 'read_only',
+              model: null,
+            },
+            impl: {
+              provider_config_id: 'pc-codex',
+              permission: 'workspace_write',
+              model: null,
+            },
+            review: {
+              provider_config_id: 'pc-agy',
+              permission: 'read_only',
+              model: null,
+            },
+          }
+        : {}
+      if (url === '/api/workflow-presets')
+        return result([
+          {
+            id: 'legacy-v1',
+            title: 'Legacy v1',
+            execution_mode: 'legacy',
+            available: true,
+            errors: [],
+            default_for_cli: true,
+          },
+          {
+            id: 'default-v2',
+            title: 'Claude → Codex → Antigravity',
+            execution_mode: 'workflow',
+            available: !!options.presetReady,
+            errors: ['Permissões ainda indisponíveis'],
+            default_for_ui: true,
+            workflow: { definition },
+            suggested_bindings: hints,
+          },
+          {
+            id: 'openrouter-plan',
+            title: 'OpenRouter',
+            execution_mode: 'workflow',
+            available: false,
+            errors: ['Integração pendente'],
+            blocked_by: ['V2-PROV-001'],
+          },
+        ])
+      if (url === '/api/workflows' && init?.method === 'POST')
+        return result(
+          {
+            id: 'wf-user',
+            name: 'Meu workflow',
+            read_only: false,
+            latest_version: version('wv2', 2),
+            suggested_bindings: hints,
+          },
+          201,
+        )
+      if (url === '/api/workflows')
+        return result(
+          options.customWorkflow || options.presetTrio
+            ? [
+                {
+                  id: 'wf-user',
+                  name: 'Meu workflow',
+                  read_only: false,
+                  latest_version: version('wv2', 2),
+                },
+              ]
+            : [],
+        )
+      if (url === '/api/workflows/wf-user/versions')
+        return result([version('wv1', 1), version('wv2', 2)])
+      if (url === '/api/provider-configs' && options.presetTrio)
+        return result(
+          ['claude', 'codex', 'agy'].map((name) => ({
+            id: `pc-${name}`,
+            adapter: name,
+            kind: 'agent_runtime',
+            display_name: name,
+            enabled: true,
+            available: true,
+            verified: true,
+            model_selection: true,
+            capabilities: ['text', 'planning', 'review', 'code_edit'],
+            permission_modes: ['read_only', 'workspace_write'],
+          })),
+        )
+      if (url === '/api/provider-configs')
+        return result([
+          {
+            id: 'pc-local',
+            adapter: 'fake',
+            kind: 'agent_runtime',
+            display_name: 'Runtime local',
+            enabled: true,
+            available: true,
+            verified: true,
+            model_selection: true,
+            capabilities: ['text', 'planning', 'review', 'code_edit'],
+            permission_modes: ['read_only', 'workspace_write'],
+          },
+        ])
+      if (url.endsWith('/execution-config') && init?.method === 'POST') {
+        const selection = JSON.parse(String(init.body)).workflow
+        const implementation =
+          selection.bindings[options.prototypeStep ? 'constructor' : 'impl']
+        return result({
+          ...config,
+          configuration_digest: (implementation.model ? 'c' : 'b').repeat(64),
+          configuration: {
+            ...config.configuration,
+            planner: 'fake',
+            implementer: 'fake',
+            reviewer: 'fake',
+            planner_model: null,
+            implementer_model: implementation.model,
+          },
+        })
+      }
       if (url.endsWith('/execution-config'))
         return result(
           options.offline
@@ -120,6 +275,153 @@ function setup(
   return { fetcher, router, close }
 }
 describe('start execution confirmation', () => {
+  it('supports valid stage IDs that match Object.prototype properties', async () => {
+    const { fetcher } = setup({ customWorkflow: true, prototypeStep: true })
+    await screen.findByText('configured-model', { exact: false })
+    await userEvent.selectOptions(
+      screen.getByRole('combobox', { name: 'Workflow' }),
+      'workflow:wf-user',
+    )
+    const model = await screen.findByRole('textbox', {
+      name: 'Modelo para constructor',
+    })
+    expect(
+      screen.getByRole('combobox', { name: 'Provider para constructor' }),
+    ).toHaveValue('pc-local')
+    await userEvent.type(model, 'selected-model')
+    await waitFor(() => expect(screen.getByRole('checkbox')).toBeEnabled())
+    await userEvent.click(screen.getByRole('checkbox'))
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Confirmar e iniciar' }),
+    )
+    await screen.findByRole('heading', { name: 'Acompanhamento da execução' })
+    const write = fetcher.mock.calls.find(([url]) =>
+      String(url).endsWith(`/requests/${task.id}/runs`),
+    )!
+    const body = JSON.parse(String(write[1]?.body))
+    expect(Object.hasOwn(body.workflow.bindings, 'constructor')).toBe(true)
+    expect(body.workflow.bindings.constructor.model).toBe('selected-model')
+  })
+  it('keeps the preset trio after the workflow list refresh loses suggestions', async () => {
+    const { fetcher } = setup({ presetReady: true, presetTrio: true })
+    await screen.findByRole('button', { name: 'Usar este preset' })
+    await waitFor(() =>
+      expect(
+        screen.getByRole('combobox', { name: 'Provider para impl' }),
+      ).toHaveValue('pc-codex'),
+    )
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Usar este preset' }),
+    )
+    await screen.findByRole('combobox', { name: 'Versão do workflow' })
+    await waitFor(() => expect(screen.getByRole('checkbox')).toBeEnabled())
+    expect(
+      screen.getByRole('combobox', { name: 'Provider para plan' }),
+    ).toHaveValue('pc-claude')
+    expect(
+      screen.getByRole('combobox', { name: 'Provider para impl' }),
+    ).toHaveValue('pc-codex')
+    expect(
+      screen.getByRole('combobox', { name: 'Provider para review' }),
+    ).toHaveValue('pc-agy')
+    await userEvent.click(screen.getByRole('checkbox'))
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Confirmar e iniciar' }),
+    )
+    await screen.findByRole('heading', { name: 'Acompanhamento da execução' })
+    const write = fetcher.mock.calls.find(([url]) =>
+      String(url).endsWith(`/requests/${task.id}/runs`),
+    )!
+    const body = JSON.parse(String(write[1]?.body))
+    expect([
+      body.workflow.bindings.plan.provider_config_id,
+      body.workflow.bindings.impl.provider_config_id,
+      body.workflow.bindings.review.provider_config_id,
+    ]).toEqual(['pc-claude', 'pc-codex', 'pc-agy'])
+  })
+  it('offers the new default when available and only clones on explicit selection', async () => {
+    const { fetcher } = setup({ presetReady: true })
+    await screen.findByRole('button', { name: 'Usar este preset' })
+    expect(screen.getByRole('combobox', { name: 'Workflow' })).toHaveValue(
+      'preset:default-v2',
+    )
+    expect(fetcher.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(
+      false,
+    )
+    expect(
+      screen.getByRole('button', { name: 'Confirmar e iniciar' }),
+    ).toBeDisabled()
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Usar este preset' }),
+    )
+    await screen.findByRole('textbox', { name: 'Modelo para impl' })
+    await waitFor(() => expect(screen.getByRole('checkbox')).toBeEnabled())
+    const writes = fetcher.mock.calls.filter(
+      ([url, init]) => url === '/api/workflows' && init?.method === 'POST',
+    )
+    expect(writes).toHaveLength(1)
+    expect(JSON.parse(String(writes[0][1]?.body))).toEqual({
+      preset_id: 'default-v2',
+    })
+  })
+  it('selects an immutable workflow version and models before confirmation', async () => {
+    const { fetcher } = setup({ customWorkflow: true })
+    await screen.findByText('configured-model', { exact: false })
+    await userEvent.selectOptions(
+      screen.getByRole('combobox', { name: 'Workflow' }),
+      'workflow:wf-user',
+    )
+    const model = await screen.findByRole('textbox', {
+      name: 'Modelo para impl',
+    })
+    await userEvent.type(model, 'chosen-model')
+    await waitFor(() => expect(screen.getByRole('checkbox')).toBeEnabled())
+    await userEvent.click(screen.getByRole('checkbox'))
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Confirmar e iniciar' }),
+    )
+    await screen.findByRole('heading', { name: 'Acompanhamento da execução' })
+    const posted = fetcher.mock.calls.find(([url]) =>
+      String(url).endsWith(`/requests/${task.id}/runs`),
+    )!
+    const body = JSON.parse(String(posted[1]?.body))
+    expect(body.workflow.workflow_version_id).toBe('wv2')
+    expect(body.workflow.bindings.impl).toEqual({
+      provider_config_id: 'pc-local',
+      model: 'chosen-model',
+      permission: 'workspace_write',
+    })
+    expect(body.configuration_digest).toBe('c'.repeat(64))
+  })
+  it('clears consent when changing a selected version or model', async () => {
+    setup({ customWorkflow: true })
+    await screen.findByText('configured-model', { exact: false })
+    await userEvent.selectOptions(
+      screen.getByRole('combobox', { name: 'Workflow' }),
+      'workflow:wf-user',
+    )
+    await screen.findByRole('textbox', { name: 'Modelo para impl' })
+    await waitFor(() => expect(screen.getByRole('checkbox')).toBeEnabled())
+    await userEvent.click(screen.getByRole('checkbox'))
+    await userEvent.selectOptions(
+      await screen.findByRole('combobox', { name: 'Versão do workflow' }),
+      'wv1',
+    )
+    expect(screen.getByRole('checkbox')).not.toBeChecked()
+    await waitFor(() => expect(screen.getByRole('checkbox')).toBeEnabled())
+    await userEvent.click(screen.getByRole('checkbox'))
+    await userEvent.type(
+      screen.getByRole('textbox', { name: 'Modelo para impl' }),
+      'changed',
+    )
+    expect(screen.getByRole('checkbox')).not.toBeChecked()
+  })
+  it('keeps unavailable presets disabled and explains the legacy default', async () => {
+    setup()
+    await screen.findByText('configured-model', { exact: false })
+    expect(screen.getByRole('option', { name: /OpenRouter/ })).toBeDisabled()
+    expect(screen.getByText(/padrão.*indisponível/i)).toBeInTheDocument()
+  })
   it('shows the existing project, request and actual configuration without starting anything', async () => {
     const { fetcher } = setup()
     await screen.findByText('configured-model', { exact: false })

@@ -2,12 +2,14 @@
 from contextlib import nullcontext
 import hashlib
 import json
+import os
 from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
 from ..project_store import connection
 from ..providers.base import CapabilityManifest
+from ..providers.bindings import DEFAULT_AGY_MODEL
 from .schema import Identifier, StepBinding, WorkflowDefinition
 from .validation import validate_workflow
 
@@ -67,6 +69,9 @@ def validate_snapshot(snapshot, *, registry):
             raise WorkflowSnapshotError('Configurable fallbacks require V2-WF-010')
         if any(b.parameters for b in parsed.bindings.values()):
             raise WorkflowSnapshotError('Runtime parameters are not integrated yet')
+        if any(parsed.providers[b.provider_config_id].adapter in ('claude_code', 'codex_cli') and b.model is not None
+               for b in parsed.bindings.values()):
+            raise WorkflowSnapshotError('Selected CLI adapter does not support explicit models yet')
         for provider in parsed.providers.values():
             if provider.kind != 'agent_runtime':
                 raise WorkflowSnapshotError('Model providers require the provider integration')
@@ -103,20 +108,32 @@ def load_snapshot(selection, *, registry, conn=None):
             if (version['schema_version'] != definition.schema_version
                     or version['digest'] != digest(definition.model_dump(mode='json'))):
                 raise WorkflowSnapshotError('Workflow version integrity check failed')
-            providers = {}
-            for config_id in sorted({b.provider_config_id for b in selection.bindings.values()}):
-                row = owned.execute('SELECT * FROM provider_configs WHERE id=?', (config_id,)).fetchone()
-                if row is None or not row['enabled']:
-                    raise WorkflowSnapshotError('Provider configuration missing or disabled')
-                if json.loads(row['settings']) != {} or row['credential_ref'] is not None:
-                    raise WorkflowSnapshotError('Provider settings or credentials require integration')
-                providers[config_id] = FrozenProvider(adapter=row['adapter'], kind=row['kind'])
+            providers = resolve_providers(selection.bindings, conn=owned)
+            # This adapter has a known environment-based model default. Resolve
+            # it here so worker environment drift cannot change a confirmed run.
+            for binding in selection.bindings.values():
+                if providers[binding.provider_config_id].adapter == 'antigravity' and binding.model is None:
+                    binding.model = StepBinding.model_validate({**binding.model_dump(),
+                        'model': os.getenv('ORCH_ANTIGRAVITY_MODEL', DEFAULT_AGY_MODEL)}).model
             return validate_snapshot(WorkflowSnapshot(**selection.model_dump(), definition=definition,
                                                       providers=providers), registry=registry)
     except WorkflowSnapshotError:
         raise
     except Exception:
         raise WorkflowSnapshotError('Invalid workflow selection or version') from None
+
+
+def resolve_providers(bindings, *, conn=None):
+    with nullcontext(conn) if conn is not None else connection() as owned:
+        providers = {}
+        for config_id in sorted({b.provider_config_id for b in bindings.values()}):
+            row = owned.execute('SELECT * FROM provider_configs WHERE id=?', (config_id,)).fetchone()
+            if row is None or not row['enabled']:
+                raise WorkflowSnapshotError('Provider configuration missing or disabled')
+            if json.loads(row['settings']) != {} or row['credential_ref'] is not None:
+                raise WorkflowSnapshotError('Provider settings or credentials require integration')
+            providers[config_id] = FrozenProvider(adapter=row['adapter'], kind=row['kind'])
+        return providers
 
 
 def verify_run_snapshot(row, config):

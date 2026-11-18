@@ -13,40 +13,6 @@ from orchestrator.worker import Worker
 from orchestrator.workflows.store import append_version
 
 
-@pytest.fixture
-def managed_case(snapshot_case, tmp_path, monkeypatch):
-    selection, registry, definition = snapshot_case
-    root = tmp_path / 'projects'
-    root.mkdir()
-    monkeypatch.setenv('ORCH_ALLOWED_ROOTS', str(root))
-    command = [sys.executable, '-c', "from pathlib import Path; assert Path('output.txt').read_text() == 'done'"]
-    monkeypatch.setenv('ORCH_TEST_COMMAND', shlex.join(command))
-    monkeypatch.setenv('ORCH_ALLOWED_TEST_COMMANDS', json.dumps([command]))
-    monkeypatch.delenv('ORCH_WORKTREES', raising=False)
-    monkeypatch.delenv('ORCH_ENV_ALLOWLIST', raising=False)
-    preview = projects.preview(projects.ProjectInput(name='Snapshot test', repo_path=str(root / 'repo'), mode='create'))
-    project = projects.create(projects.ProjectConfirmation(preview_token=preview['preview_token'], confirmed=True))
-    request = projects.submit_request(project['id'], projects.RequestInput(title='Task', content='Original scope'))
-    worker = Worker()
-    worker.heartbeat()
-    seen = []
-    get = registry.get
-    def runtime(adapter):
-        provider = get(adapter)
-        def invoke(request):
-            seen.append(request)
-            if request.role == 'planner':
-                return InvocationResult(text=json.dumps({'tasks': [{'id': 'T1', 'title': 'Write output',
-                    'instructions': 'Write done', 'acceptance': ['output file exists']}]}))
-            if request.role == 'implementer':
-                Path(request.cwd, 'output.txt').write_text('done')
-                return InvocationResult(text='Updated output.txt')
-            return InvocationResult(text='{"approved":true,"findings":[]}')
-        provider.invoke = invoke
-        return provider
-    registry.get = runtime
-    return selection, registry, definition, project, request, worker, seen
-
 
 def queue(case, *, key='snapshot-idempotency-0001'):
     selection, registry, _, project, request, _, _ = case

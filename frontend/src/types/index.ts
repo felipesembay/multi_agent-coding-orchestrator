@@ -139,6 +139,65 @@ export type ExecutionConfiguration = {
   agent_timeout: number
   test_timeout: number
   worktree_base: string
+  workflow?: {
+    workflow_version_id: string
+    definition: WorkflowDefinition
+    bindings: Record<string, WorkflowBinding>
+  }
+}
+export type WorkflowStep = {
+  id: string
+  type: 'plan' | 'implement' | 'test' | 'review' | 'document' | 'human_gate'
+  role?: string
+  requires?: string[]
+  per_task?: boolean
+}
+export type WorkflowDefinition = {
+  schema_version: number
+  name: string
+  steps: WorkflowStep[]
+}
+export type WorkflowBinding = {
+  provider_config_id: string
+  permission: 'read_only' | 'workspace_write'
+  model: string | null
+}
+export type WorkflowSelection = {
+  workflow_version_id: string
+  bindings: Record<string, WorkflowBinding>
+}
+export type WorkflowVersion = {
+  id: string
+  version: number
+  definition: WorkflowDefinition
+}
+export type SavedWorkflow = {
+  id: string
+  name: string
+  read_only: boolean
+  latest_version: WorkflowVersion | null
+  suggested_bindings?: Record<string, WorkflowBinding>
+}
+export type WorkflowPreset = {
+  id: string
+  title: string
+  available: boolean
+  default_for_ui?: boolean
+  errors: string[]
+  workflow?: { definition: WorkflowDefinition } | null
+  suggested_bindings?: Record<string, WorkflowBinding>
+}
+export type ProviderConfig = {
+  id: string
+  adapter: string
+  kind: string
+  display_name: string
+  enabled: boolean
+  available: boolean
+  capabilities: string[]
+  permission_modes: string[]
+  verified: boolean
+  model_selection: boolean
 }
 export type ExecutionPreflight = {
   configuration: ExecutionConfiguration

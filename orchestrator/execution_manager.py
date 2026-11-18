@@ -39,6 +39,7 @@ class StartInput(BaseModel):
     confirmed: Literal[True]
     configuration_digest: str = Field(min_length=64, max_length=64)
     idempotency_key: str = Field(min_length=16, max_length=100, pattern=r'^[a-zA-Z0-9_-]+$')
+    workflow: Optional[WorkflowSelection] = None
 
 
 class StartResponse(BaseModel):
@@ -244,6 +245,12 @@ def submit(project_id, request_id, data, *, workflow=None, provider_registry=Non
             return {key: previous[key] for key in ('run_id', 'status', 'project_id', 'request_id')}
         project = projects.get_project(project_id, conn)
         request = conn.execute('SELECT * FROM project_requests WHERE id=?', (request_id,)).fetchone()
+    if data.workflow is not None:
+        if workflow is not None:
+            explicit = WorkflowSelection.model_validate(workflow.model_dump() if isinstance(workflow, WorkflowSelection) else workflow)
+            if explicit != data.workflow:
+                raise projects.ProjectError('Seleções de workflow conflitantes.', 422)
+        workflow = data.workflow
     if request is None:
         raise projects.ProjectError('Solicitação não encontrada.', 404)
     if request['project_id'] != project_id:

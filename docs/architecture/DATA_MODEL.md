@@ -57,6 +57,8 @@ erDiagram
 
 **Integração WF-007 (sem nova migração):** append_version valida body via Pydantic e grava JSON canônico/digest SHA-256; snapshots explícitos incluem definição inteira, bindings e adapter/kind de provider_configs habilitados. managed_runs.config.workflow e as três colunas dedicadas são conferidos no runner antes de criar worktree. O digest de confirmação cobre config inteira; workflow_digest cobre o snapshot canônico. Corrida de configuração na reserva é recusada; alterações posteriores em definições/providers não são relidas pelo runner. Runs antigos/default sem seleção preservam colunas nulas/config/digest anteriores. Não há CRUD HTTP, seeds ou credenciais copiadas: settings não vazios/credential_ref e recursos ainda sem executor são recusados. Nenhum preset real é promovido automaticamente.
 
+**Integração WF-008 (sem nova migração):** API cria definição/primeira versão em transação única e append de versões imutáveis; catalogação/read_only e snapshots são reutilizados. GET/POST provider-configs só publica metadata segura e cria referência a adapter já registrado, sem campos settings/credential_ref no contrato HTTP. A seleção workflow_version_id/bindings chega em POST preflight/start; versão e modelos confirmados são congelados. Workflow/versão/provider geram auditoria por IDs/adapter sem conteúdo sensível. Definições de sistema continuam readonly e cópias são de usuário, sem identidade legada por name.
+
 ### Migração 5 — uso e custos (F3)
 
 | Tabela | Colunas principais |

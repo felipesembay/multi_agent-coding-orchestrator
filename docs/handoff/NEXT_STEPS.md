@@ -1,14 +1,22 @@
 # Próximos passos
 
-## Próxima tarefa: V2-WF-008 — API e seleção de workflow
+## Próxima tarefa: V2-WF-009 — editor de workflow em lista
 
-**Objetivo:** endpoints WORKFLOW_ENGINE §6.6 e seleção no StartExecution, usando versões/bindings/digest congelados em WF-007. Dependência WF-007 concluída; não recriar a lógica de snapshot no HTTP.
+**Objetivo:** criar/validar/salvar versão e clonar presets pela UI, usando a API WF-008. Adicionar/reordenar/remover etapas conforme schema; não é editor React Flow (WF-011).
 
-**Aceite:** endpoints GET/POST workflows, versões/validate/presets e seleção por versão/bindings no preflight/start; testes API e vitest, preservando clientes/contratos/defaults anteriores. Readonly de presets no servidor, provider_configs habilitados pelo host, sem dados de credenciais/configuração arbitrária em JSON, sem habilitar plugins por payload HTTP. APIs de seleção devem apresentar indisponibilidade real de A/B/C até capacidades/permissões/provider implementados. Nunca decidir compatibilidade legada pelo name de um workflow/clonado.
+**Aceite:** testes Vitest e E2E mockados para edição, clone e versão imutável; validação por campo ao vivo. Presets readonly, modelos/providers filtrados, snapshots do run já enfileirado não mudam ao editar. Distinguir válido estrutural de executável: gates/budget/fallback/API provider dependem de integrações próprias. Não habilitar plugins/segredos via payload nem selecionar legado por name.
 
-**Ler:** WORKFLOW_ENGINE §6.3.3/6.6, DATA_MODEL, SECURITY_GOVERNANCE, snapshot.py/store.py, execution_manager/runner e api/frontend StartExecution. Editor completo é WF-009; permissões/adapters e ModelProvider continuam nas tarefas próprias.
+**Ler:** WORKFLOW_ENGINE §6.6.1, DESIGN_SYSTEM/UI_UX pertinentes, snapshot/schema/validation/store/workflow_api, StartExecution e tipos. Reutilizar campos de validação e mapas ownproperty para IDs válidos como constructor. Choices precisam permanecer estáveis no refresh, sem substituir trio/modelos por defaults acidentais.
 
-**Comandos:** git status/log; source .venv/bin/activate; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test; build/lint/check_docs/diff --check. Revisão/handoff/commit dev após verdes; sem novo push/merge/deploy. Testes com mocks; Q10 autoriza apenas spikes específicos.
+**Comandos:** git status/log; source .venv/bin/activate; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test/build/lint; browserQA com fixtures mockadas quando aplicável; check_docs/diff. Revisão/handoff/commit dev após verdes; sem push/merge/deploy automático.
+
+## WF-008 concluída
+
+- API workflows/versões/validate/presets e provider-configs básicos. POSTpreflight e workflow opcional no start congelam a seleção; GET e ausência de seleção mantêm contratos antigos. Nenhum agente no HTTP; providerconfig só referencia adapter já registrado, sem settings/chaves/entrypoint e kind derivado. Auditoria por IDs, validação sem echo input/ctx.
+- StartExecution escolhe workflow/versão/providers/modelos suportados, desabilita presets não aptos, oferece A como default só quando apto e mantém legado com aviso até lá. Clonagem é explícita. Consentimento invalida na edição, key idempotente estável. Trio preservado após refreshGET; IDsconstructor próprios, sem Object.prototype.
+- Default agy conhecido congelado no preflight; modelos explícitos dos adapters sem flag recusados. Declarações readonly/capacidades atuais não são promovidas. Editor de etapas e integrações pendentes continuam tarefas próprias.
+- Evidência:532 pytest /44vitest, build/lint/docs,9e2e/2opt-ins skipped em QA temporário. Revisão review_wf008 aprovada com243 Python focados/44vitest e48 extras na checagem final de default. Nenhum CLI real/quota. Serviços QA encerrados.
+- CI-DIST-004 em feb4caf corrige setup-python3.9 no ubuntu-latest26.04 fixando22.04; manifesto oficial confirmado. Email de falha não era suíte executada. Remoto ainda depende de push/run; não foi declarado verde. Python3.12 continua em F0-005.
 
 ## WF-007 concluída
 
@@ -16,7 +24,7 @@
 - Store interno append_version valida Pydantic e JSON canônico/SHA; não cria definições/configs/seed ou CRUD HTTP. Snapshot explícito resolve versão ativa/íntegra e provider_configs persistidos habilitados; captura definição/bindings/adapter/kind, sem credenciais/settings.
 - Config.workflow opcional e colunas workflow_version_id/bindings/workflow_digest preenchidas apenas na seleção explícita. Digest de confirmação cobre config inteira. Reserva reconsulta drift sob lock; retries idempotentes devolvem run original antes de resolver config alterada. Sem seleção, formato/digest/colunas nulas antigos preservados.
 - Runner valida concordância/integridade/capacidades antes de worktree; host AgentRuntime usa somente snapshot e perfil de teste congelado, com modelos/permissões diretamente em request. Alterações posteriores de definição, versão, providerconfig/estado enabled ou env não redirecionam run; capacidades instaladas revogadas bloqueiam execução.
-- Gates/budget/fallback/parâmetros/ModelProvider/settings/credential_ref ainda não integrados são recusados antes da fila. HTTP StartInput continua sem campo workflow até esta próxima tarefa. Não promover manifestos de built-ins ou autoaprovar gates.
+- Gates/budget/fallback/parâmetros/ModelProvider/settings/credential_ref ainda não integrados são recusados antes da fila. Na entrega WF-007 StartInput não expunha workflow; WF-008 agora integra esse campo opcional. Não promover manifestos de built-ins ou autoaprovar gates.
 - Evidência:521 pytest /38 vitest;36 novos; build/lint/docs verdes. Revisor review_wf007 aprovou após ajuste de deadline comum Git/testes/agente/eventos,214 focados+35 manager. Nenhum CLI real; E2E não reexecutado. Detalhes em CURRENT_STATE/SESSION_LOG.
 
 ## WF-004 concluída

@@ -1,10 +1,19 @@
 """HTTP contract for the first operational increment: projects and requests."""
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
+from typing import Optional
 
 from . import projects, execution_manager
 from . import local_security
+from .providers.registry import ProviderRegistry, get_provider_registry
+from .workflows.snapshot import WorkflowSelection
 
 router = APIRouter()
+
+
+class PreflightInput(BaseModel):
+    model_config = {'extra': 'forbid'}
+    workflow: Optional[WorkflowSelection] = None
 
 
 @router.get('/session')
@@ -62,10 +71,17 @@ def execution_config(project_id: str):
     return execution_manager.preflight(project_id)
 
 
+@router.post('/projects/{project_id}/execution-config', response_model=execution_manager.PreflightResponse)
+def selected_execution_config(project_id: str, data: PreflightInput,
+                              registry: ProviderRegistry = Depends(get_provider_registry)):
+    return execution_manager.preflight(project_id, workflow=data.workflow, provider_registry=registry)
+
+
 @router.post('/projects/{project_id}/requests/{request_id}/runs', status_code=202,
              response_model=execution_manager.StartResponse)
-def start_run(project_id: str, request_id: str, data: execution_manager.StartInput):
-    return execution_manager.submit(project_id, request_id, data)
+def start_run(project_id: str, request_id: str, data: execution_manager.StartInput,
+              registry: ProviderRegistry = Depends(get_provider_registry)):
+    return execution_manager.submit(project_id, request_id, data, workflow=data.workflow, provider_registry=registry)
 
 
 @router.get('/projects/{project_id}/runs')

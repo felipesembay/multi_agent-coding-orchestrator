@@ -161,3 +161,9 @@ O backend consolida o histórico em memória por consulta. Para bancos grandes, 
 Na verificação desta entrega, `npm audit --omit=dev` não encontrou vulnerabilidades de produção. O audit completo apontou 10 avisos moderados na cadeia de ferramentas ESLint/TypeScript ESLint, relacionados a `minimatch`; não foi aplicado downgrade ou atualização forçada dessas ferramentas.
 
 O procedimento para a primeira execução real do **Task Manager API**, reutilizando o repositório `/home/felipe/projects/task_manager` e a solicitação já cadastrada, está no [guia de validação](../docs/execution-manager.md#primeira-validação-real-task-manager-api). Esse teste requer confirmação explícita porque consome quotas. Os testes automatizados substituem as chamadas de agentes por mocks.
+
+## Seleção de workflow na confirmação (V2-WF-008)
+
+O diálogo StartExecution oferece fluxo legado, workflows/versões salvos e presets disponíveis. Permite escolher provider/modelo por etapa, com opções filtradas por capacidades e permissões. Alterar escolhas invalida a confirmação e busca novo digest. Cópia de preset é ação explícita; o trio não muda ao atualizar a lista. O padrão Claude → Codex → Antigravity só é selecionável quando apto; até lá há aviso e opção legada. OpenRouter permanece indisponível até integração própria.
+
+Criação/versionamento/validação de definições e configurações locais básicas também têm API autenticada; o editor visual/em lista é WF-009. Não há campo de chave/segredo/settings arbitrário na API básica. Nenhum agente é invocado em preflight/criação; o start só enfileira o snapshot confirmado. Testes de UI usam mocks e o browserQA usa DB/worker temporários com agentes substituídos.

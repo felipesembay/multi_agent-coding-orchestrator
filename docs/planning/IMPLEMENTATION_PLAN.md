@@ -48,12 +48,14 @@ Não é necessário ler toda a pasta `docs/`. Leia apenas a especificação da �
 - `V2-WF-002` concluída: migração aditiva v4 para workflows/provider_configs, novas colunas anuláveis e versões imutáveis; sem integração ao executor/API ou seeds.
 - `V2-WF-003` concluída: compilador LangGraph com executores host obrigatórios, limites/envelopes; core.graph delega ao layout privado legado, com topologia/callbacks/pontos de entrada preservados.
 - `V2-WF-004` concluída: catálogo/clonagem/escolhas por etapa, default UI A/CLIlegacy e bloqueio B até PROV-001; execução real continua dependente das capacidades/permissões e UI futuras.
-- `V2-WF-007` concluída: snapshots internos opcionais e digests no run, store versionado e runner íntegro usando configuração congelada. HTTP/seleção de UI ainda em WF-008.
-- Validação: **521 pytest / 38 vitest**, build/lint/docs verdes; revisão independente (2026-11-18). E2E não reexecutado em WF-007; última execução SEC-002: 9 passed / 2 skipped com mocks. Nenhum CLI de agente real.
+- `V2-WF-007` concluída: snapshots internos opcionais e digests no run, store versionado e runner íntegro usando configuração congelada. base para a seleção HTTP/UI da WF-008.
+- `V2-WF-008` concluída: endpoints/versionamento/validate/presets e StartExecution com versões/providers/modelos; compatibilidade legada e disponibilidade real preservadas.
+- `V2-DIST-004` corrige CI localmente: Python3.9 indisponível no ubuntu-latest26.04 antes dos testes; imagem22.04 fixada. Actions remoto aguarda push/run; Python3.12 fica em F0-005.
+- Validação: **532 pytest / 44 vitest**, build/lint/docs verdes; revisão independente (2026-11-18). E2E WF-008:9 passed /2 skipped com mocks em QA isolado, serviços encerrados. Nenhum CLI de agente real.
 
 ## 5. Próxima tarefa
 
-1. **`V2-WF-008`** — API de workflows/versões/validate/presets e seleção por versão/bindings no início, usando snapshots WF-007. Preservar contratos/defaults legados; A real depende de capacidades/permissões verificadas.
+1. **`V2-WF-009`** — editor de workflow em lista: criar, validar, clonar e salvar versão imutável usando API/seleção WF-008. Preservar snapshots e disponibilidade real de providers.
 2. **`V2-F0-002`** — decisões Q2–Q12 registradas em [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md), Q7 adiada; revisão integral dos ADRs ainda pendente. Alvo Python3.12 e quota limitada dos spikes autorizados; não reabrir bloqueios de perguntas respondidas.
 3. Depois: API/editor e demais tarefas liberadas, uma por vez. SEC-003 tem validação real autorizada no escopo de Q10; SEC-004 também tem revisão humana obrigatória conforme especificação.
 

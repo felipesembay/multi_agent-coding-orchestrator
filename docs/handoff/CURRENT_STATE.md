@@ -1,11 +1,11 @@
 # Estado atual
 
-Atualizado: 2026-11-18 · Por: Codex (V2-WF-007)
+Atualizado: 2026-11-18 · Por: Codex (V2-WF-008)
 
 ## Repositório
-- Branch `dev`; commits testados/revisados autorizados pelo operador. Sem merge/deploy/main/master. Push solicitado pelo operador em 2026-11-18 concluído até 7431745 em origin/dev; sem force/main/master. O commit novo desta tarefa ainda será local, salvo nova instrução.
+- Branch `dev`; commits testados/revisados autorizados pelo operador. Sem merge/deploy/main/master. Push solicitado pelo operador em 2026-11-18 concluído até 7431745 em origin/dev; sem force/main/master. Commits WF-007 e CI-DIST-004 continuam locais; WF-008 também será local nesta sessão. Sem novo push solicitado.
 - Baseline `f8e6949`; CORE-001..004 em `87a034f`, `56e44d2`, `6737c2f`, `db12642`. Histórico remoto dev atualizado até 7431745 nesta sessão.
-- SEC-001 `8d94e7d`, SEC-002 `065d9ed`, SEC-006 `7ac3634`, WF-001 `caee20e`, WF-002 `fc93cd1` locais. WF-003 `1474f4b`. Registro parcial F0-002 em `588c6db`. WF-004 em `7431745` (já em origin/dev). WF-007 registrada no commit local `V2-WF-007: freeze workflow selections and verify dispatch integrity`; consultar git log para hash final.
+- SEC-001 `8d94e7d`, SEC-002 `065d9ed`, SEC-006 `7ac3634`, WF-001 `caee20e`, WF-002 `fc93cd1` locais. WF-003 `1474f4b`. Registro parcial F0-002 em `588c6db`. WF-004 em `7431745` (já em origin/dev). WF-007 em `6f1c167`, CI-DIST-004 em `feb4caf`. WF-008 no commit `V2-WF-008: expose workflow APIs and execution selection`; consultar git log para hash final.
 - WIP original de tema/exclusão/migração v3 preservado no baseline. Nenhum WIP externo identificado.
 
 ## Implementado
@@ -18,7 +18,7 @@ Atualizado: 2026-11-18 · Por: Codex (V2-WF-007)
 - Plano primeiro/único, bloco per_task contíguo, retorno somente review→implement anterior no mesmo bloco com tentativas limitadas. Capacidades mínimas por tipo, permissões por papel, escrita só com runtime code_edit verificado; fallback inclui todas as capacidades primárias. Erros Pydantic por campo; API 422 futura em WF-008.
 - Faixas complementares do contrato documentadas em WORKFLOW_ENGINE §6.2.1: 100 etapas declaradas, 10000 passos totais, 86400 s, 20 tentativas. `documenter` é o papel de document; escrita também verificada. Nome legacy-v1 não contorna validação.
 - **WF-002:** migração aditiva v4 entregue em project_store.py, com três tabelas novas, três colunas managed_runs anuláveis, FK/índice de workflow, JSON/digests básicos e triggers de imutabilidade contra update/delete/replace. BEGIN IMMEDIATE com rechecagem, rollback total e concorrência testados.
-- Provider_configs continua desabilitado por default e não há seed. WF-007 introduziu escritor interno append_version com Pydantic/JSON canônico e snapshot explícito de providers habilitados; não há CRUD HTTP/provider. Settings/credential_ref não integrados são recusados, não copiados. JSON1 requerido, verificado SQLite3.36.0.
+- Provider_configs continua desabilitado por default e não há seed. WF-007 introduziu escritor interno append_version com Pydantic/JSON canônico e snapshot explícito de providers habilitados; WF-008 acrescenta CRUD mínimo HTTP de definição/versões e referências locais de provider, sem campos de credencial/settings. Settings/credential_ref não integrados são recusados, não copiados. JSON1 requerido, verificado SQLite3.36.0.
 - **WF-003:** compiler.py/nodes.py compilam definições estritas com executores confiáveis obrigatórios por tipo, snapshots em memória de configuração, envelopes/eventos e contadores por etapa/tarefa, prazo, revisão lógica das evidências e aprovação/gates explícitos. Sem executores CLI implícitos, API ou ledger. Budget não nulo e fallback configurável recusados até integrações OBS/WF-010.
 - core.graph usa compile_legacy com layout privado e callbacks/entradas/topologia/recursion250 preservados. Snapshot topológico capturado de fc93cd1 antes da mudança; não existe bypass por nome legacy-v1 em workflows de usuário. Execução genérica deriva recursion de max_total_steps e verifica contagem por etapa.
 - Deadline checado antes/depois e nos controles; executor deve aplicar context.timeout_s aos subprocessos. Gates têm payload booleano obrigatório mas persistência/proveniência em RES-004; nenhum autoapprove de produção. Testes/review precisam cobrir a última escrita para finalizar.
@@ -26,20 +26,24 @@ Atualizado: 2026-11-18 · Por: Codex (V2-WF-007)
 - validate_preset respeita manifestos reais, sem promover capacidades. A/C não executáveis com manifestos atuais incompletos; B bloqueado por PROV-001 mesmo com fakes. Legacy continua com resolução/validação original; clone vira workflow estrito com planner read_only/testes separados/só primários, sem bypass por nome. Modelo vazio normalizado só no clone, original intacto.
 - **WF-007:** config.workflow opcional com versão/definição/bindings e adapter/kind resolvidos, workflow_digest canônico e confirmação sobre config inteira. Store interno grava versões imutáveis; fila revalida drift na transação e grava três colunas dedicadas. Sem seleção, config/digest/default e colunas nulas antigos preservados.
 - Runner confere integridade e capacidades instaladas antes de criar worktree; executa snapshot sem reler versões/providers mutáveis. Host AgentRuntime estrito envia modelos/permissões diretamente, sem exceções do legado. Perfil de testes congelado e Git/agente/testes compartilham deadline absoluto, incluindo atraso de eventos.
-- Seleção é interface Python interna: HTTP StartInput permanece igual. ModelProvider/settings/credential_ref/parâmetros/gates/budgets/fallbacks sem integração recusados antes da fila; nenhuma capacidade real promovida.
-- Sem seed de banco, endpoints, editor ou mudança do fluxo default atual. CLI flags intactas: Claude ainda acceptEdits, Codex read-only. SEC-003/004 permanecem sem implementação; Q2–Q12 recebidas nesta sessão, conforme seção de decisões abaixo.
+- WF-007 entregou seleção interna; WF-008 expõe seleção opcional no preflight/start HTTP. ModelProvider/settings/credential_ref/parâmetros/gates/budgets/fallbacks sem integração recusados antes da fila; nenhuma capacidade real promovida.
+- **WF-008:** workflow_api + store expõem listagem/criação/clonagem, histórico/append imutável e validate com erros por campo. Referências de provider locais só para adapter já registrado, sem segredos/settings/entrypoints; mutações auditam IDs. Novo POST preflight e StartInput.workflow opcional usam snapshot, GET/cliente legado preservados.
+- StartExecution lista presets/workflows/versões, filtra providers e permite modelos suportados por etapa. Consentimento invalidado ao editar seleção; key idempotente estável. A vira default apenas quando apto; cópia requer ação explícita; legado com aviso até lá. Trio fica congelado apesar de refreshGET, mapas aceitam IDsconstructor.
+- Default conhecido agy é resolvido no preflight para impedir drift do worker, sem mudar legado. CLI Claude/Codex sem flag de modelo não aceitam override. Validação HTTP omite input/ctx para não ecoar segredos/campos proibidos.
+- Sem seed de banco ou editor de etapas nesta entrega; CLI default preservado. CLI flags intactas: Claude ainda acceptEdits, Codex read-only. SEC-003/004 permanecem sem implementação; Q2–Q12 recebidas nesta sessão, conforme seção de decisões abaixo.
 
-## Evidências WF-007
+## Evidências WF-008 / CI
 | Verificação | Resultado |
 |---|---|
-| Push autorizado | dev db12642..7431745 enviado para origin/dev, sem force/main/master |
-| Baseline pytest isolado / vitest | 485 passed,1 warning /38 passed |
-| Pytest final isolado | 521 passed,1 warning LangGraph,17,57 s |
-| Novos testes snapshot/store/runner | 36 passed; Git/worktree temporários e agentes fake |
-| Revisão independente review_wf007 | aprovada após correções de prazo;214 workflows/bindings +35 manager;3 testes adicionais verdes após revisão sem mudança de código |
-| Frontend | 38 vitest no baseline; build/lint verdes; frontend inalterado |
+| CI remoto reportado | Falhou setup-python3.9 no ubuntu-latest26.04, antes dos testes; Actions44354266781/44214673001 |
+| Correção CI local DIST-004 | feb4caf fixa ubuntu-22.04, manifesto oficial3.9.25 confirmado, pytest isolado; revisão review_ci_fix aprovada. Sem push/run remoto novo; não declarar Actions verde |
+| Baseline pytest isolado / vitest | 521 passed,1 warning /38 passed |
+| Pytest final isolado | 532 passed,1 warning LangGraph,18,89 s |
+| Novos testes API | 11 passed; inclui ausência de agentes no HTTP e default agy congelado via runner fake |
+| Frontend final | 44 vitest;6 novos, build/lint verdes |
+| Revisão review_wf008 | aprovada após trio/IDsprototype;243 Python focados+44vitest/build/lint. Último default agy revalidado:48 focados passaram |
+| E2E final QA isolado | 9 passed /2 skipped (opt-ins de projetos/exclusão),11,6s; serviços encerrados |
 | Docs / diff --check | sucesso |
-| E2E | não reexecutado em WF-007; última SEC-002:9 passed /2 skipped com mocks |
 | Agentes CLI reais | nenhum; sem quota real |
 
 ## Decisões do operador — 2026-11-18
@@ -51,15 +55,13 @@ Atualizado: 2026-11-18 · Por: Codex (V2-WF-007)
 - Registro não é implementação nem aceitação integral dos ADRs; revisão específica dos dez ADRs continua pendente. F0-002 fica parcial/blocked residual por esse critério, não por perguntas já respondidas.
 
 ## Próximos passos
-- WF-008: API de workflows/versões/providers/presets e seleção de workflow_version_id/bindings no início; usar snapshots internos, resolver configurações habilitadas e preservar compatibilidade dos endpoints antigos. UI/editor completo em WF-009.
-- Execução real do padrão A depende de SEC-003/004, WF-005/006 e seleção/editor em WF-008/009. B continua bloqueado por PROV-001. Decisões Q2/Q5 já recebidas; não promover manifestos não verificados.
+- WF-009: editor em lista de definições/etapas com validação ao vivo, clone de presets e salvar nova versão imutável, reutilizando a API/seleção atuais.
+- Execução real do padrão A depende de SEC-003/004, WF-005/006 e editor completo em WF-009 (seleção já entregue). B continua bloqueado por PROV-001. Decisões Q2/Q5 já recebidas; não promover manifestos não verificados.
 - Python3.12/compatibilidade em F0-005 e spikes autorizados em F0-003/SEC-003 podem avançar no escopo decidido; uma tarefa por vez, com revisão pertinente. Não confundir o bloqueio residual de F0-002 com as questões já resolvidas.
 - Licença específica, assinatura, valor de orçamento, identidade final e revisão integral dos ADRs continuam pendentes nos seus respectivos escopos.
 
 ## Ambiente
 Python 3.9.7 (.venv), LangGraph 0.6.11, Node 22.18.0, Git 2.43.0. Sem dependências novas ou alterações em credenciais.
 
-## Marco CI — V2-DIST-004
-Operador reportou falhas Actions em7431745/db12642. Logs mostram falha no setup-python, antes de testes:3.9 x64 ausente para Ubuntu26.04 (ubuntu-latest). Fix local runner22.04 e comando de testes isolado; manifesto oficial confirma binários3.9.25 para22.04. F0-005 continua migração3.12 separada. Repositório limpo antes da tarefa, HEAD6f1c167 já commitado e ainda local.
-
-CI corrigido localmente (DIST-004), revisão review_ci_fix aprovada. Check_docs/diff verdes; última execução remota ainda vermelha por setup-python, não por testes. Commit dedicado V2-DIST-004 antes de WF-008; não há push autorizado novo nesta sessão.
+## CI e versão de Python
+O email remoto não descrevia testes vermelhos: o setup não encontrou3.9 para26.04. Imagem compatível22.04 fixada em commit separado; migração3.12 continua em F0-005, já autorizada. CI remoto só poderá ser declarado verde após push/execução dos commits novos.

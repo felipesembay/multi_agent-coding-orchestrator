@@ -44,7 +44,7 @@ Fonte única de status das tarefas. Atualize a linha da tarefa ao iniciar (`doin
 | V2-WF-007 | Snapshot de workflow+bindings no run e digest de confirmação | done | P0 | M | WF-002, WF-003 | BE | CA4, snapshot opcional/store/runner íntegro; revisão review_wf007 aprovada | 36 novos;521 pytest /38 vitest; build/lint/docs |
 | V2-WF-005 | Codex CLI como executor (`workspace-write`) | todo | P1 | M | SEC-004, F0-002 (Q5) | BE/SEC | Preset A implementa com Codex mockado; flags corretas | argv + integração mockada |
 | V2-WF-006 | Antigravity como reviewer com saída JSON validada | todo | P1 | M | CORE-004 | BE | Reviewer agy retorna `{approved,findings,…}` validado | Fixture + integração mockada |
-| V2-WF-008 | API de workflows e seleção no início da execução | todo | P1 | M | WF-007 | BE/FE | Endpoints §6.6; `StartExecution` mostra workflow e bindings | Testes API + vitest |
+| V2-WF-008 | API de workflows e seleção no início da execução | done | P1 | M | WF-007 | BE/FE | API/seleção versionada com snapshots e readonly; revisão review_wf008 aprovada | 532 pytest /44vitest;11API+6UI novos;9e2e/2skip;build/lint/docs |
 | V2-WF-009 | Editor de workflow em lista (MVP) | todo | P1 | M | WF-008 | FE | Criar, validar, salvar versão, clonar preset | Vitest + e2e mockado |
 | V2-WF-010 | Fallbacks configuráveis por etapa | todo | P1 | M | WF-003, CORE-002 | BE | CA5 de WORKFLOW_ENGINE | Teste com erro normalizado |
 | V2-PROV-001 | OpenRouter `ModelProvider` básico (plan/review) + chave no keyring | todo | P1 | M | CORE-003, SEC-005 | BE | CA4 de PROVIDER_SYSTEM | HTTP mock (200/401/402/429/5xx) |

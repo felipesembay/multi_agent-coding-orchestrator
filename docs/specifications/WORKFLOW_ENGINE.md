@@ -133,6 +133,26 @@ Envelope captura erro normalizado; se casar com `on`, registra evento `agent_fal
 ### 6.6 API
 `GET/POST /workflows`, `GET /workflows/{id}/versions`, `POST /workflows/{id}/versions`, `POST /workflows/validate`, `GET /workflow-presets`; preflight passa a receber `workflow_version_id` + bindings e retorna digest sobre ambos.
 
+### 6.6.1 API e seleção entregues em V2-WF-008
+
+| Operação | Contrato |
+|---|---|
+| GET /workflows | Definições ativas com latest_version, readonly e descrição |
+| POST /workflows | definition ou preset_id (exclusivos), name/description opcionais; cria definição de usuário e primeira versão atomicamente. Clone de preset não altera sistema |
+| GET/POST /workflows/{id}/versions | Histórico imutável; POST recebe definition e cria nova versão. Preset persistido readonly recusa edição |
+| POST /workflows/validate | definition + bindings; inválido retorna422 por campo. Retorna valid/executable/errors quando estruturalmente válido; executable indica suporte das integrações, não substitui preflight de worker/repositório |
+| GET /workflow-presets | Catálogo, defaults UI/CLI, disponibilidade real e motivos, sugestões de configs persistidas. B continua indisponível até PROV-001 |
+| GET/POST /provider-configs | Dados públicos e criação de referência local de adapter já registrado. POST só aceita adapter/display_name; kind derivado do manifesto, settings vazio/credential_ref null. Não instala nem habilita plugins por HTTP |
+| GET /projects/{id}/execution-config | Preflight legado preservado |
+| POST /projects/{id}/execution-config | Preflight com workflow opcional {workflow_version_id,bindings} |
+| POST /projects/{id}/requests/{id}/runs | Mantém confirmação/digest/idempotency_key e aceita workflow opcional; usa snapshot WF-007, sem invocar agentes no HTTP |
+
+- Rotas recebem proteção local/auth global existente. Campos extras (segredos, comandos, flags, manifestos e entry points) são recusados; respostas de validação contêm loc/msg/type sem input/ctx. Leituras não devolvem settings/credential_ref. Mutações de workflow/versão/provider registram somente IDs/adapter na auditoria, sem valores sensíveis.
+- Modelos explícitos dos adapters Claude/Codex ainda sem flags de seleção são desabilitados na UI e recusados pelo snapshot. Ao implementar flags verificadas em WF-005/SEC, atualizar tanto model_selection do DTO quanto guard do snapshot. Default conhecido do Antigravity é resolvido no preflight e congelado; execução/entrada legadas não mudam. Defaults de CLI desconhecidos continuam null, sem inventar modelo reportado.
+- StartExecution lista workflows e versões imutáveis, filtra configs por capacidades/permissões e permite modelo por etapa quando suportado. O novo default A é oferecido quando apto; enquanto indisponível, a UI mantém legado com aviso explícito e presets desabilitados com indicação de indisponibilidade. Criar cópia do preset exige ação explícita, sem invocar agentes.
+- Alterar versão/provider/modelo invalida consentimento e pede novo preflight/digest. O start envia a seleção exibida com a confirmação; idempotency_key é estável no diálogo para retry incerto. Refresh do catálogo após clone não troca o trio: bindings escolhidos ficam no estado independente dos metadados GET. IDs válidos como constructor usam mapas sem protótipo/own properties.
+- O editor de definição/etapas é WF-009; setup avançado de providers/chaves permanece em PROV/SEC/DESK. Não há promoção de capacidades/permissões/CLI flags pendentes, execução de ModelProvider, gates, budgets ou fallbacks sem suas integrações.
+
 ## 7. Componentes afetados
 `core.py`, `execution_manager.py` (config/digest), `execution_runner.py`, `project_store.py` (migração 4), `api.py`, frontend `StartExecution.tsx`, nova feature Workflows.
 
