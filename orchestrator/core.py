@@ -17,6 +17,7 @@ from langgraph.graph import END, StateGraph
 
 from .providers.base import AgentCall, InvocationRequest, invoke_measured
 from .policy.env import command_env
+from .policy.git import run_git
 from .providers.bindings import AgentBindings, legacy_bindings, validate_bindings
 from .providers.registry import ProviderRegistry
 from .providers.runtimes.antigravity import AntigravityRuntime
@@ -81,11 +82,14 @@ def run_command(argv: list[str], cwd: str, timeout: int = 600,
     if not shutil.which(argv[0], path=env.get('PATH', os.defpath)):
         raise RuntimeError(f'Executable missing: {argv[0]}')
     try:
-        result = subprocess.run(
-            argv, cwd=cwd, text=True, capture_output=True,
-            timeout=timeout, env=env, check=False,
-            pass_fds=() if lock_fd.get() is None else (lock_fd.get(),),
-        )
+        fds = () if lock_fd.get() is None else (lock_fd.get(),)
+        if Path(argv[0]).name == 'git':
+            result = run_git(argv, cwd=cwd, timeout=timeout, env=env, pass_fds=fds)
+        else:
+            result = subprocess.run(
+                argv, cwd=cwd, text=True, capture_output=True,
+                timeout=timeout, env=env, check=False, pass_fds=fds,
+            )
     except subprocess.TimeoutExpired as exc:
         raise RuntimeError(f'{argv[0]} timed out after {timeout}s') from exc
     if result.returncode:
@@ -414,8 +418,10 @@ def prepare(repo: Path, run_id: str) -> Path:
     )).resolve()
     base.mkdir(parents=True, exist_ok=True)
     target = base / run_id
-    run_command(['git', 'worktree', 'add', '-b', f'agent/{run_id}',
+    run_command(['git', 'worktree', 'add', '--no-checkout', '-b', f'agent/{run_id}',
                  str(target), 'HEAD'], str(repo))
+    # Recheck effective config in the new branch before any checkout/filter can run.
+    run_command(['git', 'reset', '--hard', 'HEAD'], str(target))
     return target
 
 

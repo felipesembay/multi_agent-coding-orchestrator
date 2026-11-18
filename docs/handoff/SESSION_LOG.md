@@ -283,3 +283,35 @@
 8. **Próxima tarefa:** V2-SEC-006, Git seguro.
 9. **Aceite:** CA4 com repositório Git temporário e hook post-checkout sentinela, sem execução do hook em prepare; manter locks/worktree/diffs/status, testes e revisão distinta.
 10. **Comandos:** .venv; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test/build/lint; python scripts/check_docs.py. E2E conforme execution-manager com EXECUTION_E2E_MOCKED=1 em QA temporário. Commit somente dev autorizado, sem merge/push/deploy.
+
+## 2026-11-17 — Codex — início V2-SEC-006
+
+- [FATO] dev, HEAD `065d9ed`, árvore limpa e handoff conferidos; sem novo push autorizado. Baseline em execução. Git local 2.43.0, sem agentes reais.
+- Escopo: política compartilhada de hooks/fsmonitor/diff/textconv em Git do orquestrador, preservando ambiente/fds. Testes reais em repositórios temporários com sentinelas.
+- Inspeção identificou também filtros clean/smudge/process, que podem executar comandos em status/checkout. Preparação será fail-closed para esses filtros e usará worktree sem checkout antes de validar configuração efetiva da nova branch; não alterar config do repositório ou credenciais.
+
+### SEC-006 — testes vermelhos e confirmação de risco
+
+- Baseline: 301 pytest (1 warning) / 38 vitest verdes.
+- Escrito tests/security/test_git_hooks.py: controles positivos e regressões reais para post-checkout, fsmonitor, conversores de diff, filtros de conteúdo, includeIf por branch e aliases/opções globais.
+- Primeira rodada antes do código: 13 falhas esperadas de proteção ausente; dois controles de clean/process via status não executaram conversão, corrigidos para hash-object --path (comando explícito de conversão). Post-checkout/fsmonitor/diff/textconv reproduzidos no Git 2.43.0.
+- Referências oficiais consultadas: git-scm.com/docs/githooks.html (post-checkout/worktree --no-checkout), git-diff (no-ext-diff/no-textconv), git-config e gitattributes. Nenhum agente real ou quota.
+
+## 2026-11-18 — Codex — continuação V2-SEC-006
+
+- Operador pediu status; trabalho mantido na mesma tarefa. Última suíte completa anterior: 319 passed (1 warning), frontend 38 passed e build/lint verdes.
+- Revisão identificou bypass `worktree add --check` e negação `status --no-ignore-submodules`; corrigidos usando formas completas autorizadas, branch agent/run-<12hex> e target absoluto. Adicionadas regressões de abreviações/negações; 47 testes Git+ambiente passaram após correção.
+- Revisor review_sec006 atingiu limite de uso antes de aprovar a correção final. Não declarar done nem commitar como tarefa concluída sem revisão distinta, conforme AGENT_HANDOFF §4. Suíte completa final em execução; sem merge/push, credenciais alteradas ou CLI de agente real.
+
+### 2026-11-18 — Codex — fechamento V2-SEC-006
+
+1. **Planejado:** impedir hooks/configuração executável do Git em prepare/run_command e unificar os helpers, com repositórios/sentinelas temporários.
+2. **Implementado:** policy/git.py compartilhada por core/projects/locks, formas completas não interativas e configurações fixas de segurança; consulta de filtros efetivos/includes sem revelar valores; prepare em duas etapas sem checkout inicial, validando branch antes de reset --hard HEAD. Sem alterar config original/credenciais/CLI de agentes, merge/push/deploy.
+3. **Arquivos:** novos policy/git.py e tests/security/test_git_hooks.py; core.py, projects.py, repository_lock.py, test_env_allowlist.py (mock das consultas extras); README, frontend/README, execution-manager, SECURITY_GOVERNANCE, plano/backlog/handoff. Estatística completa no commit; nenhuma migração/dependência nova.
+4. **Testes:** baseline 301 pytest / 38 vitest. Vermelho inicial de 13 casos antes de código; controles clean/process ajustados para conversão explícita. Final pytest isolado → 323 passed, 1 warning, 14,30 s; 47 Git+env focados; revisão 69 focados. Build/lint frontend verdes; frontend inalterado após baseline 38 vitest. Check_docs/diff --check verdes. E2E não repetido; integração Git/worktree/LangGraph/worker com mocks consta no pytest. Nenhum CLI de agente real.
+5. **Decisões:** risco post-checkout confirmado em Git2.43 com controle positivo; filtros executáveis recusados em vez de rodar código implicitamente. Formas Git limitadas às necessárias, sem aliases/opções interativas. Includes por branch exigem worktree sem checkout e segunda validação. Documentados limites/compatibilidade e fontes primárias Git; ADRs humanos continuam propostos.
+6. **Problemas resolvidos:** revisão reproduziu --check reativando checkout e --no-ignore-submodules alterando inspeção; corrigidos com allowlist de formas completas, branch gerada válida e target absoluto, regressões reais. Um assert antigo contava só comandos e foi adaptado para consultas extras mantendo verificação de ambiente em todos os subprocessos. Revisor atingiu limite de uso, retomou e aprovou delta final.
+7. **Pendências/limites:** filtros executáveis locais (incluindo LFS local) não suportados; worktree vazia/branch podem permanecer para inspeção se include condicional é recusado após registro. Não intercepta Git que testes/agentes executem fora do wrapper nem elimina corrida de processo malicioso do mesmo usuário; SEC-008 futura. Revisão independente review_sec006 aprovada, sem bloqueantes. Sem commit/push até fechamento desta entrada; commit dev autorizado a seguir.
+8. **Próxima tarefa:** V2-WF-001, schema e validação de workflows.
+9. **Aceite:** WORKFLOW_ENGINE §6.2, exemplos válidos/inválidos com registry/capacidades e restrições MVP; sem antecipar compilador/migração/preset padrão ou decisões Q2/Q5, revisão distinta/handoff.
+10. **Comandos:** ativar .venv; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test/build/lint; python scripts/check_docs.py. Commit dev testado/revisado autorizado, sem merge/push/deploy.

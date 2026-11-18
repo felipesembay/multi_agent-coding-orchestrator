@@ -1,10 +1,17 @@
 # Próximos passos
 
-## Próxima tarefa recomendada: V2-SEC-006
+## Próxima tarefa recomendada: V2-WF-001
 
-**Objetivo:** verificar e desabilitar hooks/config insegura do Git em core.prepare/run_command, conforme SECURITY_GOVERNANCE CA4. Task P0 independente.
+**Objetivo:** schema versionado WorkflowDefinition e validação conforme WORKFLOW_ENGINE §6.2. Dependência CORE-003 concluída; não depende de quota real.
 
-**Aceite:** repositório temporário com hook post-checkout sentinela não o executa ao preparar worktree; manter worktrees/locks/diffs/status e recuperação compatíveis. Ler SECURITY_GOVERNANCE/ADR-0009, comparar projects.git/repository_lock.identity. Testar Git real em diretórios temporários, sem agentes reais/quota; revisão distinta e handoff antes do commit dev.
+**Aceite:** casos válidos/inválidos das regras da especificação, incluindo papéis/capacidades, referências/estrutura e restrições do MVP. Ler WORKFLOW_ENGINE e ADR-0005 antes de editar, reutilizar registry/manifestos; usar fakes, sem executar agentes/workflows reais. Não antecipar compilador, migração ou mudança de preset padrão (Q2/Q5 pendentes). Revisão distinta, handoff e commit dev após testes.
+
+## SEC-006 concluída
+
+- policy/git.py compartilhada por core/projects/locks: hooks/fsmonitor/assinatura/pager/manutenção desabilitados, status/diff sem submódulos/conversores e formas completas não interativas. Aliases, globais de caller, abreviações e negações não autorizadas recusadas.
+- Filtros executáveis clean/smudge/process da configuração efetiva recusados sem expor valores; includes por branch rechecados em worktree registrada sem checkout, antes de reset --hard HEAD. Config do repositório não é alterado; worktree vazia/branch podem permanecer se configuração condicional for recusada, para inspeção manual.
+- Proteção cobre Git direto do orquestrador, não comandos Git que agentes/testes executem por conta própria; sem sandbox de SO/garantia contra mutação maliciosa concorrente do mesmo usuário.
+- Evidências: 323 pytest / 38 vitest e build/lint/docs verdes, 22 casos Git com controles positivos, revisão review_sec006 (69 focados) aprovada em 2026-11-18 após correções de --check/--no-ignore-submodules. Revisor inicialmente atingiu limite, depois retomou e aprovou. E2E não reexecutado nesta tarefa; integração real Git/LangGraph/worker com agentes mockados coberta no pytest.
 
 ## SEC-002 concluída
 
@@ -51,7 +58,7 @@
 ## Decisões humanas pendentes
 
 - V2-F0-001 concluída: baseline `f8e6949` em `dev`, preservando o WIP. Novos commits em dev autorizados após testes; sem merge/push.
-- V2-F0-002 `blocked`: Q2–Q12 e ADRs aguardam revisão humana. Não impedem SEC-006; SEC-003 requer autorização de validação real. Quota real segue não autorizada.
+- V2-F0-002 `blocked`: Q2–Q12 e ADRs aguardam revisão humana. Não impedem WF-001; SEC-003 requer autorização de validação real. Quota real segue não autorizada.
 
 ## Referência concluída: V2-CORE-001
 

@@ -157,13 +157,16 @@ def test_core_test_command_and_git_helpers_do_not_inherit_secrets(monkeypatch, t
     monkeypatch.setenv('SENTINEL_SECRET', 'must-not-pass')
     monkeypatch.setenv('CODEX_HOME', '/private/codex')
     monkeypatch.setenv('GIT_CONFIG_COUNT', '1')
-    runner = Mock(return_value=subprocess.CompletedProcess([], 0, stdout='.git\n', stderr=''))
+    def fake_git(argv, **kwargs):
+        return subprocess.CompletedProcess(argv, 1 if 'config' in argv else 0,
+                                           stdout='' if 'config' in argv else '.git\n', stderr='')
+    runner = Mock(side_effect=fake_git)
     monkeypatch.setattr(subprocess, 'run', runner)
     monkeypatch.setattr('shutil.which', lambda name, **kwargs: '/mock/' + name)
     core.run_command(['python', '-m', 'pytest'], str(tmp_path))
     projects.git(tmp_path, 'status', '--porcelain')
     repository_lock.identity(tmp_path)
-    assert runner.call_count == 3
+    assert sum('config' not in call.args[0] for call in runner.call_args_list) == 3
     for call in runner.call_args_list:
         env = call.kwargs['env']
         assert env.get('SENTINEL_SECRET') is None and env.get('CODEX_HOME') is None and env.get('GIT_CONFIG_COUNT') is None

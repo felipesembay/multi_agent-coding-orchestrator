@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .project_store import connection
 from .policy.env import EnvironmentPolicyError, safe_env
+from .policy.git import UnsafeGitConfiguration, run_git
 
 
 class ProjectError(Exception):
@@ -107,14 +108,13 @@ def authorized_path(value, allow_root=False):
 def git(path, *args, directory_fd=None):
     if shutil.which('git') is None:
         raise ProjectError('Git não está disponível no servidor.', 503)
-    argv = ['git', '-c', 'core.hooksPath=/dev/null', '-c', 'core.fsmonitor=false',
-            '-c', 'commit.gpgsign=false', '-c', 'user.name=Orchestrator Local',
-            '-c', 'user.email=orchestrator@local.invalid', *args]
     try:
-        result = subprocess.run(argv, cwd=str(path), capture_output=True, text=True,
-                                timeout=20, check=False,
-                                pass_fds=() if directory_fd is None else (directory_fd,),
-                                env=safe_env('git'))
+        result = run_git(['git', *args], cwd=str(path), timeout=20, env=safe_env('git'),
+                         pass_fds=() if directory_fd is None else (directory_fd,),
+                         config=(('user.name', 'Orchestrator Local'),
+                                 ('user.email', 'orchestrator@local.invalid')))
+    except UnsafeGitConfiguration:
+        raise ProjectError('Configuração Git insegura ou filtros executáveis não suportados. Revise o repositório.', 422) from None
     except EnvironmentPolicyError:
         raise ProjectError('Configuração de ambiente de subprocessos inválida.', 422) from None
     except (OSError, subprocess.TimeoutExpired) as exc:

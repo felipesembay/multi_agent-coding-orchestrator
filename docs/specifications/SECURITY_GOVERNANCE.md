@@ -15,7 +15,7 @@ Reduzir riscos de múltiplos agentes executando ferramentas e alterando arquivos
 | Host/Origin/CSRF | SEC-001 implementada: todas as rotas, token em leituras/escritas; bootstrap local /session e liveness /health sem token |
 | Permissões por papel | Parcial — Codex `read-only`; Claude `acceptEdits` também no Planner; shell do Implementer proibido só por prompt |
 | Ambiente dos subprocessos | SEC-002 implementada: allowlists exatas por runner/adapter/tests/git; credenciais ambientais não herdadas por padrão |
-| Git endurecido | ✓ em `projects.git` e `repository_lock.identity` (hooks off, config global off); **não** em `core.run_command` (worktree add, diff, status) |
+| Git endurecido | SEC-006 implementada em core/projects/locks: hooks/fsmonitor/conversores desligados, formas não interativas fixas, filtros executáveis recusados |
 | Auditoria | ✓ `platform_audit` para catálogo e lifecycle |
 | Merge/push/deploy | ✓ inexistentes |
 | Rede | ✗ sem política |
@@ -65,7 +65,7 @@ Validação: matriz Host/origem/peer e token em todas as rotas, bearer separado 
 
 ### 6.3 Subprocessos
 - `safe_env(adapter)` = `{PATH, HOME, USER, LANG, LC_*, TERM, TMPDIR, XDG_*}` + variáveis declaradas no manifesto do adapter (ex.: config do CLI). Chaves de API só para o adapter que as exige, lidas do keyring.
-- Git endurecido também nos comandos `git` executados por `core.run_command` (`worktree add`, `diff`, `status`): `-c core.hooksPath=/dev/null`, `-c core.fsmonitor=false`, `GIT_CONFIG_NOSYSTEM=1`, como já faz `projects.git`. [HIPÓTESE a confirmar por teste] o hook `post-checkout` do repositório alvo é executado por `git worktree add`, e hoje `prepare()` não o desabilita. → `V2-SEC-006`.
+- Git endurecido também nos comandos `git` executados por `core.run_command` (`worktree add`, `diff`, `status`): `-c core.hooksPath=/dev/null`, `-c core.fsmonitor=false`, `GIT_CONFIG_NOSYSTEM=1`, como já faz `projects.git`. A hipótese foi confirmada com controle positivo no Git 2.43.0; SEC-006 agora bloqueia o hook no prepare. Ver implementação e limites abaixo.
 - Timeouts por grupo de processos (já em parte no worker).
 
 ### Implementação de SEC-002 (2026-11-17)
@@ -77,7 +77,7 @@ Escopos separados:
 - Adapter canônico (`claude_code`, `codex_cli`, `antigravity` ou plugin): base, nomes declarados no CapabilityManifest.environment_variables e extensões autorizadas só para esse adapter. Claude declara CLAUDE_CONFIG_DIR e Codex CODEX_HOME; agy usa HOME/XDG, sem inventar nomes não verificados.
 - `tests` e `git`: base e extensões apenas do respectivo escopo. Não recebem config dirs dos outros adapters, banco ou worker_id.
 
-GIT_CONFIG_NOSYSTEM=1 e GIT_CONFIG_GLOBAL=/dev/null são gerados, nunca herdados livremente. ORCH_DISPATCH_TOKEN é uma exceção de supervisão: propaga-se do ambiente confiável do runner para identificar descendentes quando o líder morreu; não é credencial de API e não pode ser substituído por InvocationRequest.env. Removê-lo quebraria a recuperação segura de grupos órfãos. Hooks e config local do Git em core.prepare continuam assunto de SEC-006; SEC-002 não altera argv/permissões.
+GIT_CONFIG_NOSYSTEM=1 e GIT_CONFIG_GLOBAL=/dev/null são gerados, nunca herdados livremente. ORCH_DISPATCH_TOKEN é uma exceção de supervisão: propaga-se do ambiente confiável do runner para identificar descendentes quando o líder morreu; não é credencial de API e não pode ser substituído por InvocationRequest.env. Removê-lo quebraria a recuperação segura de grupos órfãos. SEC-002 não altera argv/permissões; hooks e configuração local de Git são tratados pela implementação SEC-006 abaixo.
 
 Extensões são configuração confiável do processo, por exemplo `ORCH_ENV_ALLOWLIST='{"tests":["TEST_FIXTURE_DIR"],"claude_code":["HTTPS_PROXY"]}'`. Usar IDs canônicos, nomes individuais, sem valores no JSON; o valor da variável selecionada vem do processo no spawn. Proxy só deve ser autorizado ao processo que precisa dele. Declarações recusam glob, nomes de credenciais como KEY/TOKEN/SECRET/PASSWORD/CREDENTIALS, controles ORCH_/GIT_, LD_/DYLD_ e PYTHONPATH/PYTHONHOME/PYTHONSTARTUP/PYTHONINSPECT; configuração inválida falha antes do subprocesso, com mensagem estática sem conteúdo. Chaves de provedores via API ficam no keyring/ModelProvider de SEC-005/PROV-001, não nesta configuração.
 
@@ -86,6 +86,20 @@ Nomes internos runner/tests/git são reservados: não podem ser IDs de adapters/
 Quando não vazia, a política canônica de **nomes** é salva em managed_runs.config.environment_allowlist e coberta pelo digest de confirmação; a forma/digest padrão antigos continuam iguais quando a extensão está ausente. Valores nunca entram nessa chave. Worker.environment e execution_runner reaplicam o snapshot, ignorando alterações posteriores do mapa do worker; valores permitidos são resolvidos no processo que inicia o filho, não persistidos. Snapshots antigos sem o campo usam extensões vazias, sem herdar novas concessões; snapshots de tipo inválido não viram defaults silenciosamente. A política de execução legada CLI vem do ambiente do próprio processo, enquanto snapshots gerenciados são congelados.
 
 Evidências: /proc/environ de agente Python fake e runner real, workflow com Worker.spawn/handshake/cleanup de produção e agentes mockados, segregação por escopo, valores ausentes do banco, digest/stale confirmation, e recuperação real do descendente filtrado após matar somente seu runner de teste. Nenhum CLI real/quota. O harness E2E reutiliza Worker.environment em vez de herdar os.environ integralmente.
+
+### Implementação de SEC-006 (2026-11-18)
+
+`policy/git.py` centraliza o Git direto de core.run_command, projects.git e repository_lock.identity. As chamadas recebem --no-pager e opções -c fixas para desabilitar hooks, fsmonitor, assinatura, recursão/summary de submódulos, manutenção automática e checkout paralelo; ambiente já filtrado por SEC-002 mantém config global/sistema desligada. FD de lock/diretório continua herdado, e consulta de configuração + comando usam o mesmo orçamento de timeout.
+
+O wrapper aceita somente as formas completas e não interativas usadas pelo orquestrador: init sem templates; add com separador --; commit com mensagem -m; status simples/porcelain/short; rev-parse para identidade/HEAD; worktree add --no-checkout -b agent/run-<12hex> <target absoluto> HEAD; reset --hard HEAD; diff da HEAD/árvore com opções inertes. Aliases, opções globais de caller, abreviações, editores e conversores explícitos não são aceitos. Status/diff ignoram submódulos; diff força --no-ext-diff/--no-textconv. Não é uma API genérica de Git, não habilita merge/push/deploy.
+
+Antes de operações em repositórios existentes, uma consulta read-only `git config --includes --null --get-regexp` verifica clean/smudge/process da configuração efetiva (incluindo includes/branch). Comandos de filtro não vazios e configuração não verificável são recusados antes de tocar arquivos/index. Valores/stderr dessa consulta não são expostos em mensagens de erro. **Compatibilidade:** repositórios com filtros executáveis locais, inclusive LFS configurado localmente, não são suportados por esse caminho automático; não existe override silencioso. A consulta não remove/edita config do repositório.
+
+prepare registra uma worktree com --no-checkout, depois valida a configuração efetiva nessa nova branch e só então executa reset --hard HEAD para preenchê-la. Isso impede que includeIf.onbranch habilite filtro no momento do checkout. Se a configuração só se tornar insegura após registro da branch, a worktree vazia e a branch são preservadas para inspeção manual; não há remoção/limpeza automática ou execução de agentes. O repositório de origem e seu config permanecem preservados.
+
+Controles positivos em repositórios temporários comprovaram post-checkout/fsmonitor/diff/textconv e filtros executáveis no Git 2.43.0; regressões verificam ausência de sentinelas, conteúdo/branch/worktree/locks preservados, includes condicionais e bypasses por --check/negações de opções. A proteção vale para Git chamado diretamente pelo orquestrador: código gerado/testes ou ferramentas nativas de agentes que executem Git por conta própria não passam por esse wrapper. Não há isolamento contra mutação concorrente maliciosa de config pelo mesmo usuário do SO; SEC-008 permanece separada.
+
+Referências primárias: [hooks/post-checkout](https://git-scm.com/docs/githooks.html), [worktree sem checkout](https://git-scm.com/docs/git-worktree), [diff e conversores](https://git-scm.com/docs/git-diff), [atributos/filtros](https://git-scm.com/docs/gitattributes.html), [config/includes](https://git-scm.com/docs/git-config). Evidência local nos testes prevalece para a versão instalada.
 
 ### 6.4 Prompt injection
 Envelopar conteúdo de repositório/diff/saída de agente em blocos delimitados com aviso; schema estrito nas respostas; reviewer nunca recebe instrução para executar comandos; nenhum campo de saída de agente vira argumento de comando (como hoje com `"No shell commands in JSON"` — manter e reforçar por validação).
@@ -110,7 +124,7 @@ Estender `platform_audit` com: `workflow.created`, `provider.configured`, `crede
 |---|---|
 | CLIs precisam de variáveis não previstas | Allowlist extensível por manifesto + mensagem de erro |
 | `plan` mode do Claude impede saída esperada do planner | Validar com fake e com 1 execução real autorizada |
-| Hooks do repositório alvo executam em `git worktree add` | Verificar e desabilitar hooks no `prepare` (SEC-006) |
+| Hooks do repositório alvo executam em `git worktree add` | Confirmado e mitigado em SEC-006, com controle positivo e regressão do prepare |
 | Mesmo usuário do SO = sem fronteira real | Documentar; isolamento de SO em fase futura (SEC-008) |
 
 ## 11. Critérios de aceite verificáveis
