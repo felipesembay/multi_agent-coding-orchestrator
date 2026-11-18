@@ -402,3 +402,27 @@
 - Decisões não escolhidas: licença específica (adiada pelo operador), assinatura de pacotes, valor monetário de orçamento e identidade definitiva. Não bloqueiam tarefas independentes.
 - Próxima recomendada WF-004: presets A/B/C/legacy e escolha por etapa; Q2/Q5 resolvidas, execução concreta ainda depende de segurança/capacidades implementadas, B desabilitado até PROV-001. F0-005 Python3.12 e spikes F0-003/SEC-003 especificamente autorizados podem ser escolhidos em sessões separadas; uma tarefa por vez.
 - Para continuar: git status/log; ler IMPLEMENTATION_PLAN/NEXT_STEPS/OPEN_QUESTIONS e especificação da tarefa; source .venv/bin/activate; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test. Critérios WF-004: presets com fakes, escolhas por etapa, CLI legado preservado, revisão/handoff após verdes. Sem merge/push/deploy.
+
+
+## 2026-11-18 — Codex — V2-WF-004 início
+- Planejado catálogo legacy-v1/A/B/C, clonagem/configuração por etapa, validação de manifestos/fakes e compatibilidade CLI, sem API/editor/seed/novas flags reais. Q2/Q5 recebidas no registro588c6db; ADR-0005 consultado e permanece proposto.
+- Dev limpa em588c6db, sete commits locais à frente de origin/dev; sem divergência. Baseline ORCH_DB temporário python -m pytest -q -p no:cacheprovider:454 passed,1 warning LangGraph,31,83s; npm --prefix frontend test:38 passed. Nenhum CLI real/quota.
+
+### WF-004 — testes e primeiro marco verde
+- tests/workflows/test_presets.py vermelho por ModuleNotFoundError antes do módulo; após criação presets.py,16 casos iniciais passaram. Ampliados com clonagem/seleção inválida, execução LangGraph com runtimes fakes e CLI.main→execute_scope sem subprocessos/agentes reais.
+- Catálogo sem env/discovery/DB, quatro entradas, default futuro UI A/CLIlegacy; B bloqueado por PROV-001. A/C validados contra manifestos reais são recusados corretamente até capacidades/permissões disponíveis. Clones são workflows estritos sem identidade legada, incluindo normalização explícita de clonelegacy (planner read_only, teste separado, só primários).
+
+### WF-004 — revisão e regressão intermediária
+- Suite anterior completa483 passed,1 warning,15,77s; build/lint verdes. Revisor achou clone legado com modelo agy vazio bloqueando override válido: corrigido para normalizar vazio→null somente em clone, original legacy intacto. Duas regressões adicionadas;31 presets verdes.
+- Contrato em WORKFLOW_ENGINE §6.3.2 e seção Evolução planejada do README agora distinguem fundação interna implementada de UI/execução futura, removendo afirmação absoluta desatualizada. Validação completa final após correção em andamento.
+
+### WF-004 — fim / revisão aprovada
+- Implementado V2-WF-004: catálogo interno somente leitura em presets.py com quatro entradas, defaults UI A/CLIlegacy, clone/configuração por etapa e validação contra registry real. Templates A/B/C separam definição/bindings; modelos null preservam escolha do provider. Referências de configuração são lógicas; não há seed/API/editor ou execução implícita de agentes.
+- Sistema B recusado até PROV-001, inclusive com fakes. A/C respeitam capacidades/permissões/verificação atuais e são recusados quando indisponíveis. Legacy usa contratos originais; clone é novo workflow estrito com planner read_only, testes separados e primários sem fallback, sem identidade de execução confiável baseada no nome.
+- Arquivos: orchestrator/workflows/presets.py, tests/workflows/test_presets.py, seção Evolução planejada do README, WORKFLOW_ENGINE, IMPLEMENTATION_PLAN, BACKLOG e três handoffs (9 arquivos). Estatísticas finais verificadas no staged diff antes do commit.
+- Testes finais: ORCH_DB temporário python -m pytest -q -p no:cacheprovider:485 passed,1 warning LangGraph,15,00s;31 novos presets. npm --prefix frontend test:38 passed no baseline; frontend intacto; build/lint verdes. check_docs e diff --check verdes. Sem E2E nesta sessão ou CLI de agente real/quota.
+- Revisão review_wf004 aprovada após corrigir clone com modelo vazio impedindo override;181 focados passaram. Duas regressões garantem vazio→null só no clone e valor original no legacy. Nenhum outro achado bloqueante; CLI.main/default env e chamada execute_scope testados sem processos.
+- Decisões: Q2/Q5 existentes aplicadas ao catálogo; ADR-0005 permanece proposto, sem decisões humanas adicionais ou flags/capacidades não verificadas. Nenhum merge/push/deploy. Commit local dev autorizado após testes/revisão.
+- Pendências: UI/CRUD/persistência das escolhas, snapshots por run, executores reais/permissões, OpenRouter e fallbacks nas tarefas próprias. Novo padrão é metadado do catálogo e não foi ativado no produto atual.
+- Próxima recomendada WF-007: snapshots imutáveis workflow+bindings/workflow_version_id/digest, CA4 de WORKFLOW_ENGINE; editar preset/config depois de enfileirar não altera run, idempotência e digest legados preservados. Ler NEXT_STEPS/WORKFLOW_ENGINE/DATA_MODEL/PERSISTENCE; mapear referências lógicas para configurações habilitadas e validar manifestos reais, sem bypass por preset/nome.
+- Comandos para continuar: git status/log; source .venv/bin/activate; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test; build/lint/check_docs/diff --check conforme escopo; revisão/handoff e commit dev após verdes. Uma tarefa por vez; nenhum agente real em testes.

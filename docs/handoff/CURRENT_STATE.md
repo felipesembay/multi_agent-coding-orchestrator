@@ -1,11 +1,11 @@
 # Estado atual
 
-Atualizado: 2026-11-18 · Por: Codex (V2-F0-002 — decisões registradas)
+Atualizado: 2026-11-18 · Por: Codex (V2-WF-004)
 
 ## Repositório
 - Branch `dev`; commits testados/revisados autorizados pelo operador. Sem merge/deploy/main/master. Novo push não autorizado.
 - Baseline `f8e6949`; CORE-001..004 em `87a034f`, `56e44d2`, `6737c2f`, `db12642`. Push anterior somente até db12642 em origin/dev.
-- SEC-001 `8d94e7d`, SEC-002 `065d9ed`, SEC-006 `7ac3634`, WF-001 `caee20e`, WF-002 `fc93cd1` locais. WF-003 `1474f4b`. Registro parcial de F0-002 nesta sessão no commit `V2-F0-002: record operator decisions and remaining ADR review`; consultar git log para hash final.
+- SEC-001 `8d94e7d`, SEC-002 `065d9ed`, SEC-006 `7ac3634`, WF-001 `caee20e`, WF-002 `fc93cd1` locais. WF-003 `1474f4b`. Registro parcial F0-002 em `588c6db`. WF-004 registrada no commit `V2-WF-004: add system preset catalog and stage choices`; consultar git log para hash final.
 - WIP original de tema/exclusão/migração v3 preservado no baseline. Nenhum WIP externo identificado.
 
 ## Implementado
@@ -22,18 +22,20 @@ Atualizado: 2026-11-18 · Por: Codex (V2-F0-002 — decisões registradas)
 - **WF-003:** compiler.py/nodes.py compilam definições estritas com executores confiáveis obrigatórios por tipo, snapshots em memória de configuração, envelopes/eventos e contadores por etapa/tarefa, prazo, revisão lógica das evidências e aprovação/gates explícitos. Sem executores CLI implícitos, API ou ledger. Budget não nulo e fallback configurável recusados até integrações OBS/WF-010.
 - core.graph usa compile_legacy com layout privado e callbacks/entradas/topologia/recursion250 preservados. Snapshot topológico capturado de fc93cd1 antes da mudança; não existe bypass por nome legacy-v1 em workflows de usuário. Execução genérica deriva recursion de max_total_steps e verifica contagem por etapa.
 - Deadline checado antes/depois e nos controles; executor deve aplicar context.timeout_s aos subprocessos. Gates têm payload booleano obrigatório mas persistência/proveniência em RES-004; nenhum autoapprove de produção. Testes/review precisam cobrir a última escrita para finalizar.
-- Sem presets, endpoints ou mudança do fluxo atual. CLI flags intactas: Claude ainda acceptEdits, Codex read-only. SEC-003/004 permanecem sem implementação; Q2–Q12 recebidas nesta sessão, conforme seção de decisões abaixo.
+- **WF-004:** presets.py fornece catálogo interno legacy-v1/A/B/C e clonagem/configuração por etapa. Padrão UI recomendado A e CLIlegacy identificados; cada consulta cria cópias independentes, modelos null mantêm defaults do provider e escolhas substituem bindings inteiros.
+- validate_preset respeita manifestos reais, sem promover capacidades. A/C não executáveis com manifestos atuais incompletos; B bloqueado por PROV-001 mesmo com fakes. Legacy continua com resolução/validação original; clone vira workflow estrito com planner read_only/testes separados/só primários, sem bypass por nome. Modelo vazio normalizado só no clone, original intacto.
+- Sem seed de banco, endpoints, editor ou mudança do fluxo atual. CLI flags intactas: Claude ainda acceptEdits, Codex read-only. SEC-003/004 permanecem sem implementação; Q2–Q12 recebidas nesta sessão, conforme seção de decisões abaixo.
 
-## Evidências WF-003
+## Evidências WF-004
 | Verificação | Resultado |
 |---|---|
-| Baseline pytest isolado / vitest | 424 passed, 1 warning / 38 passed |
-| Pytest final isolado | 454 passed, 1 warning LangGraph, 14,83 s |
-| Novos testes compiler/topologia | 30 passed; snapshot dos três pontos de entrada anterior à refatoração |
-| Revisão independente review_wf003 | aprovada sem bloqueios; 134 focados workflows/core passaram |
+| Baseline pytest isolado / vitest | 454 passed,1 warning /38 passed |
+| Pytest final isolado | 485 passed,1 warning LangGraph,15,00 s |
+| Novos testes de presets | 31 passed; inclui execução LangGraph fake e CLI.main→execute_scope sem subprocessos |
+| Revisão independente review_wf004 | aprovada após correção de modelo vazio em clone legado;181 focados passaram |
 | Frontend | 38 vitest no baseline; build/lint verdes; frontend inalterado |
 | Docs / diff --check | sucesso |
-| E2E | não reexecutado em WF-003; última SEC-002: 9 passed / 2 skipped com mocks |
+| E2E | não reexecutado em WF-004; última SEC-002:9 passed /2 skipped com mocks |
 | Agentes CLI reais | nenhum; sem quota real |
 
 ## Decisões do operador — 2026-11-18
@@ -44,14 +46,11 @@ Atualizado: 2026-11-18 · Por: Codex (V2-F0-002 — decisões registradas)
 - Q11 commits automáticos em worktree/branch agent/<run> por tarefa aprovada, não por tentativa/chamada nem na origem; sem merge/push/deploy. Q12 Conductor provisório/reversível.
 - Registro não é implementação nem aceitação integral dos ADRs; revisão específica dos dez ADRs continua pendente. F0-002 fica parcial/blocked residual por esse critério, não por perguntas já respondidas.
 
-## Evidências desta atualização documental
-- Baseline isolado:454 pytest,1 warning LangGraph,15,49s; vitest38. Código/dependências/configuração intactos; sem build/lint/e2e reexecutados, sem quota real.
-- OPEN_QUESTIONS, dependências, backlog, pontos específicos dos ADRs e handoff sincronizados; check_docs e diff --check executados. Revisão documental review_decisions_f0002 aprovada, sem bloqueios no registro; ver SESSION_LOG.
-
 ## Próximos passos
-- WF-004: presets, novo padrão desejado e escolha por etapa. Decisões Q2/Q5 recebidas; execução Codex exige SEC-004/WF-005, OpenRouter exige PROV-001 e manifestos não verificados não são promovidos.
+- WF-007: snapshot/digest workflow+bindings por run, com versões imutáveis e preservação de idempotência/configs anteriores. Referências lógicas pc-* do catálogo não são configurações persistidas/habilitadas; resolver no host e validar.
+- Execução real do padrão A depende de SEC-003/004, WF-005/006 e seleção/editor em WF-008/009. B continua bloqueado por PROV-001. Decisões Q2/Q5 já recebidas; não promover manifestos não verificados.
 - Python3.12/compatibilidade em F0-005 e spikes autorizados em F0-003/SEC-003 podem avançar no escopo decidido; uma tarefa por vez, com revisão pertinente. Não confundir o bloqueio residual de F0-002 com as questões já resolvidas.
-- WF-007 alternativa liberada para snapshot/digest; licença específica, assinatura, valor de orçamento, identidade final e revisão integral dos ADRs continuam pendentes nos seus respectivos escopos.
+- Licença específica, assinatura, valor de orçamento, identidade final e revisão integral dos ADRs continuam pendentes nos seus respectivos escopos.
 
 ## Ambiente
 Python 3.9.7 (.venv), LangGraph 0.6.11, Node 22.18.0, Git 2.43.0. Sem dependências novas ou alterações em credenciais.

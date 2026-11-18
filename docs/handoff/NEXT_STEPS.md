@@ -1,14 +1,20 @@
 # Próximos passos
 
-## Próxima tarefa: V2-WF-004 — decisões Q2/Q5 recebidas
+## Próxima tarefa: V2-WF-007 — snapshot e digest por run
 
-**Objetivo:** presets legacy-v1, A/B/C. Operador confirmou em 2026-11-18 o novo padrão Claude → Codex → Antigravity (preset A), com escolha de providers/modelos por etapa pelo usuário. CLI mantém compatibilidade legacy-v1. Não ativar execução antes das implementações/verificações de capacidades/permissões correspondentes; testes de presets usam fakes e não promovem manifestos reais não verificados.
+**Objetivo:** congelar workflow+bindings no run, com workflow_version_id e digest de confirmação; dependências WF-002/WF-003 concluídas. Catálogo WF-004 disponível para materializar escolhas do host.
 
-**Aceite:** presets validam com fakes, escolhas são representadas por etapa, padrão desejado documentado e compatibilidade CLI preservada. Codex executor depende de SEC-004/WF-005 (Q5 respondida); preset B desabilitado até PROV-001. Ler WORKFLOW_ENGINE/OPEN_QUESTIONS/ADR-0005; usar compiler com executores confiáveis e compatibilidade legada explícita, sem bypass por nome. Revisão/handoff/commit dev após testes; sem push/merge/deploy.
+**Aceite:** CA4 de WORKFLOW_ENGINE, incluindo mudança de preset/configuração após enfileirar sem alterar o run; idempotência/digests e compatibilidade dos snapshots antigos preservados. Ler WORKFLOW_ENGINE, DATA_MODEL/PERSISTENCE e contratos de presets/compiler/manager. Referências pc-* do catálogo são lógicas, não registros habilitados já existentes; resolver via configurações do host e validar manifestos reais. Não ativar preset A antes de capacidades/permissões correspondentes nem criar bypass por nome/identidade de clone.
 
-**Também autorizado:** Python 3.12 em V2-F0-005; poucos prompts triviais em diretório temporário para F0-003/SEC-003 conforme Q10. Autorização não executada nesta sessão; todos os testes automatizados continuam com mocks. Atualização de Python, spike de quota e presets são tarefas separadas, uma por vez. Revisão integral dos ADRs continua pendente; não reaplicar bloqueios de perguntas já respondidas a trabalho especificamente autorizado pelo operador.
+**Comandos:** git status/log; source .venv/bin/activate; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test; check_docs/diff --check. Revisão/handoff/commit dev após verdes; sem push/merge/deploy. Testes sempre com mocks.
 
-**Alternativa liberada:** V2-WF-007, snapshot/digest por run, sem mudança do padrão existente enquanto integrações de preset A não estiverem prontas.
+## WF-004 concluída
+
+- Catálogo interno puro em presets.py: legacy-v1/A/B/C, defaults UI A/CLIlegacy, cópias independentes de templates e clones/seleções por etapa. A/B/C compartilham estrutura e modelos null (default do provider). Escolhas substituem bindings completos, sem herdar permissão de escrita.
+- validate_preset usa catálogo autoritativo e manifestos reais; A/C atuais são recusados quando faltam capacidades/permissões/verificação. B bloqueado até PROV-001, inclusive com fakes. Nenhum seed/API/editor/probe/novo CLI/flag real implementado.
+- Legacy descriptor usa resolução/validação original; clone vira workflow estrito com planner read_only/teste separado/só primários, sem exceção por nome. Vazio→null somente no clone (correção de revisão); original legacy exato.
+- Revisão review_wf004 aprovada:181 focados passaram,31 novos presets. Contagem final da sessão em CURRENT_STATE/SESSION_LOG. README e WORKFLOW_ENGINE §6.3.2 esclarecem disponibilidade interna versus UI/execução.
+- Próximas dependências do padrão real: SEC-003/004 (planner/permissões), WF-005 (Codex executor), WF-006 (Antigravity reviewer), PROV-001 para B e WF-008/009 para seleção/editor na UI. Não promover manifestos não verificados. Q2/Q5 já recebidas; não reabrir aprovação dessas escolhas.
 
 ## Decisões do operador registradas — V2-F0-002 parcial
 
