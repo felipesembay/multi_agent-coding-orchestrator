@@ -452,3 +452,14 @@
 - Push autorizado anterior à implementação concluído db12642..7431745 em origin/dev. Commit novo WF-007 fica local conforme escopo solicitado (push dos arquivos existentes, depois implementação); sem force/merge/main/master/deploy.
 - Pendências: HTTP/seleção UI WF-008; editor WF-009; capacidades/permissões/adapters de presetA e integração ModelProvider/creds/fallbacks/observabilidade/gates nas tarefas próprias. Nenhum bloqueio de WF-007 restante.
 - Próxima WF-008: endpoints §6.6 e StartExecution selecionando workflow_version_id/bindings, reutilizando snapshots, readonly de presets, configs habilitadas e confirmação/digests. Aceite com API/vitest e compatibilidade antiga; não habilitar plugins por HTTP ou escolher legacy por nome. Ler NEXT_STEPS/WORKFLOW_ENGINE/DATA_MODEL/SECURITY e módulos snapshot/store/manager/runner/api. Comandos baseline isolado+vitest e build/lint/docs, revisão/handoff e commit dev após verdes. Uma tarefa por vez, sem novo push/merge/deploy e sem agentes reais em testes.
+
+
+## 2026-11-18 — Codex — V2-DIST-004 antes de WF-008
+- Operador reportou email de falha CI e pediu commit/continuação WF-008. HEAD6f1c167 já estava commitado, árvore limpa, dev ahead1; nada novo a commitar no início. Diagnóstico somente leitura via gh run list/view: Actions44354266781 e44214673001 falharam em setup-python3.9, não na suíte. Imagem ubuntu-latest agora26.04, sem binário3.9 x64.
+- Manifesto oficial actions/python-versions consultado via GitHub API:3.9.25 e anteriores com Linux22.04 x64 disponíveis. Corrigida imagem para ubuntu-22.04 e comando com ORCH_DB temporário/no:cacheprovider. Python3.12/F0-005 permanece tarefa própria; não alterar dependências/ambiente nesta correção.
+- Baseline pytest isolado521 passed,1 warning /vitest38. Código produto não alterado nesta tarefa. Revisão independente antes do commit; nenhuma nova execução remota disparada e nenhum push neste turno.
+
+### DIST-004 — fim / revisão aprovada
+- Correção somente em .github/workflows/tests.yml e quatro handoffs/backlog (CURRENT_STATE/NEXT_STEPS/SESSION_LOG/BACKLOG). Imagem22.04 e pytest isolado; nenhuma biblioteca/runtime do produto alterado. Distinta revisão review_ci_fix aprovada, check_docs/diff verdes.
+- Baseline521pytest/38vitest; testes novos/build/lint/e2e dispensados por mudança declarativa de CI sem produto; binário confirmado no manifesto oficial. Não houve run remoto novo e não foi declarado verde. Código WF-007 já estava em6f1c167, commitado antes do pedido.
+- Próxima WF-008: endpoints/workflow selection com snapshot, API+vitest e regressão; critérios e comandos em NEXT_STEPS. Sem push/merge/deploy neste turno. Migração3.12 fica em F0-005.

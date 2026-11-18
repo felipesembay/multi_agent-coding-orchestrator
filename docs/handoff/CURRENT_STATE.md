@@ -58,3 +58,8 @@ Atualizado: 2026-11-18 · Por: Codex (V2-WF-007)
 
 ## Ambiente
 Python 3.9.7 (.venv), LangGraph 0.6.11, Node 22.18.0, Git 2.43.0. Sem dependências novas ou alterações em credenciais.
+
+## Marco CI — V2-DIST-004
+Operador reportou falhas Actions em7431745/db12642. Logs mostram falha no setup-python, antes de testes:3.9 x64 ausente para Ubuntu26.04 (ubuntu-latest). Fix local runner22.04 e comando de testes isolado; manifesto oficial confirma binários3.9.25 para22.04. F0-005 continua migração3.12 separada. Repositório limpo antes da tarefa, HEAD6f1c167 já commitado e ainda local.
+
+CI corrigido localmente (DIST-004), revisão review_ci_fix aprovada. Check_docs/diff verdes; última execução remota ainda vermelha por setup-python, não por testes. Commit dedicado V2-DIST-004 antes de WF-008; não há push autorizado novo nesta sessão.

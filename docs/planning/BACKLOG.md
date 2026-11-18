@@ -97,6 +97,7 @@ Fonte única de status das tarefas. Atualize a linha da tarefa ao iniciar (`doin
 | V2-DIST-001 | Bundles AppImage + .deb em CI | todo | P2 | L | DESK-003 | OPS | CA1/CA2 de DESKTOP_APP | Smoke de instalação |
 | V2-DIST-002 | CI do frontend (lint, build, vitest) | todo | P1 | S | — | OPS | Workflow GitHub Actions verde | CI |
 | V2-DIST-003 | E2E desktop (tauri-driver) | todo | P3 | L | DIST-001 | OPS | Fluxo mockado no app empacotado | CI |
+| V2-DIST-004 | Corrigir imagem do CI Python 3.9 incompatível com ubuntu-latest | done | P0 | S | — | OPS | CI fixa imagem com binário oficial e testes isolados; migração Python separada | Logs Actions44354266781; manifesto3.9.25/22.04; baseline521/38; revisão review_ci_fix aprovada; remoto não reexecutado |
 | V2-PROV-002 | OpenRouter: sync de catálogo, preços e parâmetros | todo | P2 | M | PROV-001, OBS-003 | BE | Preços com `source=openrouter_api` e data | HTTP mock |
 | V2-PROV-003 | Ollama `ModelProvider` | todo | P3 | S | CORE-003 | BE | Plan/review local com `billing_mode=local` | HTTP mock |
 | V2-WF-011 | Editor visual React Flow | todo | P3 | L | WF-009, DESK-007 | FE | Gera o mesmo JSON do editor em lista | Vitest |

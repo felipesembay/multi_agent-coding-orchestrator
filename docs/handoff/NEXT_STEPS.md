@@ -147,3 +147,6 @@ npm --prefix frontend test
 ## Verificação de documentação implementada
 
 `V2-DOC-001`: executar `python scripts/check_docs.py` (sem dependências ou rede). Testes: `python -m pytest -q -p no:cacheprovider tests/test_check_docs.py`. Valida links locais/âncoras e definições de referência nos Markdown de `docs/`, README, AGENTS, CLAUDE e frontend/README, IDs completos `V2-*` e data de CURRENT_STATE contra o último commit de código. Não consulta links externos.
+
+## Correção CI V2-DIST-004 — 2026-11-18
+Logs Actions44354266781: setup-python3.9 indisponível no ubuntu-latest26.04, antes da instalação/testes. Runner fixado22.04 (binário oficial3.9.25 confirmado), pytest isolado. Baseline521/38 e revisão review_ci_fix aprovados; remoto exige novo push/run antes de declarar CI verde. Python3.12 continua em F0-005. Próxima WF-008 conforme topo.
