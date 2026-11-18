@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 
 test('light and dark themes persist across routes and reloads on desktop and mobile', async ({
   page,

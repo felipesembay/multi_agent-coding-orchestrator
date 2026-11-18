@@ -115,7 +115,7 @@ export ORCH_TEST_COMMAND='/caminho/absoluto/python -m pytest -q'
 export ORCH_ALLOWED_TEST_COMMANDS='[["/caminho/absoluto/python","-m","pytest","-q"]]'
 ```
 
-Não use executáveis relativos como `.venv/bin/python`: o comando será executado na worktree. Não são instaladas dependências automaticamente. Permitir um perfil de testes autoriza executar o código de testes daquele repositório, não o torna seguro contra código malicioso. Não coloque credenciais em argumentos de comandos. O token CSRF, Origin, Host, cliente loopback e limites de corpo continuam protegendo os novos POSTs em `/projects`.
+Não use executáveis relativos como `.venv/bin/python`: o comando será executado na worktree. Não são instaladas dependências automaticamente. Permitir um perfil de testes autoriza executar o código de testes daquele repositório, não o torna seguro contra código malicioso. Não coloque credenciais em argumentos de comandos. Host estrito, cliente loopback, origem e limite de corpo protegem todas as rotas. Token CSRF ou bearer é exigido em leituras e escritas; GET/HEAD /session é bootstrap local e /health liveness, sem token mas com os mesmos controles locais. Escritas do navegador exigem Origin autorizado e JSON, sem repetição automática no frontend.
 
 ## Verificação automatizada
 
@@ -129,7 +129,7 @@ npm run lint
 
 A integração de subprocesso em `tests/fixtures/managed_workflow.py` usa o LangGraph, Git, worktree e pytest reais, com **todas** as chamadas de agentes mockadas. Ela não usa quotas. Os testes cobrem despacho, vínculos, duplicação, concorrência, preflight, falha de spawn, eventos, resultado, interrupção, órfãos e preservação do CLI.
 
-O teste de navegador do fluxo completo é opt-in e exige o harness `tests/fixtures/managed_server.py`, que recusa bancos fora de `/tmp/orchestrator-execution-qa.*`. Em uma pasta temporária criada com `mktemp -d /tmp/orchestrator-execution-qa.XXXXXX`, crie `repositories/`, configure `ORCH_DB` para `events.db` dentro dessa pasta, `ORCH_ALLOWED_ROOTS` para `repositories/` e um perfil de testes autorizado. Inicie o harness com os argumentos `api` e `worker` em processos separados, configure o Vite para a API de QA em `127.0.0.1:18765` e autorize a origem do Vite. O harness cria somente um projeto temporário explicitamente identificado como teste e mocka os agentes.
+O teste de navegador do fluxo completo é opt-in e exige o harness `tests/fixtures/managed_server.py`, que recusa bancos fora de `/tmp/orchestrator-execution-qa.*`. Em uma pasta temporária criada com `mktemp -d /tmp/orchestrator-execution-qa.XXXXXX`, crie `repositories/`, configure `ORCH_DB` para `events.db` dentro dessa pasta, `ORCH_ALLOWED_ROOTS` para `repositories/` e um perfil de testes autorizado. Inicie o harness com os argumentos `api` e `worker` em processos separados, configure o Vite para a API de QA em `127.0.0.1:18765` e autorize a origem do Vite. O harness cria somente um projeto temporário explicitamente identificado como teste e mocka os agentes. As fixtures Playwright de API obtêm token via /session, assim como a interface; o teste security.spec.ts verifica a recusa de leituras anônimas e a recarga autenticada.
 
 ```bash
 DASHBOARD_URL=http://127.0.0.1:15173 EXECUTION_E2E_MOCKED=1 npm run test:e2e

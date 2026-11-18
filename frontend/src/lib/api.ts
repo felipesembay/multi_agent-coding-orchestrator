@@ -4,7 +4,14 @@ export async function request<T>(
   path: string,
   signal?: AbortSignal,
 ): Promise<T> {
-  const response = await fetch(`/api${path}`, { signal })
+  const headers =
+    path === '/session' || path === '/health'
+      ? undefined
+      : { 'X-Orchestrator-CSRF': await sessionToken(signal) }
+  const response = await fetch(
+    `/api${path}`,
+    headers ? { signal, headers } : { signal },
+  )
   if (!response.ok)
     throw new Error(
       response.status === 404
@@ -19,6 +26,20 @@ export async function request<T>(
     )
   }
 }
+// Fetch a fresh process token for each operation: no persisted or stale credentials.
+export async function sessionToken(signal?: AbortSignal): Promise<string> {
+  const session = await request<{ csrf_token?: unknown }>('/session', signal)
+  const token = session?.csrf_token
+  if (
+    typeof token !== 'string' ||
+    !token ||
+    token.length > 512 ||
+    !/^[\x21-\x7e]+$/.test(token)
+  )
+    throw new Error('Sessão inválida. Atualize a página e tente novamente.')
+  return token
+}
+
 export function useRuns(params: URLSearchParams, interval: number) {
   const query = params.toString()
   return useQuery({

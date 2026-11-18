@@ -11,7 +11,9 @@ from orchestrator.core import db
 def client(tmp_path, monkeypatch):
     monkeypatch.setenv('ORCH_DB', str(tmp_path / 'events.db'))
     monkeypatch.setenv('PRIVATE_TOKEN', 'do-not-expose')
-    with TestClient(app) as client:
+    with TestClient(app, base_url='http://127.0.0.1:8765', client=('127.0.0.1', 50000)) as client:
+        token = client.get('/session').json()['csrf_token']
+        client.headers.update({'Origin': 'http://127.0.0.1:5173', 'X-Orchestrator-CSRF': token})
         yield client
 
 

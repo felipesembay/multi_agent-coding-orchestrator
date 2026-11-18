@@ -45,7 +45,7 @@ Abra `http://127.0.0.1:5173`. **Reinicie a API existente após atualizar o códi
 
 O proxy `/api` aponta para `127.0.0.1:8765`. Para outra porta da API, configure `ORCH_API_TARGET=http://127.0.0.1:18765` ao iniciar o Vite. A API deve usar o mesmo `ORCH_DB` do CLI; esse banco também guarda projetos e solicitações.
 
-As origens permitidas por padrão são `http://127.0.0.1:5173`, `http://localhost:5173`, `http://127.0.0.1:8765` e `http://localhost:8765`. Se alterar a porta do frontend, defina a origem exata em `ORCH_ALLOWED_ORIGINS` ao iniciar a API; múltiplas origens usam vírgulas. Não há CORS liberado para sites externos. Use um único processo da API nesta entrega: o token de proteção das escritas é mantido na memória desse processo e renovado no reinício.
+As origens permitidas por padrão são `http://127.0.0.1:5173`, `http://localhost:5173`, `http://127.0.0.1:8765` e `http://localhost:8765`. Se alterar a porta do frontend, defina a origem exata em `ORCH_ALLOWED_ORIGINS` ao iniciar a API; múltiplas origens usam vírgulas. Não há CORS liberado para sites externos. Use um único processo da API nesta entrega: os tokens de leitura/escrita são mantidos na memória desse processo e renovados no reinício. A interface obtém o token CSRF em cada operação, sem persistir credenciais no navegador.
 
 O proxy é de desenvolvimento. `vite preview` e hospedagens de `dist/` precisam de um reverse proxy local para `/api` e fallback de rotas para `index.html`. Não publique esta API sem autenticação.
 
@@ -74,13 +74,13 @@ O histórico do workspace inclui runs com vínculo explícito à solicitação e
 
 `orchestrator/project_store.py` aplica migrações aditivas versionadas no banco de `ORCH_DB`: `repositories`, `projects`, `project_requests`, `project_previews`, `platform_audit` e `platform_migrations`. A tabela `events` e o protocolo do CLI são preservados. As relações usam chaves estrangeiras; criação e confirmação repetidas do mesmo token retornam o mesmo projeto, incluindo chamadas concorrentes.
 
-Os endpoints de projetos exigem cliente de rede local e Host loopback. Escritas também exigem Origin autorizado, JSON, corpo de até 150 kB e token CSRF obtido em `/session`. A prévia dura dez minutos, fica vinculada aos dados revisados e os caminhos são revalidados na confirmação. Travessia por `..`, diretórios ocultos e symlinks no caminho do projeto são rejeitados. O diretório Git compartilhado de um repositório também precisa estar dentro da autorização.
+Todas as rotas exigem cliente de rede local e Host loopback estrito, e recusam origens externas. Leituras e escritas exigem CSRF obtido em `/session` ou bearer nativo; GET/HEAD de `/session` e `/health` são exceções de bootstrap/liveness, ainda sujeitas aos controles locais. Escritas do navegador também exigem Origin autorizado e JSON; todos os corpos têm limite de 150 kB. A interface busca o token por operação e não repete escritas automaticamente. A prévia dura dez minutos, fica vinculada aos dados revisados e os caminhos são revalidados na confirmação. Travessia por `..`, diretórios ocultos e symlinks no caminho do projeto são rejeitados. O diretório Git compartilhado de um repositório também precisa estar dentro da autorização.
 
 A allowlist impede operações do navegador em diretórios não autorizados. Ela e o token CSRF não são isolamento contra processos maliciosos rodando como o mesmo usuário do sistema; worktrees também não são uma sandbox. A execução de agentes exige confirmação específica e configuração válida; o navegador não envia providers, comandos de testes ou caminhos de worktree. O perfil de testes é validado no servidor. O Git é chamado com argumentos fixos, hooks e assinatura desabilitados e sem herdar variáveis `GIT_*` do processo.
 
 | Endpoint novo | Operação |
 | --- | --- |
-| `GET /session` | Token em memória para proteção das escritas locais |
+| `GET /session` | Bootstrap local do token CSRF em memória para leituras e escritas |
 | `GET /project-policy` | Raízes autorizadas e disponibilidade do Git |
 | `GET /projects` | Projetos e quantidade de solicitações |
 | `POST /projects/preview` | Validação e prévia persistida; nenhum arquivo criado |
@@ -128,7 +128,7 @@ Payloads passam por parsing seguro e verificações de tipo antes de serem apres
 
 ## Organização
 
-`orchestrator/projects.py` contém validações e operações de projetos; `project_store.py` cuida da persistência e `local_security.py` protege as rotas novas. `src/features/Projects.tsx` e `ProjectWorkspace.tsx` compõem as novas telas. `src/app` contém roteamento e providers; `src/lib` concentra API, parsing e formatação; `src/types` define contratos. `src/components` contém layout, componentes compartilhados e o botão no padrão shadcn/ui (Radix Slot, CVA e Tailwind). `src/features` agrupa as telas e painéis de execução. O design usa Tailwind CSS v4 e CSS semântico local, sem fontes externas. A distribuição usa uma barra proporcional simples, dispensando Recharts para esta visualização.
+`orchestrator/projects.py` contém validações e operações de projetos; `project_store.py` cuida da persistência e `local_security.py` protege todas as rotas e autentica leituras/escritas. `src/features/Projects.tsx` e `ProjectWorkspace.tsx` compõem as novas telas. `src/app` contém roteamento e providers; `src/lib` concentra API, parsing e formatação; `src/types` define contratos. `src/components` contém layout, componentes compartilhados e o botão no padrão shadcn/ui (Radix Slot, CVA e Tailwind). `src/features` agrupa as telas e painéis de execução. O design usa Tailwind CSS v4 e CSS semântico local, sem fontes externas. A distribuição usa uma barra proporcional simples, dispensando Recharts para esta visualização.
 
 ## Verificação
 

@@ -8,7 +8,7 @@ from starlette.responses import JSONResponse
 
 from .project_api import router as project_router
 from .projects import ProjectError
-from .local_security import protect_project_routes
+from .local_security import protect_routes
 
 from .core import db, db_path
 from .providers.registry import ProviderInfo, ProviderRegistry, get_provider_registry
@@ -16,7 +16,7 @@ from .dashboard import summarize
 from .execution_manager import all_summaries, get_managed, consolidated
 
 app = FastAPI(title='Multi-Agent Orchestrator — local project platform')
-app.middleware('http')(protect_project_routes)
+app.middleware('http')(protect_routes)
 app.include_router(project_router)
 
 

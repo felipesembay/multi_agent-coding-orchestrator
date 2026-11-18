@@ -416,12 +416,12 @@ O CLI compartilha o lock advisory por repositório com o caminho gerenciado. Ent
 
 ## API
 
-A documentação interativa está em `/docs` quando a API local estiver em execução.
+A documentação interativa está em `/docs` quando a API local estiver em execução; exige a mesma autenticação das demais rotas protegidas.
 
 | Endpoint | Finalidade |
 | --- | --- |
 | `GET /health` | Saúde do serviço e acesso ao banco de eventos |
-| `GET /session` | Token de proteção das escritas locais |
+| `GET /session` | Bootstrap local do token CSRF para leituras e escritas |
 | `GET /project-policy` | Diretórios autorizados e disponibilidade do Git |
 | `GET /projects` | Listar projetos e quantidade de solicitações |
 | `POST /projects/preview` | Validar dados e persistir uma prévia sem criar arquivos |
@@ -443,7 +443,7 @@ A documentação interativa está em `/docs` quando a API local estiver em execu
 
 A listagem de runs aceita busca por ID (`search`), filtro de estado (`status`), ordenação por atividade (`order=asc` ou `desc`), `limit` de 1 a 100 e `offset` não negativo.
 
-Os POSTs de execução exigem confirmação, digest da configuração e chave de idempotência. Escritas protegidas também exigem Origin autorizado, JSON e token enviado em `X-Orchestrator-CSRF`. A interface gerencia esse protocolo. Respostas `404`, `409`, `422` e `503` distinguem, entre outras situações, entidade inexistente, conflito de estado, validação inválida e worker offline.
+Os POSTs de execução exigem confirmação, digest da configuração e chave de idempotência. Todas as rotas verificam Host e cliente loopback e recusam origens externas. Leituras e escritas exigem token em `X-Orchestrator-CSRF` ou `Authorization: Bearer`; somente `/health` (liveness) e `/session` (bootstrap local) permitem GET/HEAD sem token. Escritas do navegador também exigem Origin autorizado e JSON. O corpo é limitado a 150 kB. A interface obtém um token novo por operação, sem armazenamento persistente nem repetição automática de escritas. Respostas `404`, `409`, `422` e `503` distinguem, entre outras situações, entidade inexistente, conflito de estado, validação inválida e worker offline.
 
 Detalhes de contrato e supervisão estão em [docs/execution-manager.md](docs/execution-manager.md).
 
@@ -462,7 +462,7 @@ Detalhes de contrato e supervisão estão em [docs/execution-manager.md](docs/ex
 │   ├── execution_runner.py     # Uma execução gerenciada por processo
 │   ├── worker.py               # Supervisão, heartbeat e reconciliação
 │   ├── repository_lock.py      # Lock compartilhado com o CLI
-│   ├── local_security.py       # Proteções das rotas locais de gerenciamento
+│   ├── local_security.py       # Proteção local e autenticação de todas as rotas
 │   └── dashboard.py            # Consolidação dos eventos legados
 ├── frontend/
 │   ├── src/app/                # Router e providers
@@ -523,7 +523,7 @@ O procedimento documentado utiliza o projeto **Task Manager API** e uma solicita
 O sistema executa ferramentas com capacidade de modificar arquivos. Seu modelo de operação pressupõe um operador local e repositórios explicitamente autorizados.
 
 - Mantenha a API em `127.0.0.1`. O serviço não possui autenticação para exposição pública.
-- As rotas de gerenciamento verificam cliente loopback, Host e Origin; escritas exigem token CSRF, JSON e limite de tamanho do corpo.
+- Todas as rotas verificam cliente loopback, Host estrito e Origin quando informado. Leituras e escritas exigem token CSRF ou bearer nativo; `/session` é o bootstrap local e `/health` a exceção de liveness, ambos com as mesmas verificações locais. Escritas do navegador exigem Origin autorizado e JSON; corpos têm limite de 150 kB.
 - A autorização de diretórios é definida no servidor. Travessia por `..`, symlinks e diretórios ocultos no caminho do projeto são rejeitados; o diretório Git compartilhado também precisa ser autorizado.
 - Worktrees separam alterações, mas **não são sandbox de segurança**. Locks são cooperativos e não impedem processos externos de ignorá-los.
 - Prompts que proíbem ações destrutivas não substituem controles do sistema operacional. Utilize permissões restritas e isolamento adicional quando necessário.

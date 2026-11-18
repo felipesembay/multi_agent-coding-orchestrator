@@ -1,12 +1,12 @@
 # Estado atual
 
-Atualizado: 2026-11-17 · Por: Codex (V2-CORE-004)
+Atualizado: 2026-11-17 · Por: Codex (V2-SEC-001)
 
 ## Repositório
 - Branch: `dev`, criada pelo operador. Baseline: `f8e6949`; extração dos runtimes: `87a034f` (CORE-001); metadados: `56e44d2` (CORE-002); registry: `6737c2f` (CORE-003).
-- Operador autorizou implementação e commits em `dev` após testes; sem merge/push/deploy/main/master.
+- Operador autorizou implementação e commits testados em `dev`; sem merge/deploy/main/master. Push anterior autorizado explicitamente até `db12642` está em origin/dev; nenhum novo push inferido nesta sessão.
 - WIP anterior (tema, exclusão lógica, migração v3) preservado, revisado e incluído no baseline.
-- CORE-004 testada e aprovada por `review_core004`, registrada nesta sessão no commit `V2-CORE-004: freeze role bindings and preserve legacy snapshots`; consulte `git log -1` para hash final. Nenhum WIP externo identificado.
+- CORE-004 em `db12642`, já enviado a origin/dev por autorização específica. SEC-001 testada/revisada por `review_sec001` e registrada nesta sessão no commit `V2-SEC-001: protect all local routes and authenticate browser reads`; consulte `git log -1` para hash final. Nenhum WIP externo identificado.
 
 ## Implementado
 - v1 preservada, conforme [CURRENT_STATE_AUDIT.md](../architecture/CURRENT_STATE_AUDIT.md), mais tema/exclusão/migração v3 do baseline.
@@ -26,22 +26,27 @@ Atualizado: 2026-11-17 · Por: Codex (V2-CORE-004)
 - Snapshots antigos reproduzem truthiness do runner para modelos nulos/vazios; ambiente direto preserva strings vazias. Modelos agy nulos explícitos viram default determinístico. Modelos para adapters legados Claude/Codex que não encaminham escolha são rejeitados.
 - Novos executores exigem verified=true; somente editores Claude/Antigravity e planner Claude nas combinações legadas preservam exceções necessárias. Reviewer/planners novos read_only; não habilita novas flags/papéis ou ModelProviders. Regras de workflow em WF-001 continuam separadas.
 - Invocação medida compartilhada com plugins; retorno inválido gera invalid_output e erro estático sem expor payload/cadeia no traceback.
-- Flags/prompts/defaults inalterados. Claude continua acceptEdits e Codex read-only; segurança permanece nas tarefas SEC. Usage_records ficam em OBS-001; segurança de roles e workflows segue nas tarefas próprias.
+- **V2-SEC-001 done:** middleware global Host único/estrito, peer IP loopback, origem, token CSRF/bearer, limite real de corpo 150 kB e cabeçalhos de segurança em sucessos/rejeições, inclusive docs/rotas inexistentes.
+- GET/HEAD /session é bootstrap local e /health liveness sem token; ambos mantêm Host/peer/origem. Todos os demais requests exigem CSRF ou bearer independente; inválido/não ASCII/duplicado negado. Bearer não exposto por session; override nativo apenas em app.state.api_token/memória, sem credenciais persistidas.
+- Escritas CSRF exigem Origin autorizado; bearer nativo sem Origin é aceito mas não ignora origem inválida. JSON para escritas. Settings agora exige token. Sem CORS externo.
+- Frontend busca token por operação, também leituras, sem cache/localStorage/sessionStorage/replay de escrita; signal propagado. Sessão nova após reinício obtida na próxima operação, sem repetir mutações silenciosamente. Clientes API/tests/e2e adaptados para autenticação real, não para bypass de proteção.
+- Flags/prompts/defaults de agentes inalterados. Claude continua acceptEdits e Codex read-only; segurança de subprocessos/permissões permanece nas outras tarefas SEC. Usage_records ficam em OBS-001; segurança de roles e workflows segue nas tarefas próprias.
 
 ## Testes desta sessão
 | Comando | Resultado |
 |---|---|
-| `ORCH_DB=<tmp> python -m pytest -q -p no:cacheprovider` | Baseline 154 passed; final 179 passed, 1 warning LangGraph |
-| `python -m pytest -q -p no:cacheprovider tests/providers tests/test_planner_fallback.py` | 69 focados (bindings/caracterização/metadata/fallback), repetidos pela revisão independente |
-| `npm --prefix frontend test` | 33 passed (6 arquivos), no baseline; frontend não alterado nesta tarefa |
+| `ORCH_DB=<tmp> python -m pytest -q -p no:cacheprovider` | Baseline 179 passed; final 273 passed, 1 warning LangGraph |
+| `python -m pytest -q -p no:cacheprovider tests/security/test_routes_protected.py` | 94 passed; revisão independente repetiu 109 Python focados (incluindo regressões) |
+| `npm --prefix frontend test` | Baseline 33; final 38 passed (7 arquivos), repetidos pela revisão |
 | `npm --prefix frontend run build` / `run lint` | sucesso |
 | `python scripts/check_docs.py` / `git diff --check` | sucesso |
-| E2E / CLIs de agentes reais | não executados |
+| E2E QA temporário | 9 passed / 2 skipped (opt-ins de criação/exclusão em outras raízes); fluxo supervisionado mockado incluído |
+| CLIs de agentes reais | não executados |
 
-Suíte completa Python executada fora do sandbox com autorização automática para sockets locais e subprocessos mockados. Sem quota real.
+Suíte Python e E2E executadas fora do sandbox com autorização automática para sockets locais/processos. API/worker/Vite dedicados encerrados; banco e repositórios QA temporários, sem usar dados reais. Sem quota real.
 
 ## Próximas etapas e pendências
-- Próxima recomendada: SEC-001 proteger todas as rotas; alternativas SEC-002/006, uma por vez. Núcleo CORE-001..004 concluído.
+- Próxima recomendada: SEC-002 ambiente por allowlist; alternativa SEC-006 Git seguro, uma por vez. CORE-001..004 e SEC-001 concluídas.
 - F0-002 continua blocked: Q2–Q12 e revisão humana dos ADRs pendentes. Não bloqueia SEC-001/002/006; SEC-003 exige validação real autorizada. Não assumir decisões nem iniciar spikes reais sem autorização.
 
 ## Ambiente observado

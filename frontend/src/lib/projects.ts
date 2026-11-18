@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import type { Project, ProjectPolicy, ProjectRequest, Run } from '../types'
-import { request } from './api'
+import { request, sessionToken } from './api'
 
 export function useProjects(interval: number) {
   return useQuery({
@@ -51,12 +51,12 @@ export async function mutate<T>(
   method = 'POST',
 ): Promise<T> {
   // Fetch for each write so a restarted API never leaves a stale token in storage.
-  const session = await request<{ csrf_token: string }>('/session')
+  const token = await sessionToken()
   const response = await fetch(`/api${path}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
-      'X-Orchestrator-CSRF': session.csrf_token,
+      'X-Orchestrator-CSRF': token,
     },
     body: JSON.stringify(body),
   })

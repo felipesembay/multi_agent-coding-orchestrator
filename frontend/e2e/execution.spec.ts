@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 
 test('existing request starts the supervised workflow and preserves results after reload', async ({
   page,

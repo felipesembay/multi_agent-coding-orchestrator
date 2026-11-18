@@ -1,10 +1,18 @@
 # Próximos passos
 
-## Próxima tarefa recomendada: V2-SEC-001
+## Próxima tarefa recomendada: V2-SEC-002
 
-**Objetivo:** proteger todas as rotas com política local Host/loopback + token conforme SECURITY_GOVERNANCE CA1, mantendo frontend e contratos legados. Tarefa P0 sem dependências, após conclusão do núcleo CORE-001..004.
+**Objetivo:** ambiente de subprocessos por allowlist; variáveis sensíveis do worker não devem chegar aos agentes/testes. Tarefa P0 independente.
 
-**Aceite:** requisições com Host/peer/origem inválidos rejeitadas em todas as rotas aplicáveis; autenticação local por token conforme especificação e integração frontend; testes API + vitest/e2e mockados, sem CLI real. Ler SECURITY_GOVERNANCE e ADR-0009 antes de editar; respeitar compatibilidade e modo web existente. Revisão distinta e handoff antes do commit em dev.
+**Aceite:** SECURITY_GOVERNANCE CA2, teste com segredo-sentinela em worker e agente fake examinando o ambiente real do subprocesso. Preservar variáveis necessárias aos CLIs/configuração legítima, sem passar chaves desnecessárias. Ler SECURITY_GOVERNANCE/ADR-0009 e caminhos run_command/worker.spawn/adapters; não chamar CLIs reais ou consumir quota. Revisão distinta e handoff antes de commit dev.
+
+## SEC-001 concluída
+
+- Host estrito, peer loopback e origem em todas as rotas, inclusive docs/rotas inexistentes; token CSRF ou bearer válido para leituras/escritas. GET/HEAD /session é bootstrap local e /health liveness sem token, mantendo controles locais.
+- CSRF e bearer são distintos por processo; bearer não é devolvido pelo bootstrap. app.state.api_token permite configuração nativa em memória (supervisor futuro). Não aceitar token em query/cookie, Authorization inválida não degrada para CSRF.
+- Escritas CSRF exigem Origin autorizado; escritas de ambos os modos exigem JSON. Todos os corpos limitados a 150 kB reais; no-store/nosniff/CORP em sucessos/rejeições.
+- Frontend obtém token por operação, sem cache/storage/replay de escrita. Contratos JSON e configuração/digest preservados; clientes diretos devem autenticar também leituras.
+- Evidências: 273 pytest / 38 vitest, build/lint/docs verdes, E2E 9 passed / 2 skipped no harness temporário com mocks; revisão `review_sec001` (109 Python focados e 38 vitest). QA encerrado. Dois opt-ins de escrita projetos/exclusão não executados por guardrails próprios.
 
 ## CORE-004 concluída
 

@@ -68,7 +68,8 @@ def test_queued_persisted_link_idempotency_and_no_agents_in_http(setup, monkeypa
     assert 'scope' not in detail
     assert client.get(f"/projects/{project['id']}/runs?linked_only=true").json()[0]['run_id'] == run['run_id']
     assert client.get('/overview').json()['counts']['queued'] == 1
-    with TestClient(app) as fresh:
+    with TestClient(app, base_url='http://127.0.0.1:8765', client=('127.0.0.1', 50000)) as fresh:
+        fresh.headers['X-Orchestrator-CSRF'] = fresh.get('/session').json()['csrf_token']
         assert fresh.get('/runs/' + run['run_id']).json()['request_id'] == request['id']
 
 

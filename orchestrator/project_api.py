@@ -2,14 +2,14 @@
 from fastapi import APIRouter
 
 from . import projects, execution_manager
-from .local_security import CSRF_TOKEN
+from . import local_security
 
 router = APIRouter()
 
 
 @router.get('/session')
 def session():
-    return {'csrf_token': CSRF_TOKEN}
+    return {'csrf_token': local_security.CSRF_TOKEN}
 
 
 @router.get('/project-policy')

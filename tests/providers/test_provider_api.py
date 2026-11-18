@@ -30,6 +30,7 @@ def client(monkeypatch):
     monkeypatch.setattr('subprocess.run', Mock(side_effect=AssertionError('No real CLIs')))
     monkeypatch.setenv('PRIVATE_API_KEY', 'sentinel-private-key')
     with TestClient(app, base_url='http://127.0.0.1:8765', client=('127.0.0.1', 50000)) as client:
+        client.headers['X-Orchestrator-CSRF'] = client.get('/session').json()['csrf_token']
         yield client
 
 

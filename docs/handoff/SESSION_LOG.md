@@ -199,3 +199,41 @@
 8. **Próxima tarefa recomendada:** V2-SEC-001, proteger todas as rotas.
 9. **Aceite:** SECURITY_GOVERNANCE CA1, Host/loopback/token e integração frontend compatível, testes API/vitest/e2e mockados; revisão e handoff, sem quota real.
 10. **Comandos:** ativar .venv; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test; build/lint; python scripts/check_docs.py. Commit somente dev autorizado; sem merge/push/deploy.
+
+## 2026-11-17 — Codex — início V2-SEC-001
+
+- [FATO] dev, HEAD `db12642`, árvore limpa; origin/dev sincronizada após push autorizado na sessão anterior. Handoff ainda dizia sem push como regra geral; envio anterior foi exceção explícita já executada, nenhum novo push inferido.
+- Baseline: 179 pytest (1 warning) e 33 vitest verdes.
+- Escopo: middleware local em todas as rotas, token de leitura/escrita (CSRF navegador ou bearer nativo), bootstrap GET /session com controles locais e /health sem token conforme §6.2. Frontend obtém token em memória por chamada sem armazenamento persistente. Não alterar agentes/credenciais nem antecipar supervisor desktop.
+
+### SEC-001 — testes vermelhos
+
+- Escritos tests/security/test_routes_protected.py (matriz global Host/origem/peer/token, bootstrap/headers, bearer, rotação, tamanho de corpo) e frontend/src/lib/api.test.ts (leituras autenticadas, cancelamento, rotação, falha fechada e ausência de replay de escrita).
+- Testes backend executados antes da implementação apresentam falhas esperadas nas rotas ainda públicas/sem bearer. Nenhum agente real chamado.
+
+### SEC-001 — middleware e frontend verdes, início de E2E
+
+- Primeira execução de segurança antes do código: 74 failed / 20 passed (vermelho esperado). Após implementação: 94 testes de segurança passaram; suíte completa 273 pytest passed (1 warning), frontend 38 vitest passed.
+- Middleware agora cobre todas as rotas, inclusive docs e rotas inexistentes: Host estrito/único, peer loopback, origem, token CSRF para reads/writes ou bearer nativo, corpo limitado em bytes reais e headers em sucessos/rejeições. GET/HEAD health e session são exceções locais de bootstrap/liveness. API_TOKEN nativo não exposto por session; override opcional app.state.api_token apenas em memória.
+- Frontend busca token por operação (também leituras), sem armazenamento/replay; cancelamento propagado. Clientes de testes API adaptados para autenticação real sem afrouxar política.
+- Build frontend passou; lint inicial encontrou nome de callback Playwright `use` confundido com React hook; renomeado `provide`, sem desabilitar regra. Lint novamente em execução.
+- E2E iniciado em banco/repositórios temporários /tmp/orchestrator-execution-qa.*, API/worker do harness de mocks e Vite dedicados, sem quotas. Fixtures de request Playwright obtêm token e novas verificações cobrem acesso anônimo e recarga da UI.
+
+### SEC-001 — E2E verde
+
+- Playwright em API/worker/Vite de QA temporários: 9 passed, 2 skipped em 11,3 s. Fluxo completo supervisionado com agentes mockados passou, assim como autenticação browser, reads anônimos negados, recarga, temas e navegação responsiva.
+- Dois opt-ins não habilitados: escrita/criação de projetos em raiz projects-qa e cenário de exclusão em raiz ui-qa (guardrails próprios); nenhum teste foi apontado ao banco de uso real.
+- Lint passou após renomear callback de fixture; encerrados serviços dedicados de QA. Nenhuma invocação de agente real nem quota.
+
+### 2026-11-17 — Codex — fechamento V2-SEC-001
+
+1. **Planejado:** política local global e token em leituras/escritas, mantendo frontend web e contratos HTTP existentes.
+2. **Implementado:** middleware único em todas as rotas, Host estrito/único, peer loopback, Origin/cross-site, CSRF ou bearer independente por processo, corpo real limitado e headers em sucessos/rejeições. GET/HEAD /session bootstrap e /health liveness sem token sob mesmos controles locais. Frontend obtém token por operação sem persistência/replay; API tests/e2e autenticados. Sem alteração de agentes/modelos/Git/credenciais.
+3. **Arquivos:** local_security.py, api.py, project_api.py; frontend lib/api.ts e projects.ts, dashboard.test.tsx; novos lib/api.test.ts, e2e/fixtures.ts e security.spec.ts, quatro specs e2e adaptados; tests/security/test_routes_protected.py novo, fixtures de dashboard/projects/execution_manager/provider_api autenticadas; README, frontend/README, execution-manager, SECURITY_GOVERNANCE, plano/backlog/handoff. git diff --stat intermediário antes de novos arquivos/docs finais: 17 arquivos, 133 inserções/49 remoções; completo no commit.
+4. **Testes:** baseline 179 pytest/33 vitest. Antes do código, testes novos backend → 74 failed/20 passed (vermelho esperado). Final pytest isolado → 273 passed, 1 warning em 10,36 s; segurança → 94 passed; vitest → 38 passed. Build/lint verdes (callback Playwright use renomeado provide para não conflitar com regra React). E2E → 9 passed/2 skipped em 11,3 s no harness temporário, inclui workflow supervisionado/recarga/autenticação. Dois opt-ins de escrita específicos não executados; nenhuma quota/CLI real.
+5. **Decisões:** bootstrap /session e liveness /health documentados explicitamente em SECURITY_GOVERNANCE/READMEs, incluindo limites de mesmo usuário/SO e API em processo único; integração supervisor/Tauri fica em DESK-002/004. Nenhum ADR humano aceito por presunção.
+6. **Problemas:** sem bloqueantes na revisão; lint de fixture resolvido sem desabilitar regra. API clients antigos precisam enviar token também em reads; fixtures atualizadas sem alterar asserts de comportamento. Não há replay de mutações em 403 por rotação entre bootstrap e operação.
+7. **Pendências:** SEC-002/003/004/006 e F0-002/Q2–Q12 permanecem; SEC-003/004 exigem revisão/validação humana nos termos da especificação. Revisão independente `review_sec001` aprovada: 109 testes Python focados, 38 vitest e docs válidos; sem achados bloqueantes. Serviços QA encerrados.
+8. **Próxima tarefa:** V2-SEC-002, ambiente por allowlist.
+9. **Aceite:** CA2 segredo-sentinela não chega ao agente fake; preservar variáveis declaradas necessárias, sem quota/CLIs reais; testes de ambiente real do subprocesso, revisão distinta e handoff.
+10. **Comandos:** .venv; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test/build/lint; python scripts/check_docs.py. E2E conforme execution-manager em harness temporário e EXECUTION_E2E_MOCKED=1. Commit dev autorizado; sem merge/deploy/novo push (push anterior era autorização específica até db12642).

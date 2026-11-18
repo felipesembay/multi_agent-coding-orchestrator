@@ -12,7 +12,7 @@ Reduzir riscos de múltiplos agentes executando ferramentas e alterando arquivos
 | Worktree por run | ✓ (não é sandbox) |
 | Allowlist de diretórios | ✓ `ORCH_ALLOWED_ROOTS`, sem symlink/oculto/`..` |
 | Allowlist de comando de testes | ✓ argv exato, sem shell |
-| Host/Origin/CSRF | Parcial — só `/session`, `/project-policy`, `/projects*` |
+| Host/Origin/CSRF | SEC-001 implementada: todas as rotas, token em leituras/escritas; bootstrap local /session e liveness /health sem token |
 | Permissões por papel | Parcial — Codex `read-only`; Claude `acceptEdits` também no Planner; shell do Implementer proibido só por prompt |
 | Ambiente dos agentes | ✗ herda `os.environ` completo (menos `GIT_*`) |
 | Git endurecido | ✓ em `projects.git` e `repository_lock.identity` (hooks off, config global off); **não** em `core.run_command` (worktree add, diff, status) |
@@ -48,6 +48,20 @@ Flags exatas a confirmar por teste com cada versão de CLI.
 
 ### 6.2 HTTP
 Middleware único para todas as rotas: loopback, Host em allowlist (`127.0.0.1:<porta>`, `localhost:<porta>`), Origin (navegador dev ou origem Tauri), token (`Authorization: Bearer` ou `X-Orchestrator-CSRF`), limite de corpo, cabeçalhos `no-store`/`nosniff`. `/health` pode ficar sem token mas com Host check. `/settings` deixa de expor caminho absoluto do banco ou passa a exigir token.
+
+### Implementação de SEC-001 (2026-11-17)
+
+`protect_routes` aplica a política a todas as requisições, incluindo docs, openapi e rotas inexistentes; não há allowlist de prefixos protegidos. Exige peer IP loopback (não confia em X-Forwarded-For no middleware), exatamente um Host local bem formado (localhost/127.0.0.1/[::1], porta opcional válida), e rejeita Origin fora da allowlist, Origin duplicado ou Sec-Fetch-Site cross-site. Respostas normais e rejeições recebem no-store/nosniff/CORP same-origin. Corpos são limitados a 150 kB por bytes reais, incluindo chunked/GET; Content-Length não autoriza corpo maior.
+
+**Exceções explícitas de bootstrap:** GET/HEAD `/health` não exige token, mas conserva todas as verificações locais. GET/HEAD `/session` também dispensa token para que o navegador possa obter CSRF; conserva Host/peer/origem e não libera CORS. Devolve apenas csrf_token, nunca o bearer nativo. Não é login multiusuário nem barreira contra outro processo do mesmo usuário do SO.
+
+Todas as outras rotas exigem `X-Orchestrator-CSRF` válido ou `Authorization: Bearer` válido. Comparação é constante, entradas não ASCII/duplicadas são rejeitadas; Authorization inválida não degrada para CSRF válido. Escritas CSRF exigem Origin autorizado, e escritas em ambos os modos exigem JSON. Bearer válido permite cliente nativo sem Origin, sem ignorar origem inválida quando presente. Tokens não são aceitos via query/cookie e não são registrados em SQLite/eventos.
+
+CSRF_TOKEN e API_TOKEN são valores aleatórios independentes por processo; app.state.api_token pode ser fornecido em memória pela integração nativa confiável, sem persistência ou variável de ambiente nova. Integração supervisor/Tauri fica em DESK-002/004. Usar um processo de API nesta etapa; não compartilhar/rotacionar tokens entre workers HTTP independentes. A rota /settings agora exige autenticação antes de mostrar a configuração permitida, inclusive caminho do banco.
+
+O frontend web usa sessionToken por operação, sem localStorage/sessionStorage ou cache de credenciais; leituras passam o token e signal de cancelamento, escritas obtêm token fresco e não são repetidas automaticamente em erro. Um reinício entre bootstrap e operação pode resultar em 403; a próxima operação faz novo bootstrap, sem replay oculto. API clients existentes devem fazer o mesmo handshake e manter Origin autorizado nas escritas CSRF. Contratos JSON e digest de execução permanecem compatíveis.
+
+Validação: matriz Host/origem/peer e token em todas as rotas, bearer separado do bootstrap, rotação, corpo e headers; regressões existentes autenticadas; vitest e E2E em API/worker/Vite temporários com todas as chamadas de agente mockadas. SEC-002/003/004/006 permanecem tarefas separadas; esta entrega não muda ambiente/permissões de agentes ou Git.
 
 ### 6.3 Subprocessos
 - `safe_env(adapter)` = `{PATH, HOME, USER, LANG, LC_*, TERM, TMPDIR, XDG_*}` + variáveis declaradas no manifesto do adapter (ex.: config do CLI). Chaves de API só para o adapter que as exige, lidas do keyring.

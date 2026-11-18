@@ -42,6 +42,8 @@ function setup(
     const url = String(input)
     if (url === '/api/health')
       return { ok: true, json: async () => ({ status: 'ok' }) }
+    if (url === '/api/session')
+      return { ok: true, json: async () => ({ csrf_token: 'session-token' }) }
     if (options.pending) return new Promise(() => {})
     if (options.fail) return { ok: false, status: 503 }
     let data: unknown

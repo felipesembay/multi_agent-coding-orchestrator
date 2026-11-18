@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 // Read-only smoke tests against a running API and its existing SQLite database.
 // No fixtures are written to the real event store.
 test('real data, execution navigation, agent monitor and settings', async ({

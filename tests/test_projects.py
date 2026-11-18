@@ -57,6 +57,7 @@ def test_new_project_confirmation_and_persistence(client):
     assert client.get('/projects').json()[0]['id'] == project['id']
     # Fresh client/connection reads the same persisted project.
     with TestClient(app, base_url='http://localhost:8765', client=('127.0.0.1', 50000)) as restarted:
+        restarted.headers['X-Orchestrator-CSRF'] = restarted.get('/session').json()['csrf_token']
         assert restarted.get('/projects/' + project['id']).json()['name'] == payload['name']
     assert client.post('/projects', json={'preview_token': result.json()['preview_token'], 'confirmed': True}).json()['id'] == project['id']
     assert len(client.get('/projects').json()) == 1

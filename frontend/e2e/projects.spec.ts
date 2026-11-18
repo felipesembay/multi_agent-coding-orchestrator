@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 
 for (const width of [390, 768, 1440]) {
   test(`project pages fit the workspace at ${width}px`, async ({ page }) => {
