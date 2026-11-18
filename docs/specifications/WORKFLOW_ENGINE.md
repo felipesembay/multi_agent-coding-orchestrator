@@ -140,7 +140,7 @@ Envelope captura erro normalizado; se casar com `on`, registra evento `agent_fal
 | GET /workflows | Definições ativas com latest_version, readonly e descrição |
 | POST /workflows | definition ou preset_id (exclusivos), name/description opcionais; cria definição de usuário e primeira versão atomicamente. Clone de preset não altera sistema |
 | GET/POST /workflows/{id}/versions | Histórico imutável; POST recebe definition e cria nova versão. Preset persistido readonly recusa edição |
-| POST /workflows/validate | definition + bindings; inválido retorna422 por campo. Retorna valid/executable/errors quando estruturalmente válido; executable indica suporte das integrações, não substitui preflight de worker/repositório |
+| POST /workflows/validate | definition + bindings opcionais; inválido retorna422 por campo. Sem bindings: valid=true, executable=null, validation_scope=definition; não resolve providers. Com bindings: valid/executable/errors; executable indica suporte das integrações, não substitui preflight de worker/repositório |
 | GET /workflow-presets | Catálogo, defaults UI/CLI, disponibilidade real e motivos, sugestões de configs persistidas. B continua indisponível até PROV-001 |
 | GET/POST /provider-configs | Dados públicos e criação de referência local de adapter já registrado. POST só aceita adapter/display_name; kind derivado do manifesto, settings vazio/credential_ref null. Não instala nem habilita plugins por HTTP |
 | GET /projects/{id}/execution-config | Preflight legado preservado |
@@ -152,6 +152,14 @@ Envelope captura erro normalizado; se casar com `on`, registra evento `agent_fal
 - StartExecution lista workflows e versões imutáveis, filtra configs por capacidades/permissões e permite modelo por etapa quando suportado. O novo default A é oferecido quando apto; enquanto indisponível, a UI mantém legado com aviso explícito e presets desabilitados com indicação de indisponibilidade. Criar cópia do preset exige ação explícita, sem invocar agentes.
 - Alterar versão/provider/modelo invalida consentimento e pede novo preflight/digest. O start envia a seleção exibida com a confirmação; idempotency_key é estável no diálogo para retry incerto. Refresh do catálogo após clone não troca o trio: bindings escolhidos ficam no estado independente dos metadados GET. IDs válidos como constructor usam mapas sem protótipo/own properties.
 - O editor de definição/etapas é WF-009; setup avançado de providers/chaves permanece em PROV/SEC/DESK. Não há promoção de capacidades/permissões/CLI flags pendentes, execução de ModelProvider, gates, budgets ou fallbacks sem suas integrações.
+
+### 6.6.2 Editor em lista — V2-WF-009
+
+- `/workflows` lista presets e definições do usuário; `/workflows/new` cria uma definição e `/workflows/:id?version=:version_id` abre uma versão imutável. Presets do sistema são somente leitura e clonáveis; A/C podem ser copiados como rascunhos mesmo indisponíveis para executar. B segue bloqueado por PROV-001.
+- O editor altera nome, ordem, escopo por tarefa, retorno da revisão, tentativas e limites; adiciona/remove document, human_gate e testes extras. Setas acessíveis e arrastar respeitam plano primeiro, bloco per_task contíguo e retorno para implementação anterior. O último teste e etapas centrais não são removíveis. Comandos de teste continuam definidos pelo servidor.
+- Validação estrutural autenticada ao vivo informa campos inválidos e bloqueia salvar enquanto pendente, inválida ou indisponível. Definições válidas com gate/budget são rascunhos: avisos explicam que execução aguarda suas integrações. Não equivale a preflight executável.
+- Salvar cria uma versão nova, preservando corpos/digests antigos e snapshots de runs. O nome da definição acompanha a versão mais recente. A versão-base fica fixada na URL antes da edição, inclusive após refresh de catálogo; salvar/descartar permite trocar de versão. Definição persistida readonly só permite cópia.
+- Conforme ADR-0005, bindings não entram na definição salva. A seleção de provider/modelo por etapa de RF4 ocorre no StartExecution (WF-008) a cada run; cópias de definições não persistem defaults de agentes ocultos. Nenhum agente é iniciado ao editar, validar ou salvar.
 
 ## 7. Componentes afetados
 `core.py`, `execution_manager.py` (config/digest), `execution_runner.py`, `project_store.py` (migração 4), `api.py`, frontend `StartExecution.tsx`, nova feature Workflows.

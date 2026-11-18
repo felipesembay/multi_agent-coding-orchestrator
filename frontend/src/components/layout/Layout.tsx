@@ -24,6 +24,7 @@ const links = [
   { to: '/', label: 'Projetos', icon: FolderGit2 },
   { to: '/overview', label: 'Overview', icon: LayoutDashboard },
   { to: '/executions', label: 'Executions', icon: ListChecks },
+  { to: '/workflows', label: 'Workflows', icon: GitBranch },
   { to: '/agents', label: 'Agent Monitor', icon: Bot },
   { to: '/reviews', label: 'Tests & Reviews', icon: ShieldCheck },
   { to: '/settings', label: 'Settings', icon: Settings2 },
@@ -48,10 +49,12 @@ export function Layout() {
         ? 'Workspace do projeto'
         : location.pathname === '/projects'
           ? 'Projetos'
-          : location.pathname.startsWith('/executions/')
-            ? 'Execution Details'
-            : (links.find((l) => l.to === location.pathname)?.label ??
-              'Página não encontrada')
+          : location.pathname.startsWith('/workflows/')
+            ? 'Editor de workflow'
+            : location.pathname.startsWith('/executions/')
+              ? 'Execution Details'
+              : (links.find((l) => l.to === location.pathname)?.label ??
+                'Página não encontrada')
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">

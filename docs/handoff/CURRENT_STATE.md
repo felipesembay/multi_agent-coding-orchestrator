@@ -1,14 +1,15 @@
 # Estado atual
 
-Atualizado: 2026-11-18 · Por: Codex (V2-WF-008)
+Atualizado: 2026-11-18 · Por: Codex (V2-WF-009)
 
 ## Repositório
-- Branch `dev`; commits testados/revisados autorizados pelo operador. Sem merge/deploy/main/master. Push solicitado pelo operador em 2026-11-18 concluído até 7431745 em origin/dev; sem force/main/master. Commits WF-007 e CI-DIST-004 continuam locais; WF-008 também será local nesta sessão. Sem novo push solicitado.
+- Branch `dev`; commits testados/revisados autorizados pelo operador. Sem merge/deploy/main/master. Push solicitado pelo operador em 2026-11-18 concluído até 7431745 em origin/dev; sem force/main/master. Commits WF-007 e CI-DIST-004 continuam locais; WF-008 (58051a2) e WF-009 também ficam locais; nenhum novo push solicitado. Sem novo push solicitado.
 - Baseline `f8e6949`; CORE-001..004 em `87a034f`, `56e44d2`, `6737c2f`, `db12642`. Histórico remoto dev atualizado até 7431745 nesta sessão.
 - SEC-001 `8d94e7d`, SEC-002 `065d9ed`, SEC-006 `7ac3634`, WF-001 `caee20e`, WF-002 `fc93cd1` locais. WF-003 `1474f4b`. Registro parcial F0-002 em `588c6db`. WF-004 em `7431745` (já em origin/dev). WF-007 em `6f1c167`, CI-DIST-004 em `feb4caf`. WF-008 no commit `V2-WF-008: expose workflow APIs and execution selection`; consultar git log para hash final.
 - WIP original de tema/exclusão/migração v3 preservado no baseline. Nenhum WIP externo identificado.
 
 ## Implementado
+- **WF-009 concluída:** editor `/workflows`, etapas opcionais/reordenação/limites, cópias e histórico de versões imutáveis, validação estrutural ao vivo sem bindings. URL fixa versão-base e refresh com falha preserva rascunhos; primeiro teste sincroniza política. Evidência:534 pytest/54 Vitest,11 E2E/2 opt-ins skipped, build/lint/docs verdes; revisão independente review_wf009 aprovada. Commit local autorizado em dev; sem push.
 - v1 preservada: worker separado, fila SQLite, worktrees/locks, idempotência e contratos legados. DOC-001 verificador de documentação concluído.
 - CORE-001..004: adapters/registry/manifestos, resultados com uso desconhecido honesto, bindings por papel e snapshots/digests compatíveis. Defaults Claude/Claude/Codex e fallback exato preservados.
 - SEC-001: política HTTP global Host/peer/origem e tokens em leituras/escritas; bootstrap local /session e liveness /health. Frontend autenticado.
@@ -65,3 +66,21 @@ Python 3.9.7 (.venv), LangGraph 0.6.11, Node 22.18.0, Git 2.43.0. Sem dependênc
 
 ## CI e versão de Python
 O email remoto não descrevia testes vermelhos: o setup não encontrou3.9 para26.04. Imagem compatível22.04 fixada em commit separado; migração3.12 continua em F0-005, já autorizada. CI remoto só poderá ser declarado verde após push/execução dos commits novos.
+
+## Marco WF-009 — início
+HEAD58051a2 jácommitado e árvore limpa, dev ahead3. Editor de definições versionadas, binding/modelos permanecem por run na confirmação conformeADR0005; sem persistir campos que seriam descartados. Validação estrutural sem providers para salvar rascunhos, snapshots e readonly preservados. Baseline532pytest/44vitest verdes.
+
+## Evidências WF-009
+
+| Verificação | Resultado |
+|---|---|
+| Baseline isolado | 532 pytest /44 Vitest, árvore limpa HEAD58051a2 |
+| Pytest final isolado | 534 passed,1 warning LangGraph,19,66s |
+| Frontend final | 54 Vitest em8 arquivos;10 novos editor; build/lint verdes |
+| API focada | 13 passed,2 novos; validar estrutura sem provider lookup e preservar versões anteriores |
+| E2E final QA temporário | 11 passed/2 skipped (opt-ins projetos/exclusão),14,7s; agentes simulados, serviços encerrados |
+| Revisão independente | review_wf009 aprovada após2P2 corrigidos;10 focados e diff limpo revalidados pelo revisor |
+| Docs/diff | check_docs e diff --check verdes; sem novas dependências/credenciais/quota |
+
+- WF-009 altera apenas edição/validação/versionamento; providers/modelos continuam por run no StartExecution. Salvar gate/budget não libera sua execução; B aguarda PROV-001. Nenhum run é iniciado pelo editor.
+- CI remoto não foi reexecutado: correção DIST-004 e commits seguintes permanecem locais em dev. Não afirmar Actions verde sem push/run futuro autorizado.

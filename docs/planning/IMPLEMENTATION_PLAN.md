@@ -51,11 +51,12 @@ Não é necessário ler toda a pasta `docs/`. Leia apenas a especificação da �
 - `V2-WF-007` concluída: snapshots internos opcionais e digests no run, store versionado e runner íntegro usando configuração congelada. base para a seleção HTTP/UI da WF-008.
 - `V2-WF-008` concluída: endpoints/versionamento/validate/presets e StartExecution com versões/providers/modelos; compatibilidade legada e disponibilidade real preservadas.
 - `V2-DIST-004` corrige CI localmente: Python3.9 indisponível no ubuntu-latest26.04 antes dos testes; imagem22.04 fixada. Actions remoto aguarda push/run; Python3.12 fica em F0-005.
-- Validação: **532 pytest / 44 vitest**, build/lint/docs verdes; revisão independente (2026-11-18). E2E WF-008:9 passed /2 skipped com mocks em QA isolado, serviços encerrados. Nenhum CLI de agente real.
+- `V2-WF-009` concluída: editor em lista, validação ao vivo, cópias e versões imutáveis; bindings continuam por run.
+- Validação final WF-009: **534 pytest /54 vitest**, build/lint/docs verdes; revisão independente aprovada (2026-11-18). E2E:11 passed/2 skipped com mocks em QA isolado, serviços encerrados. Nenhum CLI de agente real.
 
 ## 5. Próxima tarefa
 
-1. **`V2-WF-009`** — editor de workflow em lista: criar, validar, clonar e salvar versão imutável usando API/seleção WF-008. Preservar snapshots e disponibilidade real de providers.
+1. **`V2-WF-010`** — fallbacks configuráveis por etapa, com erros normalizados, snapshots e contabilidade por tentativa; verificar dependências OBS para CA5 antes de declarar entrega completa. WF-009 concluída e revisada nesta sessão.
 2. **`V2-F0-002`** — decisões Q2–Q12 registradas em [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md), Q7 adiada; revisão integral dos ADRs ainda pendente. Alvo Python3.12 e quota limitada dos spikes autorizados; não reabrir bloqueios de perguntas respondidas.
 3. Depois: API/editor e demais tarefas liberadas, uma por vez. SEC-003 tem validação real autorizada no escopo de Q10; SEC-004 também tem revisão humana obrigatória conforme especificação.
 

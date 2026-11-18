@@ -184,3 +184,24 @@ def test_known_model_default_is_frozen_before_worker_environment_drift(workflow_
         model=frozen.bindings['plan'].model))
     assert result.text == 'mocked'
     assert argv[argv.index('--model') + 1] == 'confirmed-default'
+
+
+def test_editor_validates_definition_without_binding_or_agent_lookups(workflow_client):
+    client, case = workflow_client
+    _, registry, definition, *_ = case
+    registry.get = lambda adapter: pytest.fail('Structural editor validation must not resolve providers')
+    response = client.post('/workflows/validate', json={'definition': definition})
+    assert response.status_code == 200, response.text
+    assert response.json() == {'valid': True, 'executable': None, 'errors': [], 'validation_scope': 'definition'}
+    definition['steps'][1]['max_attempts'] = 0
+    assert client.post('/workflows/validate', json={'definition': definition}).status_code == 422
+
+
+def test_new_version_renames_metadata_without_mutating_previous_version(workflow_client):
+    client, case = workflow_client
+    initial = client.get('/workflows/wf/versions').json()[0]
+    changed = {**case[2], 'name': 'Edited workflow name'}
+    assert client.post('/workflows/wf/versions', json={'definition': changed}).status_code == 201
+    saved = next(row for row in client.get('/workflows').json() if row['id'] == 'wf')
+    assert saved['name'] == 'Edited workflow name'
+    assert client.get('/workflows/wf/versions').json()[0] == initial

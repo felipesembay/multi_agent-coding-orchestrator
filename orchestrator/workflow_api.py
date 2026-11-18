@@ -43,7 +43,7 @@ class CreateInput(BaseModel):
 
 
 class ValidateInput(VersionInput):
-    bindings: dict[str, StepBinding]
+    bindings: Optional[dict[str, StepBinding]] = None
 
 
 class ProviderInput(BaseModel):
@@ -182,6 +182,10 @@ def append(workflow_id: str, data: VersionInput):
 
 @router.post('/workflows/validate')
 def validate(data: ValidateInput, registry: ProviderRegistry = Depends(get_provider_registry)):
+    if data.bindings is None:
+        # Pydantic already checked the whole definition/topology. Binding and
+        # execution checks remain mandatory in the run confirmation path.
+        return {'valid': True, 'executable': None, 'errors': [], 'validation_scope': 'definition'}
     providers = resolve_providers(data.bindings)
     try:
         validate_workflow(data.definition, data.bindings,

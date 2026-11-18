@@ -45,7 +45,7 @@ Fonte única de status das tarefas. Atualize a linha da tarefa ao iniciar (`doin
 | V2-WF-005 | Codex CLI como executor (`workspace-write`) | todo | P1 | M | SEC-004, F0-002 (Q5) | BE/SEC | Preset A implementa com Codex mockado; flags corretas | argv + integração mockada |
 | V2-WF-006 | Antigravity como reviewer com saída JSON validada | todo | P1 | M | CORE-004 | BE | Reviewer agy retorna `{approved,findings,…}` validado | Fixture + integração mockada |
 | V2-WF-008 | API de workflows e seleção no início da execução | done | P1 | M | WF-007 | BE/FE | API/seleção versionada com snapshots e readonly; revisão review_wf008 aprovada | 532 pytest /44vitest;11API+6UI novos;9e2e/2skip;build/lint/docs |
-| V2-WF-009 | Editor de workflow em lista (MVP) | todo | P1 | M | WF-008 | FE | Criar, validar, salvar versão, clonar preset | Vitest + e2e mockado |
+| V2-WF-009 | Editor de workflow em lista (MVP) | done | P1 | M | WF-008 | FE | Criar, validar, salvar versão, clonar preset | 534 pytest/54 Vitest;11 E2E,2 skipped; build/lint/docs; revisão review_wf009 aprovada; commit V2-WF-009 em dev |
 | V2-WF-010 | Fallbacks configuráveis por etapa | todo | P1 | M | WF-003, CORE-002 | BE | CA5 de WORKFLOW_ENGINE | Teste com erro normalizado |
 | V2-PROV-001 | OpenRouter `ModelProvider` básico (plan/review) + chave no keyring | todo | P1 | M | CORE-003, SEC-005 | BE | CA4 de PROVIDER_SYSTEM | HTTP mock (200/401/402/429/5xx) |
 | V2-SEC-005 | Credential store com `keyring` | todo | P1 | M | F0-002 | SEC | Chave salva/lida/removida; nunca no SQLite | Teste com backend de keyring em memória |

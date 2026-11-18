@@ -166,4 +166,10 @@ O procedimento para a primeira execução real do **Task Manager API**, reutiliz
 
 O diálogo StartExecution oferece fluxo legado, workflows/versões salvos e presets disponíveis. Permite escolher provider/modelo por etapa, com opções filtradas por capacidades e permissões. Alterar escolhas invalida a confirmação e busca novo digest. Cópia de preset é ação explícita; o trio não muda ao atualizar a lista. O padrão Claude → Codex → Antigravity só é selecionável quando apto; até lá há aviso e opção legada. OpenRouter permanece indisponível até integração própria.
 
-Criação/versionamento/validação de definições e configurações locais básicas também têm API autenticada; o editor visual/em lista é WF-009. Não há campo de chave/segredo/settings arbitrário na API básica. Nenhum agente é invocado em preflight/criação; o start só enfileira o snapshot confirmado. Testes de UI usam mocks e o browserQA usa DB/worker temporários com agentes substituídos.
+Criação/versionamento/validação de definições e configurações locais básicas também têm API autenticada; o editor em lista está disponível em `/workflows` (WF-009); o editor gráfico permanece futuro. Não há campo de chave/segredo/settings arbitrário na API básica. Nenhum agente é invocado em preflight/criação; o start só enfileira o snapshot confirmado. Testes de UI usam mocks e o browserQA usa DB/worker temporários com agentes substituídos.
+
+## Editor de workflows (V2-WF-009)
+
+Em `/workflows`, crie definições ou copie presets do sistema. O editor permite reordenar etapas, adicionar documentação/aprovação/testes extras e ajustar tentativas/limites. A validação ao vivo bloqueia salvamento inválido. Salvar acrescenta uma versão imutável; o histórico permite consultar versões anteriores. Providers/modelos são escolhidos na confirmação de cada execução, separadamente da definição. Gates e orçamento exibem aviso enquanto suas integrações de execução não existem.
+
+Os E2E de edição/escrita exigem `EXECUTION_E2E_MOCKED=1` e API de QA com raízes `/tmp/orchestrator-execution-qa.*`. Criação, versões, clonagem e layout de 390px são verificados sem iniciar agentes reais.

@@ -2405,6 +2405,103 @@ th {
   font-size: 12px;
   line-height: 1.8;
 }
+.workflow-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+.workflow-page > p,
+.workflow-page > h2,
+.workflow-validation {
+  margin: 18px 0;
+}
+.workflow-page > .section-title {
+  padding: 0 0 20px;
+  flex-wrap: wrap;
+}
+.workflow-cards,
+.workflow-limits {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  gap: 16px;
+}
+.workflow-card {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 12px;
+  overflow-wrap: anywhere;
+}
+.workflow-card .button {
+  margin-top: auto;
+  white-space: normal;
+  height: auto;
+}
+.workflow-editor {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  min-width: 0;
+}
+.workflow-editor label,
+.workflow-version {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.workflow-editor :is(input:not([type='checkbox']), select, textarea),
+.workflow-version select {
+  width: 100%;
+  min-width: 0;
+  background: var(--tone-blue-900);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--tone-blue-100);
+  padding: 10px;
+  font: inherit;
+}
+.workflow-editor textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+.workflow-editor label.confirmation-checkbox {
+  flex-direction: row;
+}
+.workflow-stage-list {
+  list-style: none;
+  padding: 0;
+  margin: 24px 0;
+}
+.workflow-stage-list > li {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 14px;
+  background: var(--surface);
+  overflow-wrap: anywhere;
+}
+.workflow-stage-list .section-title {
+  padding: 0 0 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.workflow-stage-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.workflow-stage-actions label {
+  flex: 1;
+  min-width: min(100%, 180px);
+}
+.workflow-stage-list .form-footnote {
+  margin: 10px 0;
+}
+.workflow-validation .form-error {
+  padding: 12px 24px;
+}
 @media (max-width: 700px) {
   .topbar {
     flex-wrap: wrap;

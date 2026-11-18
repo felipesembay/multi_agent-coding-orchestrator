@@ -151,11 +151,24 @@ export type WorkflowStep = {
   role?: string
   requires?: string[]
   per_task?: boolean
+  max_attempts?: number
+  on_reject?: string | null
+  command_profile?: 'server_default'
 }
 export type WorkflowDefinition = {
   schema_version: number
   name: string
   steps: WorkflowStep[]
+  limits?: {
+    max_total_steps: number
+    max_duration_s: number
+    budget_usd: number | null
+  }
+  approval?: {
+    require_tests: boolean
+    require_reviewer: boolean
+    human_gate_after_plan: boolean
+  }
 }
 export type WorkflowBinding = {
   provider_config_id: string
@@ -175,6 +188,7 @@ export type SavedWorkflow = {
   id: string
   name: string
   read_only: boolean
+  description?: string
   latest_version: WorkflowVersion | null
   suggested_bindings?: Record<string, WorkflowBinding>
 }
@@ -184,6 +198,7 @@ export type WorkflowPreset = {
   available: boolean
   default_for_ui?: boolean
   errors: string[]
+  blocked_by?: string[]
   workflow?: { definition: WorkflowDefinition } | null
   suggested_bindings?: Record<string, WorkflowBinding>
 }

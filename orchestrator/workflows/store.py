@@ -19,6 +19,7 @@ def _append(conn, definition_id, body):
     conn.execute('''INSERT INTO workflow_versions(id,definition_id,version,schema_version,body,digest)
                     VALUES(?,?,?,?,?,?)''',
                  (version_id, definition_id, version, parsed.schema_version, canonical(payload), digest(payload)))
+    conn.execute('UPDATE workflow_definitions SET name=? WHERE id=?', (parsed.name, definition_id))
     audit(conn, 'workflow.version_created', None, workflow_id=definition_id, version_id=version_id)
     return version_id
 

@@ -7,6 +7,7 @@ import { MonitorPage } from '../features/Monitor'
 import { SettingsPage } from '../features/Settings'
 import { ProjectsPage, NewProjectPage } from '../features/Projects'
 import { ProjectWorkspacePage } from '../features/ProjectWorkspace'
+import { WorkflowsPage, WorkflowEditorPage } from '../features/Workflows'
 export const routes = [
   {
     element: <Layout />,
@@ -21,6 +22,9 @@ export const routes = [
       { path: '/agents', element: <MonitorPage /> },
       { path: '/reviews', element: <MonitorPage reviews /> },
       { path: '/settings', element: <SettingsPage /> },
+      { path: '/workflows', element: <WorkflowsPage /> },
+      { path: '/workflows/new', element: <WorkflowEditorPage /> },
+      { path: '/workflows/:workflowId', element: <WorkflowEditorPage /> },
       {
         path: '*',
         element: (

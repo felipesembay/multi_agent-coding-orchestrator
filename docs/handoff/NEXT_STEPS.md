@@ -1,14 +1,21 @@
 # Próximos passos
 
-## Próxima tarefa: V2-WF-009 — editor de workflow em lista
+## Próxima tarefa: V2-WF-010 — fallbacks configuráveis por etapa
 
-**Objetivo:** criar/validar/salvar versão e clonar presets pela UI, usando a API WF-008. Adicionar/reordenar/remover etapas conforme schema; não é editor React Flow (WF-011).
+**Objetivo:** executar lista ordenada de fallbacks somente para erros normalizados autorizados, preservando permissões, capacidades, modelo e snapshot por run. Dependências WF-003/CORE-002 concluídas. Não iniciar automaticamente nesta sessão WF-009.
 
-**Aceite:** testes Vitest e E2E mockados para edição, clone e versão imutável; validação por campo ao vivo. Presets readonly, modelos/providers filtrados, snapshots do run já enfileirado não mudam ao editar. Distinguir válido estrutural de executável: gates/budget/fallback/API provider dependem de integrações próprias. Não habilitar plugins/segredos via payload nem selecionar legado por name.
+**Aceite:** CA5 de WORKFLOW_ENGINE, testes com runtimes falsos para quota_exhausted/rate_limited/unavailable, sem repetição de efeitos após falha ambígua. Evento agent_fallback com step_id e registros de uso separados por tentativa; verificar integração com OBS (ainda pendente), sem inventar contagem/custo ou liberar código parcialmente executável. Atualizar snapshot/preflight/host juntos; legado intacto. Decisões de quota não autorizam agentes reais em testes.
 
-**Ler:** WORKFLOW_ENGINE §6.6.1, DESIGN_SYSTEM/UI_UX pertinentes, snapshot/schema/validation/store/workflow_api, StartExecution e tipos. Reutilizar campos de validação e mapas ownproperty para IDs válidos como constructor. Choices precisam permanecer estáveis no refresh, sem substituir trio/modelos por defaults acidentais.
+**Ler:** WORKFLOW_ENGINE, TOKEN_ACCOUNTING, ADR-0004/0005/0006, providers/results e workflows/schema/validation/compiler/snapshot/host. Registrar dependência de armazenamento de usage_records caso necessária ao aceite, sem declarar CA5 cumprido sem evidência.
 
-**Comandos:** git status/log; source .venv/bin/activate; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test/build/lint; browserQA com fixtures mockadas quando aplicável; check_docs/diff. Revisão/handoff/commit dev após verdes; sem push/merge/deploy automático.
+**Comandos:** git status/log; source .venv/bin/activate; ORCH_DB="$(mktemp -d)/events.db" python -m pytest -q -p no:cacheprovider; npm --prefix frontend test/build/lint; python scripts/check_docs.py; git diff --check. Revisão independente/handoff/commit dev após verdes; sem push/merge/deploy automático.
+
+## WF-009 concluída
+
+- Editor em lista em /workflows, criação/cópias, validação ao vivo, histórico e novas versões imutáveis. Definição contém etapas/políticas/limites; providers/modelos continuam por run na confirmação WF-008. Presets readonly; B bloqueado e A/C clonáveis como rascunhos, sem promover execução indisponível.
+- URL fixa versão-base antes de editar; refresh concorrente ou erro temporário preservam rascunho. Adicionar primeiro teste sincroniza política require_tests. Numéricos inválidos e validação indisponível bloqueiam salvar. Topologia é verificada por UI e servidor.
+- Backend permite validate sem bindings com executable=null/scope definition; com bindings mantém validação completa. Nome de metadados acompanha última versão sem alterar corpos antigos. Snapshots de execução não são alterados.
+- Evidência final:534 pytest/54 Vitest, build/lint/docs verdes,11 E2E/2 opt-ins skipped em QA temporário encerrado; revisão review_wf009 aprovada após2P2 e10 regressões focadas verdes. Detalhes: CURRENT_STATE/SESSION_LOG. Gates/budget/fallback/ModelProvider continuam sem execução até suas tarefas. Nenhum CLI real/quota, dependência ou credencial alterada.
 
 ## WF-008 concluída
 
