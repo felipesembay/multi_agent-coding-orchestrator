@@ -67,8 +67,6 @@ def compile_workflow(definition, bindings, *, provider_configs, registry, execut
     definition = validate_workflow(definition, bindings, provider_configs=provider_configs, registry=registry)
     frozen_bindings = {key: StepBinding.model_validate(value.model_dump() if isinstance(value, StepBinding) else deepcopy(value))
                        for key, value in bindings.items()}
-    if any(binding.fallbacks for binding in frozen_bindings.values()):
-        raise ValueError('Configurable fallback execution requires V2-WF-010')
     adapters = dict(provider_configs)
     steps = definition.steps
     task_steps = [s for s in steps if s.per_task]
@@ -115,7 +113,8 @@ def compile_workflow(definition, bindings, *, provider_configs, registry, execut
     for index, step in enumerate(steps):
         binding = frozen_bindings.get(step.id)
         adapter = adapters[binding.provider_config_id] if binding else None
-        graph.add_node(step.id, make_step_node(step, binding, adapter, handlers[step.type], definition, clock, emit))
+        graph.add_node(step.id, make_step_node(step, binding, adapter, handlers[step.type], definition, clock, emit,
+                                               provider_configs=adapters))
         next_node = steps[index + 1].id if index + 1 < len(steps) else '__wf_finish'
         if task_steps and step.id == task_steps[-1].id:
             next_node = '__wf_advance'

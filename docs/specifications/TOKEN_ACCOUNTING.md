@@ -9,6 +9,10 @@ Registrar uso e custo por projeto, execução, etapa/agente, provedor e modelo, 
 ## 3. Estado atual comprovado
 Nenhuma métrica de tokens/custo. Duração por run apenas (`started_at`/`finished_at`). Saídas de CLI descartadas exceto texto (Claude, Codex) ou `response/status/denied_actions` (agy).
 
+### Estado incremental após V2-WF-010
+
+O host de workflows estritos persiste um evento `usage_record` por invocação no SQLite events, associado a agent_call por call_id e a fallback por retry_of. Campos numéricos permanecem null com token_source=unavailable na ausência de telemetria; raw é omitido e billing_mode vem do manifesto. Isso não implementa a tabela usage_records/migração5 nem a captura universal no caminho legado. OBS-001 deve integrar por call_id sem duplicar os registros históricos. Parsers, preços, estimativas, orçamento, APIs e UI financeira permanecem pendentes.
+
 ## 4. Requisitos funcionais
 - RF1 Por chamada: input, output, cache read/write, reasoning (se reportados), custo reportado, custo estimado, duração, erro, tentativa (`retry_of`).
 - RF2 Agregações: por projeto, modelo, agente/papel, período (dia/semana/mês), run; comparação entre modelos (custo/tarefa aprovada, tokens/tarefa, taxa de aprovação na 1ª tentativa).

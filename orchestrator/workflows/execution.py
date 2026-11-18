@@ -1,7 +1,7 @@
 """AgentRuntime host for frozen workflows, without legacy binding exceptions.
 
 Only already-validated CLI runtimes are supported. API providers, parameters,
-gates, budgets and fallbacks need their own integrations before queueing.
+gates and budgets need their own integrations before queueing.
 """
 import math
 import json
@@ -12,6 +12,7 @@ import time
 
 from .. import core
 from ..providers.base import InvocationRequest, invoke_measured
+from ..providers.errors import InvocationFailure
 from .compiler import compile_workflow
 from .nodes import WorkflowLimitError, slot
 from .snapshot import validate_snapshot
@@ -70,11 +71,39 @@ def execute_snapshot(repo, scope, *, run_id, snapshot, config, registry, clock=t
             timeout_s=min(config['agent_timeout'], max(1, math.ceil(remaining(context)))),
         )
         runtime = registry.get(context.adapter)
+        record_failed = []
+        def persist(call):
+            metadata = {'step_id': step.id, 'task_index': state['task_index'],
+                        'attempt': (state['workflow_attempts'].get(slot(step, state), 0)
+                                    if step.type == 'implement' else 0) + context.invocation_attempt,
+                        'chain_attempt': context.invocation_attempt, 'retry_of': context.retry_of}
+            core.event(state, 'agent_call', {**call.model_dump(exclude={'usage': {'raw'}}), **metadata})
+            usage = call.usage.model_dump(exclude={'raw', 'source'})
+            core.event(state, 'usage_record', {**usage, **metadata,
+                'call_id': call.call_id, 'provider': call.provider, 'role': call.role,
+                'provider_config_id': context.binding.provider_config_id,
+                'model': call.model, 'model_reported': call.model_reported,
+                'duration_ms': call.duration_ms, 'error_code': call.error_code,
+                'token_source': call.usage.source, 'billing_mode': runtime.manifest.billing_mode})
+        def record(call):
+            try:
+                persist(call)
+            except Exception:
+                record_failed.append(True)
+                raise
         try:
             result = invoke_measured(context.adapter, request, lambda: runtime.invoke(request),
-                                     lambda call: core.event(state, 'agent_call', call.model_dump(exclude={'usage': {'raw'}})))
+                                     record, call_id=context.call_id)
+        except InvocationFailure:
+            if record_failed:
+                raise RuntimeError('Could not persist workflow invocation metadata') from None
+            raise
         except Exception:
             raise RuntimeError('Workflow agent invocation failed') from None
+        if result.error_code is not None:
+            # Error-bearing results are failures, never successful stage output.
+            # No verified no-effects attestation: never select a fallback here.
+            raise InvocationFailure(result.error_code)
         if step.type in ('plan', 'review'):
             payload = result.structured if result.structured is not None else core.extract_json(result.text)
             if step.type == 'plan':
@@ -95,7 +124,7 @@ def execute_snapshot(repo, scope, *, run_id, snapshot, config, registry, clock=t
         if step.type == 'implement':
             core.event(state, 'implementation', {
                 'task': task.get('id'), 'output': payload['output'],
-                'attempt': state['workflow_attempts'].get(slot(step, state), 0) + 1,
+                'attempt': state['workflow_attempts'].get(slot(step, state), 0) + context.invocation_attempt,
             })
         return payload
 

@@ -46,12 +46,19 @@ class WorkflowSnapshot(WorkflowSelection):
 
     @model_validator(mode='after')
     def referenced_providers(self):
-        if {b.provider_config_id for b in self.bindings.values()} != set(self.providers):
+        if {b.provider_config_id for b in binding_candidates(self.bindings)} != set(self.providers):
             raise ValueError('Snapshot providers must match the referenced configurations')
         return self
 
     def digest(self):
         return digest(self.model_dump(mode='json'))
+
+
+def binding_candidates(bindings):
+    """All configured alternatives, including ones not selected on this run."""
+    for binding in bindings.values():
+        yield binding
+        yield from binding.fallbacks
 
 
 def validate_snapshot(snapshot, *, registry):
@@ -65,12 +72,10 @@ def validate_snapshot(snapshot, *, registry):
             raise WorkflowSnapshotError('Human gates require the approvals integration')
         if definition.limits.budget_usd is not None:
             raise WorkflowSnapshotError('Budgets require the accounting integration')
-        if any(b.fallbacks for b in parsed.bindings.values()):
-            raise WorkflowSnapshotError('Configurable fallbacks require V2-WF-010')
-        if any(b.parameters for b in parsed.bindings.values()):
+        if any(b.parameters for b in binding_candidates(parsed.bindings)):
             raise WorkflowSnapshotError('Runtime parameters are not integrated yet')
         if any(parsed.providers[b.provider_config_id].adapter in ('claude_code', 'codex_cli') and b.model is not None
-               for b in parsed.bindings.values()):
+               for b in binding_candidates(parsed.bindings)):
             raise WorkflowSnapshotError('Selected CLI adapter does not support explicit models yet')
         for provider in parsed.providers.values():
             if provider.kind != 'agent_runtime':
@@ -111,9 +116,9 @@ def load_snapshot(selection, *, registry, conn=None):
             providers = resolve_providers(selection.bindings, conn=owned)
             # This adapter has a known environment-based model default. Resolve
             # it here so worker environment drift cannot change a confirmed run.
-            for binding in selection.bindings.values():
+            for binding in binding_candidates(selection.bindings):
                 if providers[binding.provider_config_id].adapter == 'antigravity' and binding.model is None:
-                    binding.model = StepBinding.model_validate({**binding.model_dump(),
+                    binding.model = type(binding).model_validate({**binding.model_dump(),
                         'model': os.getenv('ORCH_ANTIGRAVITY_MODEL', DEFAULT_AGY_MODEL)}).model
             return validate_snapshot(WorkflowSnapshot(**selection.model_dump(), definition=definition,
                                                       providers=providers), registry=registry)
@@ -126,7 +131,7 @@ def load_snapshot(selection, *, registry, conn=None):
 def resolve_providers(bindings, *, conn=None):
     with nullcontext(conn) if conn is not None else connection() as owned:
         providers = {}
-        for config_id in sorted({b.provider_config_id for b in bindings.values()}):
+        for config_id in sorted({b.provider_config_id for b in binding_candidates(bindings)}):
             row = owned.execute('SELECT * FROM provider_configs WHERE id=?', (config_id,)).fetchone()
             if row is None or not row['enabled']:
                 raise WorkflowSnapshotError('Provider configuration missing or disabled')

@@ -1,14 +1,26 @@
 # Próximos passos
 
-## Próxima tarefa: V2-WF-010 — fallbacks configuráveis por etapa
+## Continuidade no Antigravity
 
-**Objetivo:** executar lista ordenada de fallbacks somente para erros normalizados autorizados, preservando permissões, capacidades, modelo e snapshot por run. Dependências WF-003/CORE-002 concluídas. Não iniciar automaticamente nesta sessão WF-009.
+O operador solicitou um documento geral para continuar o desenvolvimento com outro agente: [ANTIGRAVITY_HANDOFF](ANTIGRAVITY_HANDOFF.md). Contém contexto, decisões, invariantes, mapa de código, testes e prompt pronto para colar. Nenhuma tarefa nova foi iniciada automaticamente.
 
-**Aceite:** CA5 de WORKFLOW_ENGINE, testes com runtimes falsos para quota_exhausted/rate_limited/unavailable, sem repetição de efeitos após falha ambígua. Evento agent_fallback com step_id e registros de uso separados por tentativa; verificar integração com OBS (ainda pendente), sem inventar contagem/custo ou liberar código parcialmente executável. Atualizar snapshot/preflight/host juntos; legado intacto. Decisões de quota não autorizam agentes reais em testes.
+## Próxima tarefa recomendada: V2-F0-005 — Python3.12 e compatibilidade de checkpoints
 
-**Ler:** WORKFLOW_ENGINE, TOKEN_ACCOUNTING, ADR-0004/0005/0006, providers/results e workflows/schema/validation/compiler/snapshot/host. Registrar dependência de armazenamento de usage_records caso necessária ao aceite, sem declarar CA5 cumprido sem evidência.
+**Objetivo:** validar ambiente Python3.12 e langgraph-checkpoint-sqlite/SqliteSaver; atualizar CI e documentação conforme compatibilidade comprovada. Q3 já autoriza o alvo, não pedir nova decisão sobre a versão. Preservar ambiente atual até validar substituto e não confundir alvo aprovado com migração já entregue.
 
-**Comandos:** git status/log; source .venv/bin/activate; ORCH_DB="$(mktemp -d)/events.db" python -m pytest -q -p no:cacheprovider; npm --prefix frontend test/build/lint; python scripts/check_docs.py; git diff --check. Revisão independente/handoff/commit dev após verdes; sem push/merge/deploy automático.
+**Aceite:** import/round-trip mínimo do checkpoint no ambiente alvo, suites Python/frontend e CI coerentes com runtime suportado. Não implementar retomada gerenciada, que depende de RES. Não alterar dependências sem verificar seu impacto; não declarar Actions verde sem run remoto autorizado.
+
+**Alternativas / sequência:** SEC-003, SEC-004, WF-005, WF-006 e OBS-001 conforme guia Antigravity, uma por vez. Para trabalhar sem quota de agentes reais, considerar DIST-002 ou SEC-005 com mocks e revisão pertinente; segurança exige evidência e revisão humana conforme especificação. F0-002 formal/ADRs permanece parcial, sem reabrir perguntas já respondidas.
+
+**Comandos:** git status/log; source .venv/bin/activate; ORCH_DB="$(mktemp -d)/events.db" python -m pytest -q -p no:cacheprovider; npm --prefix frontend test/build/lint; python scripts/check_docs.py; git diff --check. Consultar novo ambiente-alvo ao migrar. Revisão/handoff/commit dev após verdes; sem push/merge/deploy automático.
+
+## WF-010 concluída
+
+- Cadeia ordenada por condição, somente erros InvocationFailure tipados com safe_to_retry=true. Erro ambíguo/textual ou resultado com error_code não autoriza repetição. Built-ins ainda não atestam quota sem efeitos; não fingir que parsers/novos papéis já foram verificados.
+- Todos os candidatos resolvidos/congelados antes da fila e revalidados contra manifestos, sem configs mutáveis no despacho. Sem escalada read_only→write; fallbacks contam nos limites de passos/tentativas/deadline.
+- agent_call e usage_record persistidos por chamada no event store com call_id/retry_of; raw omitido, fonte/cobrança explícitas, ausência null/unavailable. Tabela usage_records e migração5 continuam OBS-001: integrar por call_id sem duplicação. Não há contabilidade universal no legado ou UI financeira nesta entrega.
+- Review→implement conserva attempt cumulativo e chain_attempt independente. Erro de journal impede retry. Evento de uso atualiza atividade sem substituir etapa/status/resultados no dashboard. Legado intacto.
+- Evidência final:561 pytest/54 Vitest, build/lint/docs verdes;11 E2E/2 opt-ins skipped em QA temporário encerrado; revisão review_wf010 aprovada. Commit local V2-WF-010 em dev; detalhes: CURRENT_STATE/SESSION_LOG. Guia Antigravity é o artefato adicional pedido pelo operador; não é implementação automática das tarefas sugeridas.
 
 ## WF-009 concluída
 

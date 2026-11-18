@@ -82,16 +82,13 @@ def test_archived_workflow_and_missing_version_are_refused(snapshot_case):
         load_snapshot(selection, registry=registry)
 
 
-@pytest.mark.parametrize('feature', ['gate', 'budget', 'fallback', 'parameters'])
+@pytest.mark.parametrize('feature', ['gate', 'budget', 'parameters'])
 def test_unimplemented_execution_features_fail_before_queueing(snapshot_case, feature):
     selection, registry, definition = snapshot_case
     if feature == 'gate':
         definition['approval']['human_gate_after_plan'] = True
     elif feature == 'budget':
         definition['limits']['budget_usd'] = 1.0
-    elif feature == 'fallback':
-        from orchestrator.workflows.schema import FallbackBinding
-        selection.bindings['plan'].fallbacks = [FallbackBinding(provider_config_id='pc', on=['unavailable'])]
     else:
         selection.bindings['plan'].parameters = {'unknown': True}
     if feature in ('gate', 'budget'):

@@ -30,7 +30,7 @@ def summarize(run_id, events):
         stage, at = event['stage'], event['at']
         p = object_payload(event['payload'])
         result['last_event'] = at
-        if stage == 'agent_call':
+        if stage in ('agent_call', 'usage_record'):
             continue  # Additional telemetry is activity, not a workflow stage.
         result.update(current_stage=p.get('stage') if stage == 'stage_started' and p.get('stage') in ('plan', 'implementation', 'review') else stage)
         if stage == 'started':

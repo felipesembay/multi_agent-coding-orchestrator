@@ -86,3 +86,7 @@ Checkpoints LangGraph ficam em **arquivo separado** (`<ORCH_DB>.checkpoints.db`)
 - Nenhuma coluna armazena segredo; `raw_usage` passa por redator antes de gravar.
 - `usage_records.token_source` ∈ {`provider_reported`, `cli_reported`, `estimated`, `unavailable`}; `estimated_cost_usd` nulo quando não há preço.
 - `workflow_versions.body` validado pelo schema da sua `schema_version` antes de inserir.
+
+## Registro incremental WF-010
+
+Sem alteração de schema/migração: workflows estritos gravam eventos usage_record em events por invocação. call_id correlaciona agent_call; retry_of aponta à chamada anterior da cadeia, step_id/task_index identificam etapa/tarefa, attempt conta invocações cumulativas de implementação e chain_attempt a posição na cadeia. Conteúdo raw é omitido; token_source e billing_mode explícitos, valores desconhecidos null. A tabela usage_records planejada continua tarefa OBS-001/migração5: futuras projeções devem usar call_id para evitar duplicação. Não afirmar que a contabilidade universal já existe.

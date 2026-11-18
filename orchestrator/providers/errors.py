@@ -1,6 +1,6 @@
 """Conservative error classification for metadata; never changes legacy errors."""
 import subprocess
-from typing import Literal
+from typing import Literal, get_args
 
 ErrorCode = Literal[
     'rate_limited', 'quota_exhausted', 'auth_failed', 'timeout',
@@ -8,7 +8,23 @@ ErrorCode = Literal[
 ]
 
 
+class InvocationFailure(RuntimeError):
+    """Trusted adapter error; safe_to_retry attests no effects were performed.
+
+    Text classification is metadata only. Adapters must opt in after verifying
+    a rejection before tool execution, never infer safety from stderr wording.
+    """
+    def __init__(self, code: ErrorCode, *, safe_to_retry: bool = False):
+        if code not in get_args(ErrorCode) or type(safe_to_retry) is not bool:
+            raise ValueError('Invalid normalized invocation failure')
+        super().__init__('Agent invocation failed: ' + code)
+        self.code = code
+        self.safe_to_retry = safe_to_retry
+
+
 def error_code(exc: Exception) -> ErrorCode:
+    if isinstance(exc, InvocationFailure):
+        return exc.code
     if isinstance(exc, (TimeoutError, subprocess.TimeoutExpired)):
         return 'timeout'
     if isinstance(exc, PermissionError):

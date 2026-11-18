@@ -139,9 +139,10 @@ class AgentCall(BaseModel):
 
 def invoke_measured(provider: str, req: InvocationRequest,
                     invoke: Callable[[], InvocationResult],
-                    observer: Optional[Callable[[AgentCall], None]] = None) -> InvocationResult:
+                    observer: Optional[Callable[[AgentCall], None]] = None, *,
+                    call_id: Optional[str] = None) -> InvocationResult:
     """Measure a call at a single owned boundary, including registered plugins."""
-    call_id = str(uuid.uuid4())
+    call_id = call_id or str(uuid.uuid4())
     started = time.monotonic_ns()
     try:
         raw = invoke()

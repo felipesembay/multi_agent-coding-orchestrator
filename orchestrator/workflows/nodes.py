@@ -6,8 +6,10 @@ return a stage payload, never orchestration counters or routing decisions.
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Optional, TypedDict
+import uuid
 
 from .schema import StepBinding
+from ..providers.errors import InvocationFailure
 
 
 class WorkflowState(TypedDict, total=False):
@@ -38,6 +40,9 @@ class StepContext:
     adapter: Optional[str]
     state: dict
     timeout_s: float
+    call_id: Optional[str] = None
+    retry_of: Optional[str] = None
+    invocation_attempt: int = 1
 
 
 def slot(step, state):
@@ -68,7 +73,7 @@ def validate_payload(step, payload, needs_tasks):
         raise ValueError('Review executor must return findings list')
 
 
-def make_step_node(step, binding, adapter, executor, definition, clock, emit):
+def make_step_node(step, binding, adapter, executor, definition, clock, emit, *, provider_configs=None):
     needs_tasks = any(s.per_task for s in definition.steps)
 
     def run(state):
@@ -81,25 +86,65 @@ def make_step_node(step, binding, adapter, executor, definition, clock, emit):
             raise WorkflowLimitError('Implementation attempt limit reached')
         metadata = {'step_id': step.id, 'stage': step.type}
         emit(state, 'stage_started', metadata)
+        used = 0
+        current, current_adapter = binding, adapter
+        pending = list(binding.fallbacks) if binding else []
+        call_id, retry_of = str(uuid.uuid4()), None
         try:
-            payload = deepcopy(executor(StepContext(
-                step=step.model_copy(deep=True),
-                binding=binding.model_copy(deep=True) if binding else None,
-                adapter=adapter, state=deepcopy(state), timeout_s=remaining,
-            )))
+            while True:
+                remaining = check_time(definition, state, clock)
+                if state['workflow_steps'] + used >= definition.limits.max_total_steps:
+                    raise WorkflowLimitError('Workflow step limit reached')
+                if step.type == 'implement' and attempts.get(key, 0) + used >= step.max_attempts:
+                    raise WorkflowLimitError('Implementation attempt limit reached')
+                used += 1
+                try:
+                    payload = deepcopy(executor(StepContext(
+                        step=step.model_copy(deep=True),
+                        binding=current.model_copy(deep=True) if current else None,
+                        adapter=current_adapter, state=deepcopy(state), timeout_s=remaining,
+                        call_id=call_id, retry_of=retry_of, invocation_attempt=used,
+                    )))
+                    break
+                except InvocationFailure as exc:
+                    if not exc.safe_to_retry:
+                        raise
+                    index = next((i for i, candidate in enumerate(pending) if exc.code in candidate.on), None)
+                    if index is None:
+                        raise
+                    candidate = pending[index]
+                    pending = pending[index + 1:]
+                    # Check limits before announcing a retry that cannot run.
+                    check_time(definition, state, clock)
+                    if state['workflow_steps'] + used >= definition.limits.max_total_steps:
+                        raise WorkflowLimitError('Workflow step limit reached')
+                    if step.type == 'implement' and attempts.get(key, 0) + used >= step.max_attempts:
+                        raise WorkflowLimitError('Implementation attempt limit reached')
+                    next_adapter = provider_configs[candidate.provider_config_id]
+                    next_call_id = str(uuid.uuid4())
+                    emit(state, 'agent_fallback', {**metadata, 'role': step.role,
+                        'primary': current_adapter, 'fallback': next_adapter,
+                        'from_config_id': current.provider_config_id,
+                        'to_config_id': candidate.provider_config_id,
+                        'reason': exc.code, 'retry_of': call_id, 'call_id': next_call_id,
+                        'attempt': (attempts.get(key, 0) if step.type == 'implement' else 0) + used + 1,
+                        'chain_attempt': used + 1})
+                    retry_of, call_id = call_id, next_call_id
+                    current = StepBinding.model_validate(candidate.model_dump(exclude={'on'}))
+                    current_adapter = next_adapter
             validate_payload(step, payload, needs_tasks)
             check_time(definition, state, clock)
         except Exception:
             emit(state, 'stage_finished', {**metadata, 'status': 'failed'})
             raise
         outputs = {**state['workflow_outputs'], key: payload}
-        revision = state['workflow_revision'] + int(binding is not None and binding.permission == 'workspace_write')
+        revision = state['workflow_revision'] + int(current is not None and current.permission == 'workspace_write')
         evidence = dict(state['workflow_evidence'])
         if step.type in ('test', 'review'):
             evidence[key] = revision
         if step.type == 'implement':
-            attempts[key] = attempts.get(key, 0) + 1
-        update = {'workflow_steps': state['workflow_steps'] + 1,
+            attempts[key] = attempts.get(key, 0) + used
+        update = {'workflow_steps': state['workflow_steps'] + used,
                   'workflow_outputs': outputs, 'workflow_attempts': attempts,
                   'workflow_revision': revision, 'workflow_evidence': evidence}
         if step.type == 'plan':

@@ -1,14 +1,15 @@
 # Estado atual
 
-Atualizado: 2026-11-18 · Por: Codex (V2-WF-009)
+Atualizado: 2026-11-18 · Por: Codex (V2-WF-010)
 
 ## Repositório
-- Branch `dev`; commits testados/revisados autorizados pelo operador. Sem merge/deploy/main/master. Push solicitado pelo operador em 2026-11-18 concluído até 7431745 em origin/dev; sem force/main/master. Commits WF-007 e CI-DIST-004 continuam locais; WF-008 (58051a2) e WF-009 também ficam locais; nenhum novo push solicitado. Sem novo push solicitado.
+- Branch `dev`; commits testados/revisados autorizados pelo operador. Sem merge/deploy/main/master. Push solicitado pelo operador em 2026-11-18 concluído até 7431745 em origin/dev; sem force/main/master. Commits WF-007 e CI-DIST-004 continuam locais; WF-008 (58051a2), WF-009 (1d05736) e WF-010 também ficam locais; nenhum novo push solicitado. Sem novo push solicitado.
 - Baseline `f8e6949`; CORE-001..004 em `87a034f`, `56e44d2`, `6737c2f`, `db12642`. Histórico remoto dev atualizado até 7431745 nesta sessão.
 - SEC-001 `8d94e7d`, SEC-002 `065d9ed`, SEC-006 `7ac3634`, WF-001 `caee20e`, WF-002 `fc93cd1` locais. WF-003 `1474f4b`. Registro parcial F0-002 em `588c6db`. WF-004 em `7431745` (já em origin/dev). WF-007 em `6f1c167`, CI-DIST-004 em `feb4caf`. WF-008 no commit `V2-WF-008: expose workflow APIs and execution selection`; consultar git log para hash final.
 - WIP original de tema/exclusão/migração v3 preservado no baseline. Nenhum WIP externo identificado.
 
 ## Implementado
+- **WF-010 concluída:** fallbacks ordenados com erro tipado/no-effects, candidatos congelados/validados, limites cumulativos, IDs de chamadas e uso persistido no event store; sem migração OBS-001 antecipada. Guia geral Antigravity criado.561 pytest/54 Vitest,11E2E/2skip,build/lint/docs verdes; revisão review_wf010 aprovada; commit local dev, sem push.
 - **WF-009 concluída:** editor `/workflows`, etapas opcionais/reordenação/limites, cópias e histórico de versões imutáveis, validação estrutural ao vivo sem bindings. URL fixa versão-base e refresh com falha preserva rascunhos; primeiro teste sincroniza política. Evidência:534 pytest/54 Vitest,11 E2E/2 opt-ins skipped, build/lint/docs verdes; revisão independente review_wf009 aprovada. Commit local autorizado em dev; sem push.
 - v1 preservada: worker separado, fila SQLite, worktrees/locks, idempotência e contratos legados. DOC-001 verificador de documentação concluído.
 - CORE-001..004: adapters/registry/manifestos, resultados com uso desconhecido honesto, bindings por papel e snapshots/digests compatíveis. Defaults Claude/Claude/Codex e fallback exato preservados.
@@ -56,8 +57,8 @@ Atualizado: 2026-11-18 · Por: Codex (V2-WF-009)
 - Registro não é implementação nem aceitação integral dos ADRs; revisão específica dos dez ADRs continua pendente. F0-002 fica parcial/blocked residual por esse critério, não por perguntas já respondidas.
 
 ## Próximos passos
-- WF-009: editor em lista de definições/etapas com validação ao vivo, clone de presets e salvar nova versão imutável, reutilizando a API/seleção atuais.
-- Execução real do padrão A depende de SEC-003/004, WF-005/006 e editor completo em WF-009 (seleção já entregue). B continua bloqueado por PROV-001. Decisões Q2/Q5 já recebidas; não promover manifestos não verificados.
+- Continuidade sugerida: F0-005 e sequência SEC-003/004, WF-005/006, OBS-001; ver ANTIGRAVITY_HANDOFF/NEXT_STEPS. WF-009 concluída; WF-010 concluída e revisada.
+- Execução real do padrão A depende de SEC-003/004, WF-005/006 (API/seleção/editor já entregues). B continua bloqueado por PROV-001. Decisões Q2/Q5 já recebidas; não promover manifestos não verificados.
 - Python3.12/compatibilidade em F0-005 e spikes autorizados em F0-003/SEC-003 podem avançar no escopo decidido; uma tarefa por vez, com revisão pertinente. Não confundir o bloqueio residual de F0-002 com as questões já resolvidas.
 - Licença específica, assinatura, valor de orçamento, identidade final e revisão integral dos ADRs continuam pendentes nos seus respectivos escopos.
 
@@ -84,3 +85,30 @@ HEAD58051a2 jácommitado e árvore limpa, dev ahead3. Editor de definições ver
 
 - WF-009 altera apenas edição/validação/versionamento; providers/modelos continuam por run no StartExecution. Salvar gate/budget não libera sua execução; B aguarda PROV-001. Nenhum run é iniciado pelo editor.
 - CI remoto não foi reexecutado: correção DIST-004 e commits seguintes permanecem locais em dev. Não afirmar Actions verde sem push/run futuro autorizado.
+
+## Marco WF-010 — início
+HEAD1d05736 limpo em dev. Implementação de fallback em andamento; contratos de erro seguro e registros usage_record no event store, tabela OBS-001 permanece futura. Handoff geral para Antigravity solicitado. Sem CLIs reais/quota/push.
+
+## Marco WF-010 — implementação em revisão
+Cadeia de alternativas tipadas no envelope, snapshots incluem todos os candidatos, uso por chamada em eventos persistidos e recusa de retries ambíguos. Primeira rodada62 focados verdes; casos ampliados identificaram fixture falsa sem capacidade structured_output (corrigida). Validação ampliada/suite e revisão independente em andamento; WIP local sem commit.
+
+## Marco WF-010 — revisão aprovada
+
+- review_wf010 aprovou código e documento Antigravity:192 focados +27 casos fallback independentes, check_docs/diff verdes. Ajuste final de projeção usage_record também aprovado, sem repetir suite do revisor.
+- Host e compilador implementam alternativas ordenadas por erro tipado com atestado sem efeitos, limites cumulativos, IDs/retry_of e uso por chamada em eventos. Snapshots incluem todos os providers alternativos, modelo agy conhecido e guards de integração; sem escalada de permissão. Alterações não mudam fallback legado ou flags dos CLIs.
+- Tabela usage_records/migração5 e contabilidade universal continuam OBS-001. Built-ins atuais ainda não atestam retry seguro para quota; stderr genérico não autoriza repetição. Configurável via API; controles dedicados de fallback na UI não foram adicionados nesta tarefa BE.
+- Documento geral: [ANTIGRAVITY_HANDOFF](ANTIGRAVITY_HANDOFF.md), com decisões, regras, tarefas sugeridas e prompt. Nenhuma tarefa adicional iniciada. Sem agentes reais/quota/push/credenciais/dependências novas.
+
+## Evidências finais WF-010
+
+| Verificação | Resultado |
+|---|---|
+| Baseline | 534 pytest/54 Vitest, HEAD1d05736 limpo |
+| Python final isolado | 561 passed,1 warning LangGraph,21,61s |
+| Novos testes | 27 fallback +1 parametrização dashboard; um antigo bloqueio fallback removido pois integrado |
+| Frontend | 54 Vitest, build/lint verdes; sem mudança de UI |
+| E2E QA | 11 passed/2 opt-ins skipped,14,7s; serviços temporários encerrados e agentes mockados |
+| Independente | review_wf010:192 focados,27 fallback, docs/diff; aprovação final da projeção usage_record |
+| Documentação | check_docs e diff limpos; guia Antigravity revisado |
+
+Próxima recomendada F0-005 (Python3.12/SqliteSaver), alternativa de continuidade sem quota DIST-002/SEC-005; sequência completa no guia. Backlog:19 done/43 todo/1 blocked. WIP da tarefa incluído no commit local V2-WF-010; nenhum push/merge/deploy.

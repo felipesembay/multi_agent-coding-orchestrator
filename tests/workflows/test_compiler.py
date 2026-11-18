@@ -196,15 +196,14 @@ def test_invalid_stage_output_stops_execution(case, kind, payload):
     assert events[-1][1]['status'] == 'failed'
 
 
-def test_unsupported_budget_and_fallback_fail_closed(case):
+def test_unsupported_budget_fails_closed_and_configured_fallback_compiles(case):
     args, calls, _ = case
     args['definition']['limits']['budget_usd'] = 1.0
     with pytest.raises(ValueError, match='accounting'):
         compile_workflow(**args)
     args['definition']['limits']['budget_usd'] = None
     args['bindings']['plan']['fallbacks'] = [{'provider_config_id': 'pc', 'on': ['unavailable']}]
-    with pytest.raises(ValueError, match='V2-WF-010'):
-        compile_workflow(**args)
+    compile_workflow(**args)
     assert calls == []
 
 

@@ -85,6 +85,8 @@ def validate_workflow(definition, bindings, *, provider_configs: Mapping[str, st
         primary = _validate_provider(step, binding, ('bindings', step_id), provider_configs, registry, errors)
         for index, fallback in enumerate(binding.fallbacks):
             location = ('bindings', step_id, 'fallbacks', index)
+            if binding.permission == 'read_only' and fallback.permission != 'read_only':
+                _issue(errors, location + ('permission',), 'Fallback cannot increase primary permission')
             manifest = _validate_provider(step, fallback, location, provider_configs, registry, errors)
             if primary is not None and manifest is not None and not primary.capabilities <= manifest.capabilities:
                 _issue(errors, location + ('provider_config_id',),
