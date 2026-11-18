@@ -54,7 +54,7 @@ Tarefas sem dependência que podem começar em paralelo a qualquer momento após
 
 | Dependência | Uso | Estado | Risco |
 |---|---|---|---|
-| Python 3.9 (atual) → 3.11+? | Backend, empacotamento | 3.9.7 instalado, EOL out/2025 | Libs novas podem exigir ≥3.10 (Q3) |
+| Python 3.9 (atual) → 3.12 (alvo autorizado Q3) | Backend, empacotamento | 3.9.7 ainda instalado; migração em F0-005 | Compatibilidade de libs/CI/checkpoint a validar no alvo |
 | LangGraph 0.6.11 (`<2` em requirements) | Engine | Instalado | Migração para 1.x pode exigir ajustes |
 | `langgraph-checkpoint-sqlite` | Checkpoints | Não instalado | Compatibilidade a verificar |
 | `keyring` + libsecret/Secret Service | Credenciais | Não instalado | Sem D-Bus em headless |
@@ -67,3 +67,7 @@ Tarefas sem dependência que podem começar em paralelo a qualquer momento após
 | Ollama | ModelProvider local | Instalado | F6 |
 
 Nenhuma dependência foi instalada nesta sessão.
+
+## 3. Decisões do operador — 2026-11-18
+
+Q2/Q5 definem preset A como novo padrão desejado, com escolha por etapa, condicionado à implementação/verificação de permissões. Q3 define Python 3.12; Q10 autoriza quota apenas para os spikes previstos; Q11 autoriza commits em worktree por tarefa aprovada. Revisão integral dos ADRs continua pendente em F0-002; não bloquear novamente trabalho especificamente autorizado por perguntas já resolvidas. Licença permanece adiada, sem bloquear desenvolvimento local. Ver OPEN_QUESTIONS para alcance completo.

@@ -1,12 +1,25 @@
 # Próximos passos
 
-## Próxima tarefa: V2-WF-004 — decisão Q2 pendente
+## Próxima tarefa: V2-WF-004 — decisões Q2/Q5 recebidas
 
-**Objetivo:** presets legacy-v1, A/B/C e preservação do CLI legado. WF-003/CORE-004 concluídas. Q2 sobre mudança de padrão bloqueia a conclusão/ativação desta tarefa conforme OPEN_QUESTIONS; não presumir resposta. Q5/SEC-004/WF-005 também limitam Codex executor real, e preset B fica desabilitado até PROV-001. Os testes de presets devem usar manifestos fakes, sem promover built-ins não verificados.
+**Objetivo:** presets legacy-v1, A/B/C. Operador confirmou em 2026-11-18 o novo padrão Claude → Codex → Antigravity (preset A), com escolha de providers/modelos por etapa pelo usuário. CLI mantém compatibilidade legacy-v1. Não ativar execução antes das implementações/verificações de capacidades/permissões correspondentes; testes de presets usam fakes e não promovem manifestos reais não verificados.
 
-**Aceite:** presets validados com fakes, CLI permanece legacy-v1 por padrão, decisões de ativação registradas pelo operador e revisão independente. Ler WORKFLOW_ENGINE/OPEN_QUESTIONS/ADR-0005; usar compilador genérico apenas com executores confiáveis, e compatibilidade legada explícita, sem bypass por nome de usuário.
+**Aceite:** presets validam com fakes, escolhas são representadas por etapa, padrão desejado documentado e compatibilidade CLI preservada. Codex executor depende de SEC-004/WF-005 (Q5 respondida); preset B desabilitado até PROV-001. Ler WORKFLOW_ENGINE/OPEN_QUESTIONS/ADR-0005; usar compiler com executores confiáveis e compatibilidade legada explícita, sem bypass por nome. Revisão/handoff/commit dev após testes; sem push/merge/deploy.
 
-**Alternativa liberada:** V2-WF-007 (WF-002/WF-003 prontos), snapshot/digest de workflow+bindings por run, sem mudar padrão, permitindo aguardar Q2. Não iniciar tarefa sem registrar escolha e baseline.
+**Também autorizado:** Python 3.12 em V2-F0-005; poucos prompts triviais em diretório temporário para F0-003/SEC-003 conforme Q10. Autorização não executada nesta sessão; todos os testes automatizados continuam com mocks. Atualização de Python, spike de quota e presets são tarefas separadas, uma por vez. Revisão integral dos ADRs continua pendente; não reaplicar bloqueios de perguntas já respondidas a trabalho especificamente autorizado pelo operador.
+
+**Alternativa liberada:** V2-WF-007, snapshot/digest por run, sem mudança do padrão existente enquanto integrações de preset A não estiverem prontas.
+
+## Decisões do operador registradas — V2-F0-002 parcial
+
+- Q2/Q5: novo padrão desejado preset A e escolha por etapa; validar alternativa Codex sem execução se CLI permitir.
+- Q3: alvo Python3.12; Q4: perguntar ao fechar run ativo e oferecer background.
+- Q6: Ubuntu/.deb primeiro, AppImage depois; assinatura indefinida. Q7: licença explicitamente adiada, não criar LICENSE.
+- Q8: alerta por padrão, bloqueio opt-in, valor não escolhido. Q9: contador separado e equivalente estimado, não cobrado.
+- Q10: quota autorizada somente nos spikes previstos, poucos prompts triviais em diretório temporário. Testes automatizados sem agentes reais.
+- Q11: commits na worktree/branch agent/<run> após tarefa aprovada, sem merge/push/deploy. Não altera execução atual.
+- Q12: Conductor provisório, reversível. Identidade definitiva não escolhida.
+- ADRs mantêm status proposto: confirmação de questões não é aceitação integral. F0-002 não concluída por revisão formal dos ADRs restante; licença adiada não bloqueia desenvolvimento local. Referência autoritativa: OPEN_QUESTIONS.
 
 ## WF-003 concluída
 
@@ -22,7 +35,7 @@
 - BEGIN IMMEDIATE com rechecagem sob lock, rollback total de DDL e reabertura/concorrência testados. FK/JSON/digests e versões imutáveis, inclusive contra OR REPLACE. Tabelas vazias, provider_configs.enabled default 0; nenhum seed ou novo comportamento de execução.
 - Evidência: 424 pytest / 38 vitest, build/lint/docs verdes; 26 novos casos de migração; revisor review_wf002 aprovou e rodou 101 testes de workflows. Fixture SQL v3 congelada em caee20e. SQLite JSON1 requerido e verificado local3.36.0.
 - Não existe CRUD de workflow/provider nesta tarefa; o futuro escritor deve aplicar schema Pydantic ao body e impedir segredos em settings. A migração só impõe integridade SQL básica; credential_ref é referência opcional, sem integração ao keyring. Sem API/compilador/presets/snapshot de workflow no executor.
-- Decisões Q2–Q12 continuam em aberto e não foram necessárias para WF-002; não presumir respostas ao avançar.
+- Na sessão WF-002 as decisões ainda estavam em aberto; respostas e adiamentos foram registrados em 2026-11-18 em OPEN_QUESTIONS. Usar o estado atual dessas decisões ao avançar.
 
 ## WF-001 concluída
 
@@ -83,7 +96,7 @@
 ## Decisões humanas pendentes
 
 - V2-F0-001 concluída: baseline `f8e6949` em `dev`, preservando o WIP. Novos commits em dev autorizados após testes; sem merge/push.
-- V2-F0-002 `blocked`: Q2–Q12 e ADRs aguardam revisão humana. Não impedem o trabalho de equivalência WF-003; SEC-003 requer autorização de validação real. Quota real segue não autorizada.
+- V2-F0-002 `blocked` residual: revisão formal dos ADRs ainda pendente. Q2–Q12 respondidas em 2026-11-18 (Q7 adiada); quota limitada dos spikes F0-003/SEC-003 autorizada, não usada nesta sessão.
 
 ## Referência concluída: V2-CORE-001
 

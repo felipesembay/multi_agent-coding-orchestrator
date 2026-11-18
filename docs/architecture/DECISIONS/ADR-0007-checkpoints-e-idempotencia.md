@@ -17,7 +17,10 @@ Runs gerenciados interrompidos não podem ser retomados. Chamadas de agente modi
 |---|---|
 | Só checkpoints LangGraph | Não sabe se uma chamada externa ocorreu parcialmente |
 | Replay de eventos (como `resume` legado) | Já existe para CLI; frágil para grafos configuráveis |
-| Commit automático na worktree após cada passo | Mais simples para diff, mas altera histórico da branch; avaliar como opção (Q11) |
 
 ## Consequências
-Verificar compatibilidade de `langgraph-checkpoint-sqlite` com Python 3.9 e LangGraph 0.6.x (hipótese: versões recentes exigem ≥3.10).
+Operador autorizou Python 3.12 em 2026-11-18 (Q3); verificar `langgraph-checkpoint-sqlite` com o alvo e LangGraph atual em V2-F0-005 antes de RES-002. Ambiente atual ainda Python 3.9.7.
+
+## Decisão específica Q11 — 2026-11-18
+
+Operador autorizou commits automáticos na worktree após cada tarefa aprovada, somente na branch agent/<run>, sem merge/push/deploy ou alteração da branch de origem por runs. Essa opção complementa checkpoints/ledger; não os substitui, não ocorre após toda tentativa/chamada e não dispensa inspeção/decisão de retomada. Implementação permanece pendente em V2-RES-001. O ADR integral continua proposto.

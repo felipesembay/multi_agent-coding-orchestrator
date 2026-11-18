@@ -383,3 +383,22 @@
 - Problemas prevenidos nos testes: falha no segundo bloco não repete tarefa; revisão anterior a escrita não aprova mudanças posteriores; documento escritor exige novas evidências; gate existente após plano não pede duas aprovações. Sem bloqueios atuais.
 - Pendências: presets WF-004 com Q2 antes de concluir/ativar; snapshots WF-007 e demais áreas. Nenhum merge/push/deploy. Commit local dev após revisão/testes autorizado.
 - Próxima tarefa: WF-004 após decisão humana Q2; alternativa liberada WF-007 (snapshot/digest por run). Aceite WF-004: presets A/B/C/legacy validam com fakes, CLI legado e decisões registradas; B sem ativação até PROV-001. Aceite WF-007: edição após enfileirar não muda snapshot, idempotência/digest testados. Ler NEXT_STEPS/WORKFLOW_ENGINE/OPEN_QUESTIONS; git status/log; source .venv/bin/activate; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test; revisão/handoff/commit dev após verdes.
+
+
+## 2026-11-18 — Codex — V2-F0-002 registro de decisões / início
+- Planejado registrar decisões humanas recebidas Q2–Q12, ajustar dependências e pontos específicos dos ADRs sem declará-los integralmente aceitos. Uma tarefa por vez; nenhuma nova implementação executada.
+- Dev limpa em 1474f4b (seis commits locais à frente de origin/dev), sem divergência. Baseline pytest com ORCH_DB temporário:454 passed,1 warning LangGraph,15,49s; vitest38. Sem build/lint/e2e nesta sessão exclusivamente documental; sem consumo de quota real.
+- Esclarecimentos via operador: Q2 novo padrão Claude → Codex → Antigravity, com liberdade de escolha por etapa; Q7 licença específica explicitamente adiada. Q10 autoriza poucos prompts triviais nos spikes previstos; mocks permanecem obrigatórios em testes automatizados. Q11 autoriza commits apenas em worktree/branch de run após tarefa aprovada.
+
+### F0-002 — marco documental / revisão
+- OPEN_QUESTIONS registra respostas com data; Q2 esclarecida presetA, Q7 explicitamente adiada, Q6 assinatura/Q8 valor ainda indefinidos. Pontos específicos de ADR-0001/2/3/6/7 sincronizados sem aceitar ADRs integralmente. Q11 deixa de figurar como alternativa rejeitada ao ledger: commits aprovados são complemento, não substituição.
+- Backlog/DEPENDENCIES/IMPLEMENTATION_PLAN/WORKFLOW_ENGINE e handoff atualizados. Nenhum código, dependência, configuração ou LICENSE criado/alterado. check_docs e diff --check verdes. Revisão independente solicitada antes de commit documental.
+
+### F0-002 — fim do registro parcial / revisão aprovada
+- Registradas decisões Q2–Q12 em OPEN_QUESTIONS com data, incluindo esclarecimento de novo default preset A e adiamento explícito da licença. ADRs específicos alinhados a Q3/4/6/8/9/11 sem mudar status integral de proposto. Nenhum LICENSE/código/configuração/dependência alterado.
+- Arquivos modificados: OPEN_QUESTIONS, BACKLOG, DEPENDENCIES, IMPLEMENTATION_PLAN, WORKFLOW_ENGINE, ADR-0001/0002/0003/0006/0007 e CURRENT_STATE/NEXT_STEPS/SESSION_LOG (13 documentos). Estatísticas finais verificadas no staged diff antes do commit.
+- Testes/verificações: baseline pytest isolado454 passed,1 warning,15,49s; vitest38. check_docs e git diff --check verdes após mudanças. Não reexecutados build/lint/e2e por escopo só documental; nenhum agente CLI real/quota executado.
+- Revisão independente review_decisions_f0002 aprovada, sem achados bloqueantes; escopo das decisões/autorização preservado. F0-002 retorna blocked residual por revisão formal integral dos ADRs, sem reaplicar bloqueios a perguntas já respondidas. Registro desta sessão completo, tarefa ampla não declarada done.
+- Decisões não escolhidas: licença específica (adiada pelo operador), assinatura de pacotes, valor monetário de orçamento e identidade definitiva. Não bloqueiam tarefas independentes.
+- Próxima recomendada WF-004: presets A/B/C/legacy e escolha por etapa; Q2/Q5 resolvidas, execução concreta ainda depende de segurança/capacidades implementadas, B desabilitado até PROV-001. F0-005 Python3.12 e spikes F0-003/SEC-003 especificamente autorizados podem ser escolhidos em sessões separadas; uma tarefa por vez.
+- Para continuar: git status/log; ler IMPLEMENTATION_PLAN/NEXT_STEPS/OPEN_QUESTIONS e especificação da tarefa; source .venv/bin/activate; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test. Critérios WF-004: presets com fakes, escolhas por etapa, CLI legado preservado, revisão/handoff após verdes. Sem merge/push/deploy.

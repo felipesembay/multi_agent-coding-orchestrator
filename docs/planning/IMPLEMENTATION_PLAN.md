@@ -3,7 +3,7 @@
 > **Ponto de entrada para qualquer agente (Claude, Codex, Antigravity ou humano) que assumir o projeto.**
 > Leia este arquivo primeiro. Ele indica o que ler, qual é o estado atual e qual tarefa executar em seguida.
 
-Última atualização: 2026-11-18 · Fase atual: **F2 — Workflows (início)** (decisões F0 e segurança restantes pendentes) · Autor da sessão: Codex
+Última atualização: 2026-11-18 · Fase atual: **F2 — Workflows (início)** (Q2–Q12 registradas; revisão integral de ADRs e segurança restantes pendentes) · Autor da sessão: Codex
 
 ## 1. Regra de ouro
 
@@ -51,9 +51,9 @@ Não é necessário ler toda a pasta `docs/`. Leia apenas a especificação da �
 
 ## 5. Próxima tarefa
 
-1. **`V2-WF-004`** — presets e compatibilidade CLI; Q2 pendente conforme OPEN_QUESTIONS. Alternativa liberada: **`V2-WF-007`**, snapshot/digest por run, sem mudança de padrão.
-2. **`V2-F0-002`** — pendente de revisão humana dos ADRs e de [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md). Não assumir respostas; bloquear apenas tarefas dependentes.
-3. Depois: API/editor e demais tarefas liberadas, uma por vez. SEC-003 exige validação real autorizada; SEC-004 também tem revisão humana obrigatória conforme especificação.
+1. **`V2-WF-004`** — presets e compatibilidade CLI; Q2/Q5 recebidas: novo padrão desejado Claude → Codex → Antigravity, com escolha por etapa. Ativação depende de capacidades/permissões implementadas. Alternativa liberada: **`V2-WF-007`**, snapshot/digest por run.
+2. **`V2-F0-002`** — decisões Q2–Q12 registradas em [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md), Q7 adiada; revisão integral dos ADRs ainda pendente. Alvo Python3.12 e quota limitada dos spikes autorizados; não reabrir bloqueios de perguntas respondidas.
+3. Depois: API/editor e demais tarefas liberadas, uma por vez. SEC-003 tem validação real autorizada no escopo de Q10; SEC-004 também tem revisão humana obrigatória conforme especificação.
 
 Detalhes e comandos: [NEXT_STEPS.md](../handoff/NEXT_STEPS.md).
 

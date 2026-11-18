@@ -10,7 +10,7 @@ Hoje o operador inicia API, worker e Vite em três terminais com o mesmo `.env`.
 2. O supervisor escolhe porta efêmera em `127.0.0.1`, gera token de sessão aleatório, inicia API (uvicorn) e worker como **processos filhos separados** (preserva a invariante), grava logs rotativos em `~/.local/state/multi-agent-orchestrator/logs/`, e escreve em stdout uma linha JSON `{"port":…, "token":…, "pid":…}` lida pelo Rust.
 3. Rust expõe comando `backend_info` ao frontend; frontend usa `Authorization: Bearer` em todas as chamadas.
 4. Health-check com backoff; falha → tela de diagnóstico com logs e botão reiniciar.
-5. Fechar janela: se não há run ativo, SIGTERM ao grupo do supervisor (que repassa para API e worker; worker já trata SIGTERM preservando worktree). Se há run ativo: comportamento definido em [OPEN_QUESTIONS](../../planning/OPEN_QUESTIONS.md) Q4 (padrão proposto: perguntar; opção de manter em background via tray).
+5. Fechar janela: se não há run ativo, SIGTERM ao grupo do supervisor (que repassa para API e worker; worker já trata SIGTERM preservando worktree). Se há run ativo: comportamento definido em [OPEN_QUESTIONS](../../planning/OPEN_QUESTIONS.md) Q4 (decisão do operador em 2026-11-18: perguntar, com opção continuar em segundo plano; implementação do tray/supervisor ainda pendente).
 6. Instância única do app (plugin single-instance) + flock do worker já existente.
 
 ## Alternativas rejeitadas

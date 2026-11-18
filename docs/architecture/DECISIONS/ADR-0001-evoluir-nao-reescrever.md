@@ -16,7 +16,7 @@ Manter Python, FastAPI, LangGraph, SQLite, worker separado da API, fila em `mana
 | Executar workflow dentro do processo FastAPI | Quebra a invariante de API reiniciável sem matar runs |
 
 ## Consequências
-Distribuição desktop exige empacotar Python (sidecar). Python 3.9 (EOL out/2025) passa a ser restrição; ver [OPEN_QUESTIONS](../../planning/OPEN_QUESTIONS.md) Q3.
+Distribuição desktop exige empacotar Python (sidecar). Python 3.9 continua no ambiente atual; operador autorizou Python 3.12 em 2026-11-18 ([OPEN_QUESTIONS](../../planning/OPEN_QUESTIONS.md) Q3). Migração e validação de compatibilidade em V2-F0-005. Esta decisão específica não altera o status proposto do ADR integral.
 
 ## Validação
 Suítes atuais continuam verdes após cada tarefa de F1/F2.

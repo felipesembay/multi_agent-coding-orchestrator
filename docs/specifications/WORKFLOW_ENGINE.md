@@ -16,7 +16,7 @@ Grafo fixo em `core.graph()`; papéis planner/implementer via env; reviewer fixo
 
 | Preset | Plan | Implement | Review | Observação |
 |---|---|---|---|---|
-| `default-v2` (A) | Claude Code | Codex CLI (`workspace_write`) | Antigravity | Padrão desejado; depende de Q2/Q5 |
+| `default-v2` (A) | Claude Code | Codex CLI (`workspace_write`) | Antigravity | Novo padrão desejado confirmado em Q2/Q5 (2026-11-18); capacidades/flags ainda a validar |
 | `openrouter-plan` (B) | OpenRouter (modelo escolhido) | Codex CLI | Claude Code (`read_only`) | Requer V2-PROV-001 |
 | `claude-heavy` (C) | Claude Code | Claude Code | Codex CLI (`read_only`) | |
 | `legacy-v1` | env `ORCH_PLANNER` | env `ORCH_IMPLEMENTER` | Codex | Comportamento atual exato; usado pelo CLI |
@@ -142,3 +142,7 @@ P0: WF-001..004, 007. P1: WF-005, 006, 008, 009, 010. P3: WF-011, 012.
 
 ## 15. Perfil recomendado
 Backend Python com LangGraph (compilador); frontend React (editor). Revisor independente obrigatório para WF-003.
+
+## Decisões do operador — 2026-11-18
+
+Q2 confirma Claude → Codex → Antigravity como novo padrão desejado na UI, mantendo escolha de provider/modelo por etapa e compatibilidade CLI legacy-v1. Q5 aceita workspace-write como necessário para preset A, com alternativa sem execução a verificar caso o CLI suporte. Isso não ativa presets nem promove capacidades ainda não verificadas; WF-004/005, SEC-004 e integrações continuam tarefas próprias. Não há escolha forçada de modelo específico fora dos defaults existentes dos CLIs.

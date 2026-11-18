@@ -21,3 +21,7 @@ Catálogo de preços versionado com origem e data; preço nunca embutido em cód
 
 ## Consequências
 Parsers de telemetria por adapter dependem do spike V2-F0-003.
+
+## Decisões específicas do operador — 2026-11-18
+
+Q9 confirma contador separado para assinatura e equivalente estimado, não cobrado. Q8 define alerta por padrão, bloqueio opt-in; nenhum valor monetário padrão escolhido. Parsers/uso real dependem do spike autorizado em Q10. Essas confirmações não são aceitação integral deste ADR, que permanece proposto.
