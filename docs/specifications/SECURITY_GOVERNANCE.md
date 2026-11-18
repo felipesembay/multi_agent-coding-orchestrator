@@ -14,7 +14,7 @@ Reduzir riscos de múltiplos agentes executando ferramentas e alterando arquivos
 | Allowlist de comando de testes | ✓ argv exato, sem shell |
 | Host/Origin/CSRF | SEC-001 implementada: todas as rotas, token em leituras/escritas; bootstrap local /session e liveness /health sem token |
 | Permissões por papel | Parcial — Codex `read-only`; Claude `acceptEdits` também no Planner; shell do Implementer proibido só por prompt |
-| Ambiente dos agentes | ✗ herda `os.environ` completo (menos `GIT_*`) |
+| Ambiente dos subprocessos | SEC-002 implementada: allowlists exatas por runner/adapter/tests/git; credenciais ambientais não herdadas por padrão |
 | Git endurecido | ✓ em `projects.git` e `repository_lock.identity` (hooks off, config global off); **não** em `core.run_command` (worktree add, diff, status) |
 | Auditoria | ✓ `platform_audit` para catálogo e lifecycle |
 | Merge/push/deploy | ✓ inexistentes |
@@ -67,6 +67,25 @@ Validação: matriz Host/origem/peer e token em todas as rotas, bearer separado 
 - `safe_env(adapter)` = `{PATH, HOME, USER, LANG, LC_*, TERM, TMPDIR, XDG_*}` + variáveis declaradas no manifesto do adapter (ex.: config do CLI). Chaves de API só para o adapter que as exige, lidas do keyring.
 - Git endurecido também nos comandos `git` executados por `core.run_command` (`worktree add`, `diff`, `status`): `-c core.hooksPath=/dev/null`, `-c core.fsmonitor=false`, `GIT_CONFIG_NOSYSTEM=1`, como já faz `projects.git`. [HIPÓTESE a confirmar por teste] o hook `post-checkout` do repositório alvo é executado por `git worktree add`, e hoje `prepare()` não o desabilita. → `V2-SEC-006`.
 - Timeouts por grupo de processos (já em parte no worker).
+
+### Implementação de SEC-002 (2026-11-17)
+
+`policy/env.py` seleciona nomes exatos de variáveis, sem glob de LC_*/XDG_*. A base preserva PATH, HOME/USER/LOGNAME, idioma/locales conhecidos, terminal/shell, temporários, VIRTUAL_ENV, diretórios XDG conhecidos e caminhos de certificados TLS. Não inclui variáveis arbitrárias do worker, PYTHONPATH/PYTHONHOME ou chaves de API. O controle é por nome; autorizar um nome também autoriza seu conteúdo, portanto valores sensíveis não devem ser disfarçados em variáveis permitidas. Arquivos acessíveis via HOME continuam acessíveis ao mesmo usuário: isso não é isolamento do SO.
+
+Escopos separados:
+- `runner`: base, ORCH_DB/ORCH_ALLOWED_ROOTS/ORCH_ALLOWED_TEST_COMMANDS, configuração canônica da allowlist e entradas explicitamente necessárias aos escopos descendentes; Worker adiciona worker_id e marcador de despacho gerados.
+- Adapter canônico (`claude_code`, `codex_cli`, `antigravity` ou plugin): base, nomes declarados no CapabilityManifest.environment_variables e extensões autorizadas só para esse adapter. Claude declara CLAUDE_CONFIG_DIR e Codex CODEX_HOME; agy usa HOME/XDG, sem inventar nomes não verificados.
+- `tests` e `git`: base e extensões apenas do respectivo escopo. Não recebem config dirs dos outros adapters, banco ou worker_id.
+
+GIT_CONFIG_NOSYSTEM=1 e GIT_CONFIG_GLOBAL=/dev/null são gerados, nunca herdados livremente. ORCH_DISPATCH_TOKEN é uma exceção de supervisão: propaga-se do ambiente confiável do runner para identificar descendentes quando o líder morreu; não é credencial de API e não pode ser substituído por InvocationRequest.env. Removê-lo quebraria a recuperação segura de grupos órfãos. Hooks e config local do Git em core.prepare continuam assunto de SEC-006; SEC-002 não altera argv/permissões.
+
+Extensões são configuração confiável do processo, por exemplo `ORCH_ENV_ALLOWLIST='{"tests":["TEST_FIXTURE_DIR"],"claude_code":["HTTPS_PROXY"]}'`. Usar IDs canônicos, nomes individuais, sem valores no JSON; o valor da variável selecionada vem do processo no spawn. Proxy só deve ser autorizado ao processo que precisa dele. Declarações recusam glob, nomes de credenciais como KEY/TOKEN/SECRET/PASSWORD/CREDENTIALS, controles ORCH_/GIT_, LD_/DYLD_ e PYTHONPATH/PYTHONHOME/PYTHONSTARTUP/PYTHONINSPECT; configuração inválida falha antes do subprocesso, com mensagem estática sem conteúdo. Chaves de provedores via API ficam no keyring/ModelProvider de SEC-005/PROV-001, não nesta configuração.
+
+Nomes internos runner/tests/git são reservados: não podem ser IDs de adapters/entry points nem entrar no contexto de adapter. CommandRuntime confere provider==manifest.adapter no construtor e antes da chamada. Runtime filtra mesmo com runner injetado; core.run_command revalida a política na fronteira de subprocess.run e resolve o executável pelo PATH efetivo. InvocationRequest.env explícito é um mapa substituto filtrado, sem mesclar o restante do ambiente; controles Git/supervisão seguros são regenerados. Helpers projects.git/repository_lock.identity também usam a política.
+
+Quando não vazia, a política canônica de **nomes** é salva em managed_runs.config.environment_allowlist e coberta pelo digest de confirmação; a forma/digest padrão antigos continuam iguais quando a extensão está ausente. Valores nunca entram nessa chave. Worker.environment e execution_runner reaplicam o snapshot, ignorando alterações posteriores do mapa do worker; valores permitidos são resolvidos no processo que inicia o filho, não persistidos. Snapshots antigos sem o campo usam extensões vazias, sem herdar novas concessões; snapshots de tipo inválido não viram defaults silenciosamente. A política de execução legada CLI vem do ambiente do próprio processo, enquanto snapshots gerenciados são congelados.
+
+Evidências: /proc/environ de agente Python fake e runner real, workflow com Worker.spawn/handshake/cleanup de produção e agentes mockados, segregação por escopo, valores ausentes do banco, digest/stale confirmation, e recuperação real do descendente filtrado após matar somente seu runner de teste. Nenhum CLI real/quota. O harness E2E reutiliza Worker.environment em vez de herdar os.environ integralmente.
 
 ### 6.4 Prompt injection
 Envelopar conteúdo de repositório/diff/saída de agente em blocos delimitados com aviso; schema estrito nas respostas; reviewer nunca recebe instrução para executar comandos; nenhum campo de saída de agente vira argumento de comando (como hoje com `"No shell commands in JSON"` — manter e reforçar por validação).

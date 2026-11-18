@@ -237,3 +237,49 @@
 8. **Próxima tarefa:** V2-SEC-002, ambiente por allowlist.
 9. **Aceite:** CA2 segredo-sentinela não chega ao agente fake; preservar variáveis declaradas necessárias, sem quota/CLIs reais; testes de ambiente real do subprocesso, revisão distinta e handoff.
 10. **Comandos:** .venv; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test/build/lint; python scripts/check_docs.py. E2E conforme execution-manager em harness temporário e EXECUTION_E2E_MOCKED=1. Commit dev autorizado; sem merge/deploy/novo push (push anterior era autorização específica até db12642).
+
+## 2026-11-17 — Codex — início V2-SEC-002
+
+- [FATO] dev, HEAD `8d94e7d`, árvore limpa; handoff confere, sem novo push autorizado. Baseline em validação.
+- Escopo: allowlist por runner/adapter/tests/git, sem herdar segredos arbitrários. Config paths de CLI declarados, extensões explícitas por escopo e nomes congelados no snapshot/digest quando configurados; sem valores no banco.
+- [FATO] ORCH_DISPATCH_TOKEN também prova identidade de descendentes quando o runner encerrou; preservar apenas esse marcador interno nos filhos é necessário para manter recuperação segura de órfãos. Não confundir com credenciais de API.
+- Não chamar agentes reais, consumir quota ou mudar flags/permissões/hooks (SEC-006 permanece separada).
+
+### SEC-002 — testes vermelhos
+
+- Baseline 273 pytest (1 warning) / 38 vitest verdes.
+- Escrito tests/security/test_env_allowlist.py: allowlist exata, extensões por escopo, configuração inválida sem conteúdo em erros, marcador de supervisão, runtime com manifesto, /proc de agente Python fake real e runner fake via Worker.spawn, helpers Git/testes.
+- Coleta vermelha esperada: pacote policy ainda inexistente. Nenhum agente CLI real chamado.
+
+### SEC-002 — primeiro marco verde
+
+- Policy env implementada com nomes exatos, escopos runner/adapter/tests/git, extensões ORCH_ENV_ALLOWLIST e declarações environment_variables no manifesto. Sem glob ou nomes de credenciais/loader/controles reservados em extensões; caminhos Claude/Codex declarados. Valores nunca entram no snapshot.
+- Worker.spawn filtra ambiente e preserva apenas controles necessários; permissões de nomes congeladas em managed_runs.config/digest quando não vazias. Runner revalida/aplica snapshot; configuração padrão não muda formato/digest.
+- Runtime filtra também com runner injetado; core filtra novamente na fronteira de subprocess.run e resolve executável com PATH efetivo. Helpers Git filtrados sem antecipar flags/hooks de SEC-006. Marcador de supervisão gerado preservado e não substituível por env explícito.
+- 16 testes novos de ambiente passaram, incluindo /proc de agente Python fake e runner fake reais. Testes antigos que exigiam env=None/ambiente cru foram ajustados para o contrato de segurança novo mantendo argv/cwd/timeouts/pass_fds. Mocks shutil.which agora aceitam path explícito. Rodada focada com TestClient no sandbox foi interrompida; suíte completa reexecutada fora do sandbox conforme baseline.
+
+### SEC-002 — revisão e correção de colisão de escopo
+
+- Primeira suite completa: 289 passed, 1 warning. Revisão independente encontrou colisão entre adapter/provider e nomes internos runner/tests/git, permitindo selecionar escopo privilegiado.
+- Reservados os três IDs em manifestos, registry e environment_scope; CommandRuntime exige provider==manifest.adapter. Testes de regressão cobrem IDs internos e divergência de identidade com proxy autorizado a outro adapter.
+- Worker.environment extraído para reutilizar a mesma política na fixture managed_server. Testes adicionais cobrem digest de nomes sem valores, stale confirmation e Worker.spawn/handshake/cleanup reais usando somente executável fake e agentes mockados.
+
+### SEC-002 — validação final e E2E
+
+- Suite completa final: 301 pytest passed, 1 warning, 12,26 s. Frontend baseline 38 vitest e build/lint verdes (frontend inalterado).
+- Revisão independente review_sec002 aprovada após correção de escopos: 93 testes focados e documentação válida.
+- E2E repetido em QA temporário com managed_server reutilizando Worker.environment de produção: 9 passed / 2 skipped em 11,4 s; workflow supervisionado com agentes mockados passou. Dois opt-ins de criação/exclusão em outras raízes não habilitados. Serviços API/worker/Vite encerrados.
+- Teste real de recuperação matou apenas o runner criado pelo teste e comprovou cleanup do descendente Python filtrado pelo marcador interno. Nenhum CLI real, quota ou dados de produção.
+
+### 2026-11-17 — Codex — fechamento V2-SEC-002
+
+1. **Planejado:** substituir ambiente herdado por allowlists por escopo, preservando configuração legítima e identificação de órfãos; testar segredos-sentinela sem CLIs reais.
+2. **Implementado:** policy/env.py com base exata, contextos de escopo/configuração, extensões validadas e snapshots; environment_variables em manifestos; filtro em runtime/core/worker/helpers Git. Worker.environment compartilhado com harness. Marcador interno confiável preservado; scopes internos reservados e identidade runtime validada. Default de configuração/digest inalterado, nomes de extensões opcionais cobertos pelo digest, sem valores. Sem mudar flags/hooks/permissões ou instalar dependências.
+3. **Arquivos:** novos policy/{__init__,env}.py, tests/security/test_env_allowlist.py, tests/fixtures/environment_workflow.py; core, execution_manager, execution_runner, worker, projects, repository_lock, providers/base/registry e runtimes Claude/Codex; caracterização/contrato/metadata/registry/manager tests e managed_server fixture; README, frontend/README, execution-manager, DATA_MODEL, PROVIDER_SYSTEM, SECURITY_GOVERNANCE, plano/backlog/handoff. git diff --stat intermediário sem arquivos novos/docs finais: 12 arquivos, 78 inserções/32 remoções; completo no commit.
+4. **Testes:** baseline 273 pytest/38 vitest. Teste novo vermelho por policy ausente; 16 casos de ambiente iniciais verdes. Após regressões: ORCH_DB temporário pytest final → 301 passed, 1 warning em 12,26 s. Build/lint frontend verdes; frontend inalterado após 38 vitest. E2E com QA isolado/harness filtrado → 9 passed/2 skipped em 11,4 s. Check_docs/diff --check verdes. Nenhum agente CLI real/quota; serviços QA encerrados.
+5. **Decisões:** detalhes em SECURITY_GOVERNANCE/PROVIDER_SYSTEM/DATA_MODEL. Credenciais de API ambientais não autorizadas por extensão; keyring/API em SEC-005/PROV-001. ORCH_DISPATCH_TOKEN é identificação interna, não credencial de API; necessário a recovery. Nomes congelados, valores resolvidos no spawn e não salvos nesse campo. Nenhum ADR humano aceito por presunção.
+6. **Problemas resolvidos:** testes antigos env=None/ambiente cru ajustados somente para nova política, preservando argv/cwd/timeouts/fds; mocks which aceitam PATH efetivo. Revisão identificou colisão runner/tests/git, corrigida em manifesto/registry/contexto + provider==manifest.adapter, com regressões. Snapshots falsy inválidos não são defaults silenciosos. Um teste focado com TestClient no sandbox foi interrompido e repetido fora como baseline.
+7. **Pendências:** SEC-006 hooks/config local Git, SEC-003/004 com revisões/validações humanas próprias; F0-002/Q2–Q12. Revisão independente review_sec002 aprovada (93 focados + docs); sem bloqueantes. Dois opt-ins e2e de criação/exclusão em outras raízes não habilitados. Allowlists não são isolamento de SO ou detector do conteúdo de variáveis autorizadas.
+8. **Próxima tarefa:** V2-SEC-006, Git seguro.
+9. **Aceite:** CA4 com repositório Git temporário e hook post-checkout sentinela, sem execução do hook em prepare; manter locks/worktree/diffs/status, testes e revisão distinta.
+10. **Comandos:** .venv; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test/build/lint; python scripts/check_docs.py. E2E conforme execution-manager com EXECUTION_E2E_MOCKED=1 em QA temporário. Commit somente dev autorizado, sem merge/push/deploy.

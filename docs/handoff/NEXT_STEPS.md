@@ -1,10 +1,18 @@
 # Próximos passos
 
-## Próxima tarefa recomendada: V2-SEC-002
+## Próxima tarefa recomendada: V2-SEC-006
 
-**Objetivo:** ambiente de subprocessos por allowlist; variáveis sensíveis do worker não devem chegar aos agentes/testes. Tarefa P0 independente.
+**Objetivo:** verificar e desabilitar hooks/config insegura do Git em core.prepare/run_command, conforme SECURITY_GOVERNANCE CA4. Task P0 independente.
 
-**Aceite:** SECURITY_GOVERNANCE CA2, teste com segredo-sentinela em worker e agente fake examinando o ambiente real do subprocesso. Preservar variáveis necessárias aos CLIs/configuração legítima, sem passar chaves desnecessárias. Ler SECURITY_GOVERNANCE/ADR-0009 e caminhos run_command/worker.spawn/adapters; não chamar CLIs reais ou consumir quota. Revisão distinta e handoff antes de commit dev.
+**Aceite:** repositório temporário com hook post-checkout sentinela não o executa ao preparar worktree; manter worktrees/locks/diffs/status e recuperação compatíveis. Ler SECURITY_GOVERNANCE/ADR-0009, comparar projects.git/repository_lock.identity. Testar Git real em diretórios temporários, sem agentes reais/quota; revisão distinta e handoff antes do commit dev.
+
+## SEC-002 concluída
+
+- policy/env.py: base exata e escopos runner/adapter/tests/git; env desconhecido não herdado. Caminhos de configuração CLI preservados por manifesto (Claude/Codex), sem assumir variáveis extras agy.
+- ORCH_ENV_ALLOWLIST permite extensões por nomes/escopo, sem glob, credenciais ou controles reservados. Quando não vazias, nomes canônicos entram no snapshot/digest; valores não persistidos. Default antigo/digest preservado; snapshots inválidos recusados e antigos sem extensão usam default vazio.
+- Worker.environment filtra o runner e fornece nomes/entradas necessárias; execução reaplica snapshot. Runtime filtra com runner injetado e core revalida no subprocesso, com PATH efetivo; helpers Git também filtrados.
+- Marcador de despacho confiável preservado em descendentes para comprovar órfãos; controles de banco/worker não passam aos agentes/testes. GIT_CONFIG_* seguros gerados. Nomes internos runner/tests/git reservados e identidade provider/manifest conferida, sem colisão de escopo.
+- Evidências: 301 pytest / 38 vitest, build/lint/docs verdes, 9 e2e / 2 skipped em QA temporário; /proc de Python fake, supervisor real mockado e limpeza de filho após morte do runner. Revisão `review_sec002`: 93 focados aprovados. QA encerrado; nenhum CLI real.
 
 ## SEC-001 concluída
 
@@ -43,7 +51,7 @@
 ## Decisões humanas pendentes
 
 - V2-F0-001 concluída: baseline `f8e6949` em `dev`, preservando o WIP. Novos commits em dev autorizados após testes; sem merge/push.
-- V2-F0-002 `blocked`: Q2–Q12 e ADRs aguardam revisão humana. Não impedem SEC-001/002/006; SEC-003 requer autorização de validação real. Quota real segue não autorizada.
+- V2-F0-002 `blocked`: Q2–Q12 e ADRs aguardam revisão humana. Não impedem SEC-006; SEC-003 requer autorização de validação real. Quota real segue não autorizada.
 
 ## Referência concluída: V2-CORE-001
 

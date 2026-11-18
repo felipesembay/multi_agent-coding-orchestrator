@@ -23,7 +23,8 @@ def test_runtime_injects_runner_and_passes_explicit_environment(runtime, permiss
     assert adapter.invoke(request).text == 'text'
     assert runner.call_count == 1
     assert runner.call_args.args[1:] == ('/tmp/tree', 17)
-    assert runner.call_args.kwargs == {'env': {'LANG': 'C'}}
+    assert runner.call_args.kwargs['env']['LANG'] == 'C'
+    assert set(runner.call_args.kwargs['env']) <= {'LANG', 'GIT_CONFIG_GLOBAL', 'GIT_CONFIG_NOSYSTEM', 'ORCH_DISPATCH_TOKEN'}
 
 
 @pytest.mark.parametrize('runtime,permission', [

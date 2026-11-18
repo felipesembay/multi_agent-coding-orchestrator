@@ -6,6 +6,7 @@ from typing import Iterable, Literal, Optional
 from pydantic import BaseModel
 
 from .base import CapabilityManifest, ProbeResult
+from ..policy.env import INTERNAL_SCOPES
 from .runtimes.antigravity import AntigravityRuntime
 from .runtimes.claude_code import ClaudeCodeRuntime
 from .runtimes.codex_cli import CodexCliRuntime
@@ -44,6 +45,8 @@ class ProviderRegistry:
         enabled = set(enabled_entry_points)
         if any(not isinstance(name, str) or not re.fullmatch(r'[a-z][a-z0-9_-]{0,63}', name) for name in enabled):
             raise ValueError('Invalid entry point name')
+        if enabled.intersection(INTERNAL_SCOPES):
+            raise ValueError('An entry point cannot use an internal policy scope')
         if enabled.intersection(BUILTINS):
             raise ValueError('An entry point cannot replace a built-in provider')
         self._providers = {name: factory(runner, observer=observer) for name, factory in BUILTINS.items()}

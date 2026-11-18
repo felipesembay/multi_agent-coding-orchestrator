@@ -155,7 +155,9 @@ def test_injected_runner_and_observer_make_builtin_usable_without_core(discovery
     provider = registry.ProviderRegistry(runner=runner, observer=observed.append).get('claude_code')
     result = provider.invoke(InvocationRequest(prompt='task', cwd='/tmp/tree', permission='workspace_write'))
     assert result.text == 'answer'
-    runner.assert_called_once_with(['claude', '-p', '--permission-mode', 'acceptEdits', 'task'], '/tmp/tree', 600)
+    assert runner.call_count == 1
+    assert runner.call_args.args == (['claude', '-p', '--permission-mode', 'acceptEdits', 'task'], '/tmp/tree', 600)
+    assert isinstance(runner.call_args.kwargs['env'], dict)
     assert len(observed) == 1
     assert observed[0].provider == 'claude_code'
 

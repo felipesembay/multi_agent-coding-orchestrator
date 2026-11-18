@@ -10,6 +10,7 @@ class CodexCliRuntime(CommandRuntime):
         capabilities={Capability.TEXT, Capability.REVIEW, Capability.REPO_CONTEXT},
         permission_modes=['read_only'], auth_modes=['cli_managed'],
         billing_mode='unknown', usage_source='none', verified=False,
+        environment_variables={'CODEX_HOME'},
     )
 
     def _invoke(self, req: InvocationRequest) -> InvocationResult:

@@ -441,3 +441,60 @@ def test_idempotent_retry_returns_original_run_after_agent_config_drift(setup, m
     response = client.post(url(project, request), json=payload)
     assert response.status_code == 202
     assert response.json()['run_id'] == original['run_id']
+
+
+def test_environment_allowlist_snapshot_is_canonical_and_never_stores_values(setup, monkeypatch):
+    client, project, request, _ = setup
+    config, old_digest = manager.configuration(project)
+    assert 'environment_allowlist' not in config
+    monkeypatch.setenv('TEST_FIXTURE_DIR', 'sensitive-value-not-for-the-database')
+    monkeypatch.setenv('ORCH_ENV_ALLOWLIST', '{"tests":["TEST_FIXTURE_DIR","TEST_FIXTURE_DIR"]}')
+    config, digest = manager.configuration(project)
+    assert config['environment_allowlist'] == {'tests': ['TEST_FIXTURE_DIR']}
+    assert 'sensitive-value-not-for-the-database' not in json.dumps(config)
+    assert digest != old_digest
+    monkeypatch.setenv('ORCH_ENV_ALLOWLIST', '{ "tests": ["TEST_FIXTURE_DIR"] }')
+    assert manager.configuration(project) == (config, digest)
+    response = client.get(f"/projects/{project['id']}/execution-config").json()
+    assert response['configuration']['environment_allowlist'] == config['environment_allowlist']
+    payload = body(project)
+    monkeypatch.setenv('ORCH_ENV_ALLOWLIST', '{"tests":["ANOTHER_FIXTURE_DIR"]}')
+    assert client.post(url(project, request), json=payload).status_code == 409
+
+
+def test_invalid_environment_allowlist_refuses_submission_without_echoing_input(setup, monkeypatch):
+    client, project, request, _ = setup
+    payload = body(project)
+    monkeypatch.setenv('ORCH_ENV_ALLOWLIST', 'invalid-private-policy-value')
+    response = client.post(url(project, request), json=payload)
+    assert response.status_code == 422
+    assert 'invalid-private-policy-value' not in response.text
+    with connection() as conn:
+        assert conn.execute('SELECT COUNT(*) FROM managed_runs').fetchone()[0] == 0
+
+
+def test_production_worker_environment_and_frozen_policy_reach_real_mocked_workflow(setup, monkeypatch, tmp_path):
+    client, project, request, worker = setup
+    monkeypatch.setenv('ORCH_ENV_ALLOWLIST', '{"tests":["TEST_FIXTURE_DIR"]}')
+    monkeypatch.setenv('TEST_FIXTURE_DIR', '/tmp/authorized-test-fixture')
+    monkeypatch.setenv('SENTINEL_SECRET', 'fake-worker-secret')
+    monkeypatch.setenv('OPENAI_API_KEY', 'fake-worker-api-key')
+    run_id = client.post(url(project, request), json=body(project)).json()['run_id']
+    real_python = sys.executable
+    fixture = str(Path(__file__).parent / 'fixtures/environment_workflow.py')
+    shim = tmp_path / 'mock-workflow-python'
+    shim.write_text(f'#!{real_python}\nimport os,sys\nos.execv({real_python!r}, [{real_python!r}, {fixture!r}, sys.argv[-1]])\n')
+    shim.chmod(0o755)
+    monkeypatch.setenv('ORCH_ENV_ALLOWLIST', '{"tests":["WRONG_DIR"]}')
+    # Keep production Worker.spawn/registration/cleanup, replacing only the child executable.
+    monkeypatch.setattr('orchestrator.worker.sys.executable', str(shim))
+    assert worker.run_once()
+    detail = client.get('/runs/' + run_id).json()
+    assert detail['status'] == 'ready_for_human_review', detail
+    assert detail['tests_passed'] is True
+    assert detail['configuration']['environment_allowlist'] == {'tests': ['TEST_FIXTURE_DIR']}
+    with connection() as conn:
+        stored = ''.join(row[0] for row in conn.execute('SELECT payload FROM events'))
+        stored += ''.join(row[0] for row in conn.execute('SELECT config FROM managed_runs'))
+    for sentinel in ('fake-worker-secret', 'fake-worker-api-key', '/tmp/authorized-test-fixture'):
+        assert sentinel not in stored

@@ -10,6 +10,7 @@ class ClaudeCodeRuntime(CommandRuntime):
         capabilities={Capability.TEXT, Capability.PLANNING, Capability.CODE_EDIT, Capability.REPO_CONTEXT},
         permission_modes=['workspace_write'], auth_modes=['cli_managed'],
         billing_mode='unknown', usage_source='none', verified=False,
+        environment_variables={'CLAUDE_CONFIG_DIR'},
     )
 
     def _invoke(self, req: InvocationRequest) -> InvocationResult:

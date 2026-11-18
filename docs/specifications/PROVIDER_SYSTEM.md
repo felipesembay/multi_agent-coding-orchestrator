@@ -43,6 +43,7 @@ class CapabilityManifest(BaseModel):
     billing_mode: Literal['api_metered', 'subscription_quota', 'local', 'unknown']
     usage_source: Literal['provider_reported', 'cli_reported', 'none']
     verified: bool                    # True só após teste/spike documentado
+    environment_variables: set[str]    # Nomes autorizados ao adapter, nunca valores
 
 class InvocationRequest(BaseModel):
     role: str; prompt: str; cwd: Path | None; model: str | None
@@ -124,6 +125,8 @@ A conversão de snapshots planos antigos reproduz o runner antigo: planner_model
 - `AgentRuntime` recebe `cwd` = worktree e `permission` derivada da matriz do papel ([SECURITY_GOVERNANCE.md](SECURITY_GOVERNANCE.md) §6).
 - `ModelProvider` nunca recebe caminho; o orquestrador monta contexto (diff limitado, arquivos selecionados, plano) com limites de tamanho e marcação de conteúdo não confiável.
 - Saída estruturada validada por JSON Schema (usar `--json-schema`/`--output-schema` quando o CLI suportar; validar sempre no orquestrador).
+
+**SEC-002 implementada:** cada CommandRuntime declara environment_variables no manifesto e filtra o ambiente por seu ID canônico, inclusive com runner injetado. Claude inclui CLAUDE_CONFIG_DIR, Codex CODEX_HOME, agy nenhuma variável adicional não verificada. Controles internos runner/tests/git são IDs reservados; provider deve ser igual a manifest.adapter. Extensões ORCH_ENV_ALLOWLIST são por escopo, validadas e congeladas por nome no snapshot gerenciado, sem persistir valores. Testes e Git não herdam diretórios/configs dos adapters; segredos/variáveis arbitrárias do worker não passam por padrão. InvocationRequest.env é substituição filtrada, sem bypass das allowlists. Detalhes, exceção do marcador de supervisão e limites em SECURITY_GOVERNANCE §6.3.
 
 ### 6.5 OpenRouter
 | Item | Plano |

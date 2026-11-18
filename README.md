@@ -313,6 +313,7 @@ As variáveis são lidas no ambiente dos processos. Configurações sensíveis e
 | `ORCH_ANTIGRAVITY_MODEL` | `gemini-4-argon-medium` | Padrão do helper Antigravity quando chamado sem modelo explícito; os papéis do workflow usam as variáveis específicas acima |
 | `ORCH_TEST_COMMAND` | Vazio | Comando de testes executado na worktree; necessário para iniciar runs gerenciados e para aprovação do QA |
 | `ORCH_ALLOWED_TEST_COMMANDS` | Perfis predefinidos | Allowlist JSON de listas exatas de argumentos de testes, aplicada aos runs gerenciados |
+| `ORCH_ENV_ALLOWLIST` | `{}` | Extensões de nomes de variáveis por escopo (`tests`, `git`, ID canônico do adapter); nunca valores ou glob |
 | `ORCH_WORKTREES` | Pasta irmã `<nome-do-repositório>-agent-worktrees` | Diretório-base das worktrees; precisa ser autorizado no fluxo gerenciado |
 | `MAX_ATTEMPTS` | `3` | Limite de tentativas de implementação por tarefa |
 | `AGENT_TIMEOUT` | `900` | Timeout das chamadas de agentes, em segundos |
@@ -335,6 +336,8 @@ npm run test -- --run
 ```
 
 O comando precisa corresponder a um perfil permitido, ter executável disponível e ser executável a partir da worktree. Não são aceitos comandos arbitrários enviados pelo navegador.
+
+Os subprocessos recebem um ambiente filtrado. PATH, HOME, locale, terminal, temporários, venv e diretórios XDG conhecidos são preservados; Claude pode receber CLAUDE_CONFIG_DIR e Codex CODEX_HOME. Chaves de API e variáveis arbitrárias não são herdadas. Caso testes ou um CLI exijam outra variável de configuração, autorize somente seu nome no escopo necessário em ORCH_ENV_ALLOWLIST, por exemplo `{"tests":["TEST_FIXTURE_DIR"]}`, e defina seu valor no processo apropriado. Configure o mesmo mapa na API/worker: os nomes entram no snapshot/digest; valores são resolvidos no spawn e não persistidos nessa configuração. Nomes de credenciais, controles internos e glob não são aceitos. Consulte [a política de ambiente](docs/specifications/SECURITY_GOVERNANCE.md#63-subprocessos).
 
 Para utilizar um interpretador específico, configure um caminho absoluto e sua allowlist correspondente em ambos os processos Python:
 
@@ -524,6 +527,7 @@ O sistema executa ferramentas com capacidade de modificar arquivos. Seu modelo d
 
 - Mantenha a API em `127.0.0.1`. O serviço não possui autenticação para exposição pública.
 - Todas as rotas verificam cliente loopback, Host estrito e Origin quando informado. Leituras e escritas exigem token CSRF ou bearer nativo; `/session` é o bootstrap local e `/health` a exceção de liveness, ambos com as mesmas verificações locais. Escritas do navegador exigem Origin autorizado e JSON; corpos têm limite de 150 kB.
+- Agentes, testes e Git recebem variáveis por allowlist, com extensões explícitas por escopo. O marcador interno de despacho é preservado para identificar e limpar descendentes órfãos; não é credencial de API.
 - A autorização de diretórios é definida no servidor. Travessia por `..`, symlinks e diretórios ocultos no caminho do projeto são rejeitados; o diretório Git compartilhado também precisa ser autorizado.
 - Worktrees separam alterações, mas **não são sandbox de segurança**. Locks são cooperativos e não impedem processos externos de ignorá-los.
 - Prompts que proíbem ações destrutivas não substituem controles do sistema operacional. Utilize permissões restritas e isolamento adicional quando necessário.

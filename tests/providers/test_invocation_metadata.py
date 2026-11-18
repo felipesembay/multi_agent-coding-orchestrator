@@ -79,7 +79,7 @@ def run_process(monkeypatch, tmp_path):
     monkeypatch.setenv('ORCH_DB', str(tmp_path / 'events.db'))
     for key in ('ORCH_PLANNER', 'ORCH_IMPLEMENTER', 'ORCH_PLANNER_MODEL', 'ORCH_IMPLEMENTER_MODEL', 'ORCH_ANTIGRAVITY_MODEL'):
         monkeypatch.delenv(key, raising=False)
-    monkeypatch.setattr(core.shutil, 'which', lambda name: '/mock/' + name)
+    monkeypatch.setattr(core.shutil, 'which', lambda name, **kwargs: '/mock/' + name)
     runner = Mock(return_value=SimpleNamespace(returncode=0, stdout='answer', stderr=''))
     monkeypatch.setattr(core.subprocess, 'run', runner)
     return runner, {'run_id': 'metadata-run', 'worktree': str(tmp_path)}

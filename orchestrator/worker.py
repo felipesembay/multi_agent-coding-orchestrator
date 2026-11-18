@@ -17,6 +17,7 @@ from .core import db_path
 from .execution_manager import boot_id, process_identity, same_process
 from .project_store import connection
 from .projects import audit
+from .policy.env import environment_config, safe_env, snapshot_allowlist
 
 
 def group_members(group):
@@ -105,11 +106,17 @@ class Worker:
             conn.commit()
             return dict(row)
 
-    def spawn(self, row):
-        env = {k: v for k, v in os.environ.items() if not k.startswith('GIT_')}
+    def environment(self, row):
+        config = json.loads(row['config'])
+        with environment_config(snapshot_allowlist(config)):
+            env = safe_env('runner')
         env.update(ORCH_DB=str(Path(db_path()).expanduser().resolve()),
                    ORCH_DISPATCH_TOKEN=row['dispatch_token'], ORCH_WORKER_ID=self.id,
                    GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=os.devnull)
+        return env
+
+    def spawn(self, row):
+        env = self.environment(row)
         return subprocess.Popen(
             [sys.executable, '-m', 'orchestrator.execution_runner', '--run-id', row['run_id']],
             cwd=str(Path(__file__).resolve().parent.parent), env=env,

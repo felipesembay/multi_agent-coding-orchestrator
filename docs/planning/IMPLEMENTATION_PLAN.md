@@ -42,13 +42,14 @@ Não é necessário ler toda a pasta `docs/`. Leia apenas a especificação da �
 - WIP de tema claro/escuro, exclusão lógica e migração v3 preservado e commitado em `dev`, conforme autorização do operador. Sem merge/push/main/master.
 - `V2-DOC-001` e `V2-CORE-001..004` concluídas: verificador de documentação, adapters, metadados, registry e bindings por papel com snapshots; comandos/fallback/digests legados preservados.
 - `V2-SEC-001` concluída: política local global e token em leituras/escritas, bootstrap /session e liveness /health locais; frontend autenticado.
-- Validação: **273 pytest / 38 vitest**, build/lint e documentação verdes (2026-11-17). E2E: 9 passed / 2 skipped, API/worker temporários com agentes mockados; nenhum CLI real.
+- `V2-SEC-002` concluída: ambiente por allowlist de escopo, nomes congelados no snapshot/digest e marcador de supervisão preservado.
+- Validação: **301 pytest / 38 vitest**, build/lint e documentação verdes (2026-11-17). E2E: 9 passed / 2 skipped, API/worker temporários com agentes mockados; nenhum CLI real.
 
 ## 5. Próxima tarefa
 
-1. **`V2-SEC-002`** — ambiente de subprocessos por allowlist, preservando funcionamento dos CLIs sem herdar segredos do worker; testes com agente fake e segredo-sentinela, sem quota real.
+1. **`V2-SEC-006`** — verificar/desabilitar hooks e config insegura do Git em core.prepare/run_command. Teste com repositório temporário e hook sentinela, sem agentes reais.
 2. **`V2-F0-002`** — pendente de revisão humana dos ADRs e de [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md). Não assumir respostas; bloquear apenas tarefas dependentes.
-3. Depois: SEC-006 (Git seguro) ou WF-001, uma por vez e respeitando dependências/decisões humanas. SEC-003 exige validação real autorizada.
+3. Depois: WF-001 ou demais tarefas liberadas, uma por vez. SEC-003 exige validação real autorizada; SEC-004 também tem revisão humana obrigatória conforme especificação.
 
 Detalhes e comandos: [NEXT_STEPS.md](../handoff/NEXT_STEPS.md).
 

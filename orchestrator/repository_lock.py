@@ -6,6 +6,8 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from pathlib import Path
 
+from .policy.env import safe_env
+
 lock_fd = ContextVar('orchestrator_repository_lock_fd', default=None)
 
 
@@ -13,8 +15,7 @@ def identity(repo):
     result = subprocess.run(
         ['git', '-c', 'core.fsmonitor=false', 'rev-parse', '--git-common-dir'],
         cwd=str(repo), capture_output=True, text=True, timeout=15, check=False,
-        env={**{k: v for k, v in os.environ.items() if not k.startswith('GIT_')},
-             'GIT_CONFIG_NOSYSTEM': '1', 'GIT_CONFIG_GLOBAL': os.devnull},
+        env=safe_env('git'),
     )
     if result.returncode:
         raise ValueError('Repositório Git inválido')

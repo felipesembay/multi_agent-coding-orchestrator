@@ -21,6 +21,7 @@ from .repository_lock import identity, repository_lock
 from .providers.bindings import (AgentBindings, bindings_from_snapshot, legacy_agent_settings,
                                  legacy_projection, validate_bindings)
 from .providers.registry import ProviderRegistry
+from .policy.env import current_allowlist, snapshot_allowlist
 
 ACTIVE = ('queued', 'running')
 TERMINAL = ('ready_for_human_review', 'blocked', 'failed', 'interrupted')
@@ -58,12 +59,15 @@ class ExecutionConfiguration(BaseModel):
     test_timeout: int
     worktree_base: str
     bindings: Optional[AgentBindings] = None
+    environment_allowlist: Optional[dict[str, list[str]]] = None
 
     @model_serializer(mode='wrap')
     def preserve_legacy_shape(self, handler):
         result = handler(self)
         if self.bindings is None:
             result.pop('bindings', None)
+        if self.environment_allowlist is None:
+            result.pop('environment_allowlist', None)
         return result
 
 
@@ -136,6 +140,7 @@ def configuration(project, *, bindings: Optional[AgentBindings] = None):
         config = ExecutionConfiguration(
             **agent_settings,
             bindings=explicit,
+            environment_allowlist=current_allowlist() or None,
             test_command=os.getenv('ORCH_TEST_COMMAND', '').strip(),
             max_attempts=int(os.getenv('MAX_ATTEMPTS', '3')),
             test_timeout=int(os.getenv('TEST_TIMEOUT', '300')),
@@ -150,6 +155,7 @@ def configuration(project, *, bindings: Optional[AgentBindings] = None):
 def validate_configuration(config, *, provider_registry=None):
     registry = provider_registry or ProviderRegistry()
     try:
+        snapshot_allowlist(config)
         bindings = validate_bindings(bindings_from_snapshot(config), registry)
     except (ValueError, KeyError, TypeError) as exc:
         raise projects.ProjectError('Bindings de execução inválidos ou provider não suportado.', 422) from exc

@@ -12,9 +12,10 @@ import time
 from typing import Callable, Literal, Optional, Protocol
 import uuid
 
-from pydantic import BaseModel, Field, ValidationError, field_serializer, model_validator
+from pydantic import BaseModel, Field, ValidationError, field_serializer, field_validator, model_validator
 
 from .errors import ErrorCode, error_code
+from ..policy.env import INTERNAL_SCOPES, environment_scope, safe_env, validate_env_names
 
 
 class Capability(str, Enum):
@@ -42,6 +43,23 @@ class CapabilityManifest(BaseModel):
     billing_mode: Literal['api_metered', 'subscription_quota', 'local', 'unknown']
     usage_source: Literal['provider_reported', 'cli_reported', 'none']
     verified: bool
+    environment_variables: set[str] = Field(default_factory=set)
+
+    @field_validator('adapter')
+    @classmethod
+    def reserved_internal_scope(cls, value):
+        if value in INTERNAL_SCOPES:
+            raise ValueError('Internal subprocess scopes cannot identify adapters')
+        return value
+
+    @field_validator('environment_variables')
+    @classmethod
+    def safe_variable_declarations(cls, value):
+        return set(validate_env_names(value))
+
+    @field_serializer('environment_variables')
+    def sorted_environment_variables(self, value):
+        return sorted(value)
 
     @field_serializer('capabilities')
     def sorted_capabilities(self, value):
@@ -69,7 +87,7 @@ class InvocationRequest(BaseModel):
     permission: Literal['read_only', 'workspace_write']
     output_schema: Optional[dict] = None
     timeout_s: int = 600
-    # None retains the legacy inherited environment until SEC-002.
+    # None selects ambient allowlisted values; explicit env is a filtered replacement.
     env: Optional[dict[str, str]] = None
 
 
@@ -181,6 +199,8 @@ class CommandRuntime:
         self._runner = runner
         self._observer = observer
         self.manifest = type(self).manifest.model_copy(deep=True)
+        if self.provider != self.manifest.adapter:
+            raise ValueError('Runtime provider must match manifest adapter')
 
     def _resolve_model(self, req: InvocationRequest) -> Optional[str]:
         return req.model
@@ -193,6 +213,8 @@ class CommandRuntime:
         raise NotImplementedError
 
     def _run(self, argv: list[str], req: InvocationRequest) -> str:
-        if req.env is None:
-            return self._runner(argv, req.cwd, req.timeout_s)
-        return self._runner(argv, req.cwd, req.timeout_s, env=req.env)
+        if self.provider != self.manifest.adapter:
+            raise ValueError('Runtime provider must match manifest adapter')
+        with environment_scope(self.manifest.adapter, self.manifest.environment_variables):
+            env = safe_env(self.manifest.adapter, source=req.env, declared=self.manifest.environment_variables)
+            return self._runner(argv, req.cwd, req.timeout_s, env=env)

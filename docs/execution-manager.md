@@ -77,7 +77,7 @@ Respostas principais: `404` para entidade inexistente; `409` para solicitação 
 
 ## Persistência e estados
 
-A migração 2 adiciona `managed_runs`, `execution_worker` e índices. O registro do run é também a fila durável: guarda projeto, solicitação, título e requisitos copiados, configuração, idempotência, reserva Git, horários, PID e identidade do processo, heartbeat, falha e resultado. O token interno de despacho e os dados internos de processo não são serializados nas respostas públicas. A tabela `events` existente continua sendo a fonte da timeline.
+A migração 2 adiciona `managed_runs`, `execution_worker` e índices. O registro do run é também a fila durável: guarda projeto, solicitação, título e requisitos copiados, configuração, idempotência, reserva Git, horários, PID e identidade do processo, heartbeat, falha e resultado. O token interno de despacho e os dados internos de processo não são serializados nas respostas públicas. A tabela `events` existente continua sendo a fonte da timeline. SEC-002 adiciona opcionalmente environment_allowlist à configuração JSON e ao digest: nomes canônicos por escopo, nunca valores; sem migração e com forma padrão preservada.
 
 | Estado | Significado |
 | --- | --- |
@@ -151,3 +151,9 @@ O projeto já cadastrado é `Task Manager API`, em `/home/felipe/projects/task_m
 8. Se o motor retornar `ready_for_human_review`, revise as alterações antes de qualquer integração manual. O sistema não faz merge, push ou deploy.
 
 A implementação e os testes mockados não executam essa validação real automaticamente. Aprovação do plano, aprovação humana persistida do diff, continuidade sobre alterações ainda não integradas e inspeção de arquivos pelo navegador continuam como evoluções separadas.
+
+### Ambiente de subprocessos (SEC-002)
+
+Worker.environment filtra o runner, preservando somente controles internos necessários e entradas autorizadas para os filhos; execution_runner reaplica a allowlist salva no snapshot. Runtimes, testes e helpers Git filtram de novo por escopo. HOME/PATH/venv/config dirs permitidos mantêm o uso dos CLIs autenticados por arquivos, sem herdar chaves ambientais arbitrárias. ORCH_DISPATCH_TOKEN continua nos descendentes para provar identidade após morte do runner.
+
+ORCH_ENV_ALLOWLIST aceita JSON de nomes por tests/git/ID canônico do adapter, sem glob, credenciais ou controles reservados. Nomes entram no digest; valores são lidos no spawn, sem persistência no config/evento. Snapshots sem extensão usam padrão vazio, mesmo que o worker receba uma allowlist nova. Configuração inválida recusa a operação. API e worker devem configurar os valores autorizados; o navegador não os fornece. O harness managed_server também usa Worker.environment, com agentes mockados.

@@ -14,7 +14,7 @@ from orchestrator.worker import Worker
 
 
 def mock_spawn(self, row):
-    env = dict(os.environ, ORCH_DB=core.db_path(), ORCH_WORKER_ID=self.id, ORCH_DISPATCH_TOKEN=row['dispatch_token'])
+    env = self.environment(row)
     return subprocess.Popen([sys.executable, str(ROOT / 'tests/fixtures/managed_workflow.py'), row['run_id']],
                             env=env, start_new_session=True, stdin=subprocess.DEVNULL,
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

@@ -16,6 +16,7 @@ from typing import TypedDict
 from langgraph.graph import END, StateGraph
 
 from .providers.base import AgentCall, InvocationRequest, invoke_measured
+from .policy.env import command_env
 from .providers.bindings import AgentBindings, legacy_bindings, validate_bindings
 from .providers.registry import ProviderRegistry
 from .providers.runtimes.antigravity import AntigravityRuntime
@@ -76,7 +77,8 @@ def event(state: State, stage: str, payload: object):
 
 def run_command(argv: list[str], cwd: str, timeout: int = 600,
                 env: dict | None = None) -> str:
-    if not shutil.which(argv[0]):
+    env = command_env(argv, env)
+    if not shutil.which(argv[0], path=env.get('PATH', os.defpath)):
         raise RuntimeError(f'Executable missing: {argv[0]}')
     try:
         result = subprocess.run(

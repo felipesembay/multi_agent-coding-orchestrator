@@ -23,7 +23,7 @@ def process(monkeypatch):
     for name in ('ORCH_PLANNER', 'ORCH_IMPLEMENTER', 'ORCH_PLANNER_MODEL',
                  'ORCH_IMPLEMENTER_MODEL', 'ORCH_ANTIGRAVITY_MODEL', 'AGENT_TIMEOUT'):
         monkeypatch.delenv(name, raising=False)
-    monkeypatch.setattr(core.shutil, 'which', lambda executable: '/mock/' + executable)
+    monkeypatch.setattr(core.shutil, 'which', lambda executable, **kwargs: '/mock/' + executable)
     runner = Mock(return_value=SimpleNamespace(returncode=0, stdout='output', stderr=''))
     monkeypatch.setattr(core.subprocess, 'run', runner)
     token = core.lock_fd.set(None)
@@ -33,8 +33,12 @@ def process(monkeypatch):
 
 def assert_process(call, argv, timeout):
     assert call.args == (argv,)
-    assert call.kwargs == dict(cwd=CWD, text=True, capture_output=True,
-                               timeout=timeout, env=None, check=False, pass_fds=())
+    kwargs = dict(call.kwargs)
+    env = kwargs.pop('env')
+    assert isinstance(env, dict)  # SEC-002 intentionally replaces env=None with a filtered map.
+    assert 'ORCH_DB' not in env and 'OPENAI_API_KEY' not in env
+    assert kwargs == dict(cwd=CWD, text=True, capture_output=True,
+                          timeout=timeout, check=False, pass_fds=())
 
 
 @pytest.mark.parametrize('role', ['planner', 'implementer'])

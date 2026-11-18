@@ -9,6 +9,7 @@ from . import core, projects
 from .execution_manager import validate_configuration, validate_repository
 from .project_store import connection
 from .providers.bindings import bindings_from_snapshot
+from .policy.env import environment_config, snapshot_allowlist
 
 
 def run(run_id):
@@ -28,26 +29,27 @@ def run(run_id):
     result = None
     try:
         config = json.loads(row['config'])
-        validate_configuration(config)
-        project = projects.get_project(row['project_id'])
-        if project['state'] != 'active' or project['repo_path'] != row['repo']:
-            raise projects.ProjectError('Projeto arquivado ou repositório alterado após o despacho.', 409)
-        if validate_repository(project) != row['repo_identity']:
-            raise projects.ProjectError('Identidade do repositório mudou. Nova confirmação necessária.', 409)
-        bindings = bindings_from_snapshot(config)
-        mapping = {'ORCH_TEST_COMMAND': 'test_command', 'MAX_ATTEMPTS': 'max_attempts',
-                   'TEST_TIMEOUT': 'test_timeout',
-                   'ORCH_WORKTREES': 'worktree_base'}
-        for env_key, config_key in mapping.items():
-            os.environ[env_key] = str(config[config_key])
-        # Worktree path comes only from server policy and the server-generated run ID.
-        expected = Path(config['worktree_base']) / run_id
-        projects.authorized_path(str(expected))
-        result = core.execute_scope(row['repo'], row['scope'], run_id=run_id, managed=True, bindings=bindings)
-        saved = {key: result.get(key) for key in ('status', 'worktree', 'task_index', 'review')}
-        with connection() as conn:
-            conn.execute('UPDATE managed_runs SET result=?,worktree=? WHERE run_id=?', (json.dumps(saved), result.get('worktree'), run_id))
-            conn.commit()
+        with environment_config(snapshot_allowlist(config)):
+            validate_configuration(config)
+            project = projects.get_project(row['project_id'])
+            if project['state'] != 'active' or project['repo_path'] != row['repo']:
+                raise projects.ProjectError('Projeto arquivado ou repositório alterado após o despacho.', 409)
+            if validate_repository(project) != row['repo_identity']:
+                raise projects.ProjectError('Identidade do repositório mudou. Nova confirmação necessária.', 409)
+            bindings = bindings_from_snapshot(config)
+            mapping = {'ORCH_TEST_COMMAND': 'test_command', 'MAX_ATTEMPTS': 'max_attempts',
+                       'TEST_TIMEOUT': 'test_timeout',
+                       'ORCH_WORKTREES': 'worktree_base'}
+            for env_key, config_key in mapping.items():
+                os.environ[env_key] = str(config[config_key])
+            # Worktree path comes only from server policy and the server-generated run ID.
+            expected = Path(config['worktree_base']) / run_id
+            projects.authorized_path(str(expected))
+            result = core.execute_scope(row['repo'], row['scope'], run_id=run_id, managed=True, bindings=bindings)
+            saved = {key: result.get(key) for key in ('status', 'worktree', 'task_index', 'review')}
+            with connection() as conn:
+                conn.execute('UPDATE managed_runs SET result=?,worktree=? WHERE run_id=?', (json.dumps(saved), result.get('worktree'), run_id))
+                conn.commit()
     except Exception as exc:
         # Agent exceptions are already audited by core; preflight failures need an event too.
         message = ('Worker: ' + str(exc))[-2500:]

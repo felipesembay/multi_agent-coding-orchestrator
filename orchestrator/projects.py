@@ -4,6 +4,7 @@ import os
 import secrets
 import shutil
 import subprocess
+
 import time
 import uuid
 from pathlib import Path
@@ -12,6 +13,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .project_store import connection
+from .policy.env import EnvironmentPolicyError, safe_env
 
 
 class ProjectError(Exception):
@@ -112,8 +114,9 @@ def git(path, *args, directory_fd=None):
         result = subprocess.run(argv, cwd=str(path), capture_output=True, text=True,
                                 timeout=20, check=False,
                                 pass_fds=() if directory_fd is None else (directory_fd,),
-                                env={**{k: v for k, v in os.environ.items() if not k.startswith('GIT_')},
-                                     'GIT_CONFIG_NOSYSTEM': '1', 'GIT_CONFIG_GLOBAL': os.devnull})
+                                env=safe_env('git'))
+    except EnvironmentPolicyError:
+        raise ProjectError('Configuração de ambiente de subprocessos inválida.', 422) from None
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise ProjectError('Não foi possível concluir a operação Git local.', 422) from exc
     if result.returncode:
