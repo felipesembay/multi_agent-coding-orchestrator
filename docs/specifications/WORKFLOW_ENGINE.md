@@ -67,6 +67,18 @@ Bindings ficam fora (`managed_runs.bindings`):
 6. Fallback não pode ter capacidades menores que o primário.
 7. Ciclos: apenas arestas `on_reject` com contador; qualquer outro ciclo é erro.
 
+### 6.2.1 Contrato entregue em V2-WF-001
+
+`orchestrator/workflows/schema.py` e `validation.py` implementam somente os dados e a validação pura. Não executam grafo, probe ou agente e não mudam bindings/preset legados. API/422 será integrada em WF-008; por enquanto os erros são `pydantic.ValidationError`, com localização por campo.
+
+- `WorkflowDefinition.model_validate(payload)` valida estrutura; `validate_workflow(definition, bindings, provider_configs=..., registry=...)` acrescenta a validação dos bindings. `provider_configs` é um mapa confiável de ID de configuração para adapter já habilitado no registry, até a persistência em WF-002. Nenhum ID do workflow habilita plugins.
+- Todos os objetos têm `extra=forbid`; números inteiros e booleanos não são coercidos. O schema JSON discrimina etapas por `type`. Bindings ficam separados, com modelo opcional, `parameters` JSON e fallbacks ordenados sem fallback aninhado. Permissão default `read_only`, inclusive em fallback; implementers precisam declarar `workspace_write` explicitamente.
+- Papéis são coerentes com o tipo: `planner`, `implementer`, `reviewer`, `documenter` (para `document`). `test` e `human_gate` não recebem binding. Capacidades mínimas `text` + `planning`/`code_edit`/`review` conforme tipo são exigidas mesmo se omitidas em `requires`; `document` exige ao menos `text`. Escrita de documentos também exige runtime verificado com `code_edit`; planners/reviewers continuam somente leitura.
+- Faixas do servidor no contrato v1: 1–100 etapas declaradas, 1–10000 passos totais, duração 1–86400 s, 1–20 tentativas por implementação e orçamento finito não negativo ou null. Defaults: 200 passos, 14400 s, 3 tentativas, orçamento null. Até 10 fallbacks por binding; condições não vazias/únicas entre `rate_limited`, `quota_exhausted`, `unavailable`.
+- `plan` ocorre exatamente uma vez, primeiro e fora de `per_task`. No MVP apenas `review.on_reject` representa retorno, para um `implement` anterior com `max_attempts`, no mesmo bloco contíguo `per_task`. Arestas arbitrárias são campos desconhecidos e recusadas.
+- Se houver `test`, `approval.require_tests` deve ser true; se true, deve haver `test`. `require_reviewer=true` exige etapa `review`. `human_gate_after_plan` permanece uma política declarativa para o compilador futuro; não cria execução nesta tarefa.
+- Não há exceção de segurança baseada no nome `legacy-v1`. A compatibilidade legada permanece no caminho existente, até compilador/presets com equivalência comprovada em WF-003/004. Manifestos atuais não verificadas não são promovidas automaticamente.
+
 ### 6.3 Compilador (`workflows/compiler.py`)
 Gera nós genéricos (`make_plan_node(step, binding)`, …) que usam o envelope de invocação (ledger + uso + eventos). Para `legacy-v1` a topologia resultante é a mesma de `core.graph()` (teste de equivalência por snapshot e pelos testes de integração existentes).
 

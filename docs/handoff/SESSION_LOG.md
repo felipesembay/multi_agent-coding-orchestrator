@@ -315,3 +315,25 @@
 8. **Próxima tarefa:** V2-WF-001, schema e validação de workflows.
 9. **Aceite:** WORKFLOW_ENGINE §6.2, exemplos válidos/inválidos com registry/capacidades e restrições MVP; sem antecipar compilador/migração/preset padrão ou decisões Q2/Q5, revisão distinta/handoff.
 10. **Comandos:** ativar .venv; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test/build/lint; python scripts/check_docs.py. Commit dev testado/revisado autorizado, sem merge/push/deploy.
+
+
+## 2026-11-18 — Codex — V2-WF-001 início
+- Planejado: schema versionado e regras WORKFLOW_ENGINE §6.2; CORE-003 satisfeita. ADR-0005 proposto consultado, sem mudar defaults/decisões humanas.
+- Branch dev limpa, HEAD 7ac3634, sem divergência; 3 commits locais já registrados, sem push autorizado novo.
+- Baseline: ORCH_DB temporário python -m pytest -q -p no:cacheprovider: 323 passed, 1 warning; npm --prefix frontend test: 38 passed. Sem CLI real.
+
+### WF-001 — testes/primeiro marco
+- Testes novos tests/workflows/test_schema.py: vermelho confirmado por ModuleNotFoundError antes do schema; depois 37 passed. Contratos e validação estrutural criados em orchestrator/workflows/{schema,validation}.py; validação de bindings ainda sendo coberta.
+
+### WF-001 — validação verde / revisão
+- 68 testes focados passaram. Fakes verificam capacidades/permissões, code_edit verificado, fallback superset, aprovação e topologia; nenhuma invocação/probe. Inconsistência no fake corrigida para usar enum Capability ao mutar manifesto.
+- Limites de contrato complementam faixas existentes: 100 etapas declaradas/10000 passos; documenter é papel de document, escrita exige runtime code_edit verificado. Retornos MVP somente review→implement com max_attempts e no mesmo bloco. Não alteram decisões de default nem política de CLI.
+
+### WF-001 — fim / revisão aprovada
+- Implementado: V2-WF-001, schema v1 e validação pura, sem dependências novas, sem integração ao executor/API/persistência. Definição e bindings separados; erros Pydantic por campo. Código em orchestrator/workflows/{__init__,schema,validation}.py; testes em tests/workflows/{__init__,conftest,test_schema,test_validation}.py.
+- Revisão review_wf001 apontou container inválido e Literal[False] aceitando 0; corrigidos com TypeAdapter/caminho bindings e validator booleano estrito. Revisor reexecutou 75 focados e aprovou. Falhas de manifesto de plugins são estáticas; document write verificado também coberto.
+- Testes: ORCH_DB temporário python -m pytest -q -p no:cacheprovider: 398 passed, 1 warning LangGraph, 22,19s; npm --prefix frontend test: 38 passed no baseline, frontend inalterado; npm --prefix frontend run build e run lint: sucesso. python scripts/check_docs.py e git diff --check: sucesso. E2E não rodado; agentes reais não chamados.
+- Arquivos: sete novos arquivos de código/testes, além de CURRENT_STATE, NEXT_STEPS, SESSION_LOG, IMPLEMENTATION_PLAN, BACKLOG e WORKFLOW_ENGINE. Estatísticas finais verificadas no diff antes do commit.
+- Decisões: ADR-0005 continua proposto, sem alteração de ADR/padrão. Faixas de servidor e refinamentos do schema documentados em WORKFLOW_ENGINE §6.2.1. Sem bypass legacy por nome; compatibilidade no caminho atual e futura equivalência WF-003/004.
+- Pendências: compilador/migração/API/presets fora desta tarefa; F0-002 decisões humanas ainda pendentes. Sem merge/push/deploy; commit local em dev autorizado.
+- Próxima tarefa recomendada V2-WF-002: migração aditiva v4 preservando dados v3 e snapshots/digests; upgrade/reabertura idempotente com DB temporário. Ler DATA_MODEL/PERSISTENCE/WORKFLOW_ENGINE e iniciar com git status/log, baseline pytest isolado e npm --prefix frontend test. Handoff, revisão e commit dev após verdes.

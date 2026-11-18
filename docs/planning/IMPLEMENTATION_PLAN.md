@@ -3,7 +3,7 @@
 > **Ponto de entrada para qualquer agente (Claude, Codex, Antigravity ou humano) que assumir o projeto.**
 > Leia este arquivo primeiro. Ele indica o que ler, qual é o estado atual e qual tarefa executar em seguida.
 
-Última atualização: 2026-11-18 · Fase atual: **F1 — Núcleo extensível + segurança** (decisões F0 pendentes) · Autor da sessão: Codex
+Última atualização: 2026-11-18 · Fase atual: **F2 — Workflows (início)** (decisões F0 e segurança restantes pendentes) · Autor da sessão: Codex
 
 ## 1. Regra de ouro
 
@@ -44,13 +44,14 @@ Não é necessário ler toda a pasta `docs/`. Leia apenas a especificação da �
 - `V2-SEC-001` concluída: política local global e token em leituras/escritas, bootstrap /session e liveness /health locais; frontend autenticado.
 - `V2-SEC-002` concluída: ambiente por allowlist de escopo, nomes congelados no snapshot/digest e marcador de supervisão preservado.
 - `V2-SEC-006` concluída: política Git compartilhada com hooks/fsmonitor/conversores desligados e recusa de filtros executáveis, inclusive condicionais por branch.
-- Validação: **323 pytest / 38 vitest**, build/lint/docs verdes; revisão independente (2026-11-18). E2E não reexecutado em SEC-006; última execução SEC-002: 9 passed / 2 skipped com mocks. Nenhum CLI de agente real.
+- `V2-WF-001` concluída: schema versionado e validação pura de estrutura/bindings; sem execução/migração/API/presets.
+- Validação: **398 pytest / 38 vitest**, build/lint/docs verdes; revisão independente (2026-11-18). E2E não reexecutado em WF-001; última execução SEC-002: 9 passed / 2 skipped com mocks. Nenhum CLI de agente real.
 
 ## 5. Próxima tarefa
 
-1. **`V2-WF-001`** — schema versionado WorkflowDefinition e validação, conforme WORKFLOW_ENGINE §6.2; casos válidos/inválidos com fakes, sem executar workflows/CLIs reais.
+1. **`V2-WF-002`** — migração aditiva v4 para workflows/provider_configs e colunas managed_runs, preservando dados v3; schema/validação WF-001 prontos.
 2. **`V2-F0-002`** — pendente de revisão humana dos ADRs e de [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md). Não assumir respostas; bloquear apenas tarefas dependentes.
-3. Depois: WF-002 ou demais tarefas liberadas, uma por vez. SEC-003 exige validação real autorizada; SEC-004 também tem revisão humana obrigatória conforme especificação.
+3. Depois: WF-003 ou demais tarefas liberadas, uma por vez. SEC-003 exige validação real autorizada; SEC-004 também tem revisão humana obrigatória conforme especificação.
 
 Detalhes e comandos: [NEXT_STEPS.md](../handoff/NEXT_STEPS.md).
 

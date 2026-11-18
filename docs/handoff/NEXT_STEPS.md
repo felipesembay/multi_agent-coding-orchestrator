@@ -1,10 +1,17 @@
 # Próximos passos
 
-## Próxima tarefa recomendada: V2-WF-001
+## Próxima tarefa recomendada: V2-WF-002
 
-**Objetivo:** schema versionado WorkflowDefinition e validação conforme WORKFLOW_ENGINE §6.2. Dependência CORE-003 concluída; não depende de quota real.
+**Objetivo:** migração aditiva v4 com workflow_definitions, workflow_versions, provider_configs e colunas em managed_runs. Dependência WF-001 concluída.
 
-**Aceite:** casos válidos/inválidos das regras da especificação, incluindo papéis/capacidades, referências/estrutura e restrições do MVP. Ler WORKFLOW_ENGINE e ADR-0005 antes de editar, reutilizar registry/manifestos; usar fakes, sem executar agentes/workflows reais. Não antecipar compilador, migração ou mudança de preset padrão (Q2/Q5 pendentes). Revisão distinta, handoff e commit dev após testes.
+**Aceite:** upgrade a partir de banco v3 preserva dados e comportamento; reabrir banco é idempotente. Ler DATA_MODEL, PERSISTENCE e WORKFLOW_ENGINE; não persistir segredos nem antecipar compilador/API/presets. Preservar snapshots/digests antigos. Testes de upgrade com DB temporário, revisão independente, handoff e commit em dev após testes. Sem push/merge/deploy.
+
+## WF-001 concluída
+
+- Schema v1 de WorkflowDefinition e seis etapas tipadas; bindings separados com provider_config_id/model/parameters/permission/fallbacks. Validação estrutural e de providers já habilitados, sem executar/probar/carregar plugins por input do workflow.
+- Limites, aprovação, bloco per_task, retorno limitado review→implement, permissões e capacidades/fallbacks validados com erros Pydantic por campo. Escrita exige runtime verificado; nenhum bypass por nome legacy-v1. Política human_gate_after_plan é declarativa para compilador futuro.
+- Evidência: 398 pytest / 38 vitest, 75 novos testes; build/lint/docs verdes. Revisor review_wf001 aprovou após correções de container inválido e bool estrito no plan. Nenhum CLI real/E2E nesta tarefa, sem mudanças em fluxo atual/migração/API/presets/defaults.
+- Contrato e limites explícitos em WORKFLOW_ENGINE §6.2.1; mapa temporário confiável provider_configs ID→adapter será integrado à persistência na próxima tarefa.
 
 ## SEC-006 concluída
 
@@ -58,7 +65,7 @@
 ## Decisões humanas pendentes
 
 - V2-F0-001 concluída: baseline `f8e6949` em `dev`, preservando o WIP. Novos commits em dev autorizados após testes; sem merge/push.
-- V2-F0-002 `blocked`: Q2–Q12 e ADRs aguardam revisão humana. Não impedem WF-001; SEC-003 requer autorização de validação real. Quota real segue não autorizada.
+- V2-F0-002 `blocked`: Q2–Q12 e ADRs aguardam revisão humana. Não impedem WF-002; SEC-003 requer autorização de validação real. Quota real segue não autorizada.
 
 ## Referência concluída: V2-CORE-001
 

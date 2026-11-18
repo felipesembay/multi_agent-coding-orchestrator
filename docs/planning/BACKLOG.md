@@ -37,7 +37,7 @@ Fonte única de status das tarefas. Atualize a linha da tarefa ao iniciar (`doin
 
 | ID | Título | Status | P | C | Deps | Perfil | Critério de aceite | Testes |
 |---|---|---|---|---|---|---|---|---|
-| V2-WF-001 | Schema `WorkflowDefinition` + validação | todo | P0 | S | CORE-003 | BE | Regras §6.2 de WORKFLOW_ENGINE | Casos válidos/inválidos |
+| V2-WF-001 | Schema `WorkflowDefinition` + validação | done | P0 | S | CORE-003 | BE | Regras §6.2 de WORKFLOW_ENGINE; schema/validation, revisão review_wf001 aprovada | 75 focados; 398 pytest / 38 vitest; build/lint/docs |
 | V2-WF-002 | Migração 4: `workflow_definitions`, `workflow_versions`, `provider_configs`, colunas em `managed_runs` | todo | P0 | S | WF-001 | BE | Upgrade de banco v3 preserva dados | Teste de upgrade |
 | V2-WF-003 | Compilador definição→StateGraph com equivalência ao grafo atual | todo | P0 | L | WF-001, CORE-004 | BE | CA1 de WORKFLOW_ENGINE | Snapshot de topologia + suíte atual |
 | V2-WF-004 | Presets `legacy-v1`, A, B, C (B desabilitado até PROV-001) | todo | P0 | S | WF-003 | BE | Presets validam; CLI usa `legacy-v1` por padrão | Testes por preset com fakes |
