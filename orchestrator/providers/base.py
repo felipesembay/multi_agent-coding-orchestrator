@@ -12,7 +12,7 @@ import time
 from typing import Callable, Literal, Optional, Protocol
 import uuid
 
-from pydantic import BaseModel, Field, field_serializer, model_validator
+from pydantic import BaseModel, Field, ValidationError, field_serializer, model_validator
 
 from .errors import ErrorCode, error_code
 
@@ -119,6 +119,40 @@ class AgentCall(BaseModel):
     error_code: Optional[ErrorCode] = None
 
 
+def invoke_measured(provider: str, req: InvocationRequest,
+                    invoke: Callable[[], InvocationResult],
+                    observer: Optional[Callable[[AgentCall], None]] = None) -> InvocationResult:
+    """Measure a call at a single owned boundary, including registered plugins."""
+    call_id = str(uuid.uuid4())
+    started = time.monotonic_ns()
+    try:
+        raw = invoke()
+        try:
+            result = InvocationResult.model_validate(raw)
+        except ValidationError:
+            raise RuntimeError('Agent runtime returned invalid InvocationResult') from None
+    except Exception as exc:
+        duration = max(0, (time.monotonic_ns() - started) // 1000000)
+        if observer is not None:
+            try:
+                observer(AgentCall(
+                    call_id=call_id, provider=provider, role=req.role,
+                    model=req.model, duration_ms=duration, error_code=error_code(exc),
+                ))
+            except Exception:
+                # Metadata persistence must not replace the primary CLI error.
+                logging.getLogger(__name__).warning('Could not record failed agent call metadata')
+        raise
+    result.duration_ms = max(0, (time.monotonic_ns() - started) // 1000000)
+    if observer is not None:
+        observer(AgentCall(
+            call_id=call_id, provider=provider, role=req.role, model=req.model,
+            model_reported=result.model_reported, session_id=result.session_id,
+            duration_ms=result.duration_ms, usage=result.usage, error_code=result.error_code,
+        ))
+    return result
+
+
 class AgentRuntime(Protocol):
     manifest: CapabilityManifest
 
@@ -153,30 +187,7 @@ class CommandRuntime:
 
     def invoke(self, req: InvocationRequest) -> InvocationResult:
         req = req.model_copy(update={'model': self._resolve_model(req)})
-        call_id = str(uuid.uuid4())
-        started = time.monotonic_ns()
-        try:
-            result = self._invoke(req)
-        except Exception as exc:
-            duration = max(0, (time.monotonic_ns() - started) // 1000000)
-            if self._observer is not None:
-                try:
-                    self._observer(AgentCall(
-                        call_id=call_id, provider=self.provider, role=req.role,
-                        model=req.model, duration_ms=duration, error_code=error_code(exc),
-                    ))
-                except Exception:
-                    # Metadata persistence must not replace the primary CLI error.
-                    logging.getLogger(__name__).warning('Could not record failed agent call metadata')
-            raise
-        result.duration_ms = max(0, (time.monotonic_ns() - started) // 1000000)
-        if self._observer is not None:
-            self._observer(AgentCall(
-                call_id=call_id, provider=self.provider, role=req.role, model=req.model,
-                model_reported=result.model_reported, session_id=result.session_id,
-                duration_ms=result.duration_ms, usage=result.usage, error_code=result.error_code,
-            ))
-        return result
+        return invoke_measured(self.provider, req, lambda: self._invoke(req), self._observer)
 
     def _invoke(self, req: InvocationRequest) -> InvocationResult:
         raise NotImplementedError

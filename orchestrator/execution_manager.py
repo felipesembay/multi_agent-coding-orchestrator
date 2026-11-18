@@ -11,13 +11,16 @@ from contextlib import closing
 from pathlib import Path
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_serializer
 
 from . import projects
 from .core import db, db_path
 from .dashboard import summarize
 from .project_store import connection
 from .repository_lock import identity, repository_lock
+from .providers.bindings import (AgentBindings, bindings_from_snapshot, legacy_agent_settings,
+                                 legacy_projection, validate_bindings)
+from .providers.registry import ProviderRegistry
 
 ACTIVE = ('queued', 'running')
 TERMINAL = ('ready_for_human_review', 'blocked', 'failed', 'interrupted')
@@ -54,6 +57,14 @@ class ExecutionConfiguration(BaseModel):
     agent_timeout: int
     test_timeout: int
     worktree_base: str
+    bindings: Optional[AgentBindings] = None
+
+    @model_serializer(mode='wrap')
+    def preserve_legacy_shape(self, handler):
+        result = handler(self)
+        if self.bindings is None:
+            result.pop('bindings', None)
+        return result
 
 
 class WorkerStatus(BaseModel):
@@ -118,31 +129,36 @@ def validate_test_command(command):
     return argv
 
 
-def configuration(project):
+def configuration(project, *, bindings: Optional[AgentBindings] = None):
     try:
+        explicit = AgentBindings.model_validate(bindings.model_dump()) if bindings is not None else None
+        agent_settings = legacy_projection(explicit) if explicit is not None else legacy_agent_settings()
         config = ExecutionConfiguration(
-            planner=os.getenv('ORCH_PLANNER', 'claude').lower(),
-            implementer=os.getenv('ORCH_IMPLEMENTER', 'claude').lower(), reviewer='codex',
-            planner_model=os.getenv('ORCH_PLANNER_MODEL', 'gemini-4-argon-medium') if os.getenv('ORCH_PLANNER', 'claude').lower() == 'antigravity' else None,
-            implementer_model=os.getenv('ORCH_IMPLEMENTER_MODEL', 'gemini-4-argon-medium') if os.getenv('ORCH_IMPLEMENTER', 'claude').lower() == 'antigravity' else None,
-            planner_fallback_model=os.getenv('ORCH_PLANNER_MODEL', 'gemini-4-argon-medium'),
+            **agent_settings,
+            bindings=explicit,
             test_command=os.getenv('ORCH_TEST_COMMAND', '').strip(),
             max_attempts=int(os.getenv('MAX_ATTEMPTS', '3')),
-            agent_timeout=int(os.getenv('AGENT_TIMEOUT', '900')),
             test_timeout=int(os.getenv('TEST_TIMEOUT', '300')),
             worktree_base=str(Path(os.getenv('ORCH_WORKTREES', str(Path(project['repo_path']).parent / (Path(project['repo_path']).name + '-agent-worktrees')))).expanduser().resolve()),
-        ).model_dump()
+        ).model_dump(mode='json')
     except ValueError as exc:
         raise projects.ProjectError('Configuração de execução inválida no servidor.', 422) from exc
     digest = hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()
     return config, digest
 
 
-def validate_configuration(config):
-    for role in ('planner', 'implementer'):
-        if config[role] not in ('claude', 'antigravity'):
-            raise projects.ProjectError(f'Provider não suportado para {role}.', 422)
-    tools = {'git', 'codex'} | {'agy' if config[role] == 'antigravity' else 'claude' for role in ('planner', 'implementer')}
+def validate_configuration(config, *, provider_registry=None):
+    registry = provider_registry or ProviderRegistry()
+    try:
+        bindings = validate_bindings(bindings_from_snapshot(config), registry)
+    except (ValueError, KeyError, TypeError) as exc:
+        raise projects.ProjectError('Bindings de execução inválidos ou provider não suportado.', 422) from exc
+    tools = {'git'}
+    for role in ('planner', 'implementer', 'reviewer'):
+        runtime = registry.get(getattr(bindings, role).adapter)
+        executable = getattr(runtime, 'executable', None)
+        if executable:
+            tools.add(executable)
     missing = sorted(tool for tool in tools if not shutil.which(tool))
     if missing:
         raise projects.ProjectError('Ferramentas locais ausentes: ' + ', '.join(missing), 422)

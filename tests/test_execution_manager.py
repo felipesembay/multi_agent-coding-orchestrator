@@ -353,3 +353,90 @@ def test_delete_and_submit_cannot_both_win_the_reservation_race(setup):
     assert not ('submit' in results and 'delete' in results)
     assert 'submit' in results or 'delete' in results
     assert any(value in (404, 409) for value in results)
+
+
+def test_legacy_configuration_shape_digest_and_preflight_are_preserved(setup, monkeypatch):
+    import hashlib
+    client, project, _, _ = setup
+    monkeypatch.setenv('ORCH_PLANNER_MODEL', 'saved-fallback')
+    monkeypatch.setenv('ORCH_IMPLEMENTER_MODEL', 'saved-implementer')
+    monkeypatch.setenv('MAX_ATTEMPTS', '4')
+    monkeypatch.setenv('AGENT_TIMEOUT', '71')
+    monkeypatch.setenv('TEST_TIMEOUT', '51')
+    expected = dict(planner='claude', implementer='antigravity', reviewer='codex',
+        planner_model=None, implementer_model='saved-implementer', planner_fallback_model='saved-fallback',
+        test_command=f'{sys.executable} -m pytest -q', max_attempts=4, agent_timeout=71, test_timeout=51,
+        worktree_base=str(Path(project['repo_path']).parent / (Path(project['repo_path']).name + '-agent-worktrees')))
+    config, digest = manager.configuration(project)
+    assert config == expected
+    assert digest == hashlib.sha256(json.dumps(expected, sort_keys=True).encode()).hexdigest()
+    response = client.get(f"/projects/{project['id']}/execution-config").json()
+    assert response['configuration'] == expected
+    assert response['configuration_digest'] == digest
+    monkeypatch.setenv('SENTINEL_API_SECRET', 'never-a-binding')
+    assert manager.configuration(project) == (config, digest)
+
+
+def test_explicit_bindings_are_serialized_digested_and_consistency_checked(setup):
+    from orchestrator.providers.bindings import AgentBindings, bindings_from_snapshot, legacy_bindings
+    _, project, _, _ = setup
+    original = legacy_bindings()
+    config, digest = manager.configuration(project, bindings=original)
+    assert config['bindings'] == original.model_dump()
+    assert bindings_from_snapshot(config) == original
+    manager.validate_configuration(config)
+    modified = original.model_dump()
+    modified['implementer']['model'] = 'another-model'
+    next_config, next_digest = manager.configuration(project, bindings=AgentBindings.model_validate(modified))
+    assert next_digest != digest
+    assert bindings_from_snapshot(next_config).implementer.model == 'another-model'
+    inconsistent = dict(config, agent_timeout=config['agent_timeout'] + 1)
+    with pytest.raises(projects.ProjectError, match='Bindings'):
+        manager.validate_configuration(inconsistent)
+
+
+def test_dispatch_uses_saved_bindings_despite_worker_environment_drift(setup, monkeypatch):
+    client, project, request, worker = setup
+    monkeypatch.setenv('ORCH_PLANNER_MODEL', 'frozen-fallback')
+    monkeypatch.setenv('ORCH_IMPLEMENTER_MODEL', 'frozen-implementer')
+    monkeypatch.setenv('AGENT_TIMEOUT', '83')
+    run_id = client.post(url(project, request), json=body(project)).json()['run_id']
+    with connection() as conn:
+        before = conn.execute('SELECT config FROM managed_runs WHERE run_id=?', (run_id,)).fetchone()['config']
+    def spawn(row):
+        env = dict(os.environ, ORCH_DB=core.db_path(), ORCH_WORKER_ID=worker.id,
+                   ORCH_DISPATCH_TOKEN=row['dispatch_token'], ORCH_PLANNER='unsupported',
+                   ORCH_IMPLEMENTER='unsupported', ORCH_PLANNER_MODEL='drift',
+                   ORCH_IMPLEMENTER_MODEL='drift', AGENT_TIMEOUT='1')
+        return subprocess.Popen([sys.executable, str(Path(__file__).parent / 'fixtures/managed_workflow.py'), row['run_id']],
+            env=env, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    monkeypatch.setattr(worker, 'spawn', spawn)
+    assert worker.run_once()
+    detail = client.get('/runs/' + run_id).json()
+    assert detail['status'] == 'ready_for_human_review', detail
+    assert detail['configuration'] == json.loads(before)
+    started = next(event for event in detail['events'] if event['stage'] == 'started')
+    config = json.loads(started['payload'])['bindings']
+    assert config['planner']['adapter'] == 'claude_code'
+    assert config['implementer']['model'] == 'frozen-implementer'
+    assert config['planner_fallback']['model'] == 'frozen-fallback'
+    assert config['agent_timeout'] == 83
+    with connection() as conn:
+        assert conn.execute('SELECT config FROM managed_runs WHERE run_id=?', (run_id,)).fetchone()['config'] == before
+
+
+def test_browser_cannot_override_saved_bindings(setup):
+    client, project, request, _ = setup
+    payload = dict(body(project), bindings={'reviewer': {'adapter': 'fake_review'}})
+    assert client.post(url(project, request), json=payload).status_code == 422
+
+
+def test_idempotent_retry_returns_original_run_after_agent_config_drift(setup, monkeypatch):
+    client, project, request, _ = setup
+    payload = body(project)
+    original = client.post(url(project, request), json=payload).json()
+    monkeypatch.setenv('ORCH_PLANNER', 'unsupported')
+    monkeypatch.setenv('AGENT_TIMEOUT', 'invalid')
+    response = client.post(url(project, request), json=payload)
+    assert response.status_code == 202
+    assert response.json()['run_id'] == original['run_id']

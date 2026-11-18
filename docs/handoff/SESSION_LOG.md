@@ -154,3 +154,48 @@
 8. **Próxima tarefa:** V2-CORE-004, bindings por papel/runtime/modelo.
 9. **Aceite:** env como fonte legada; reviewer configurável internamente; snapshots/digest/idempotência e defaults legacy preservados; caracterização/fallback verdes e sem permissões novas por presunção.
 10. **Comandos:** .venv; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test; build/lint; python scripts/check_docs.py. Commit em dev autorizado, sem merge/push/deploy.
+
+## 2026-11-17 — Codex — início V2-CORE-004
+
+- [FATO] dev, HEAD `6737c2f`, árvore limpa; handoff confere. Operador autorizou CORE-004, mantendo commits testados em dev.
+- Escopo: bindings tipados por papel, fonte env somente no adaptador legado, resolução pelo registry e validação de capacidades/permissões atuais. Configuração persistida, digests/idempotência e defaults/fallback legados preservados. Sem novas flags/padrões por presunção de Q2/Q5.
+- Baseline em validação; nenhuma quota real autorizada.
+
+### CORE-004 — testes vermelhos
+
+- Baseline 154 pytest / 33 vitest confirmado.
+- Escrito tests/providers/test_bindings.py: resolução legada, modelos/defaults, snapshots antigos independentes do ambiente, imutabilidade, rejeição de capacidades/permissões/modelos incompatíveis, fallback congelado, reviewer fake registrado e snapshot do CLI.
+- Vermelho esperado: módulo bindings ainda inexistente. Sem chamadas reais de agentes.
+
+### CORE-004 — implementação e primeiro marco verde
+
+- Adicionados RoleBinding/AgentBindings imutáveis; fonte env legada separada, conversão de snapshots sem ler ambiente e validação por registry/capacidades/permissões. Modelos agy default resolvidos deterministicamente; Claude/Codex não aceitam modelos que seus adapters legados ignorariam.
+- Core passa por bindings e mantém fachadas/args legados; reviewer interno pode usar runtime registrado com capacidade review/read_only. Novos executores exigem verified; apenas combinações editoras legadas são preservadas nesta etapa. Sem mudar flags/padrões/Q2/Q5.
+- Runtime/plugin compartilham invoke_measured; eventos por chamada preservados. execute_scope congela bindings no State e evento started; resume CLI restaura snapshot se presente (runs gerenciados continuam sem retomada).
+- execution_runner passa bindings salvos diretamente, sem reescrever variáveis de providers/modelos. Configuração padrão mantém formato/digest antigos; configuração interna explícita inclui bindings e verifica consistência com campos planos.
+- Primeiros testes focados: 60 passed (1 warning). Acrescentados testes de digest/preflight, configuração explícita, submissão sem override de bindings e subprocesso real de workflow mockado com ambiente de providers divergente.
+
+### CORE-004 — revisão e ajuste de compatibilidade
+
+- Suíte completa anterior: 171 passed, 1 warning; build/lint verdes. Revisão encontrou dois casos de snapshots antigos sem cobertura: modelo vazio do implementer era convertido para default pelo runner antigo; modelo nulo/vazio do planner usava planner_fallback_model salvo.
+- Separada a resolução direta do ambiente (preserva strings vazias) da leitura de snapshots gerenciados antigos (reproduz os testes de truthiness do runner anterior). Adicionados cinco casos de regressão desses formatos.
+- Adicionados testes de grafo real LangGraph com reviewer fake e ambiente alterado após planejamento (bindings/contexto persistem sem invocação real), e repetição idempotente após configuração tornar-se inválida.
+
+### CORE-004 — validação de retorno de plugins
+
+- Ao integrar runtimes adicionais, retorno inválido agora é validado dentro da fronteira medida, gera invalid_output e RuntimeError estático. Teste cobre ausência do payload no evento, str e traceback público.
+- Revisão adicional detectou que `from exc` preservaria input bruto na cadeia de ValidationError; corrigido para `from None`. Teste inicial do traceback incluía o próprio segredo literal na linha-fonte do teste; movido para variável, mantendo a asserção sobre traceback completo.
+- 69 testes focados verdes após correção. Suíte completa anterior: 179 passed, 1 warning; nova execução final será registrada abaixo. Sem mudanças de decisões humanas ou consumo de quota.
+
+### 2026-11-17 — Codex — fechamento V2-CORE-004
+
+1. **Planejado:** bindings por papel/runtime/modelo substituindo env no core, reviewer interno configurável e snapshots/digests legados compatíveis.
+2. **Implementado:** RoleBinding/AgentBindings imutáveis, fonte env legada, leitura independente de snapshots, validação de capacidade/permissão/verificação e dispatch; snapshot em State/started e restauração CLI; runner recebe bindings sem reescrever env dos agentes. Config padrão mantém digest/formato; config explícita inclui bindings e confere projeção plana. Sem migração/novo preset, flags ou papéis built-in.
+3. **Arquivos:** novos providers/bindings.py e tests/providers/test_bindings.py; core.py, execution_manager.py, execution_runner.py, providers/base.py e errors.py, tests/providers/test_invocation_metadata.py, tests/test_execution_manager.py; DATA_MODEL, PROVIDER_SYSTEM, IMPLEMENTATION_PLAN, BACKLOG, CURRENT_STATE, NEXT_STEPS e SESSION_LOG. `git diff --stat` intermediário (antes de incluir arquivos novos/documentação final): 8 arquivos, 259 inserções/124 remoções; estatística completa no commit.
+4. **Testes:** baseline 154 pytest/33 vitest. Testes novos vermelhos antes de implementação por módulo inexistente. Final `ORCH_DB=<tmp> python -m pytest -q -p no:cacheprovider` → 179 passed, 1 warning LangGraph em 9,77 s; 69 focados verdes repetidos pela revisão. Build/lint frontend verdes; frontend inalterado após baseline 33 passed. check_docs/diff --check verdes. E2E não executado. Nenhum agente CLI real/quota.
+5. **Decisões:** detalhes registrados em PROVIDER_SYSTEM e DATA_MODEL, coerentes com ADR-0004 e sem resolver Q2/Q5 ou outros ADRs humanos. Exceções editoras preservam somente comportamento legado; novos executores exigem verified. Fallbacks genéricos/novos modos/API models ficam nas tarefas próprias.
+6. **Problemas resolvidos:** revisão detectou semântica truthy de modelos em snapshots antigos, corrigida e separada do ambiente direto com regressões. Retornos de plugins validados dentro da fronteira medida; erro estático invalid_output suprime cadeia ValidationError para não vazar input no traceback. Grafo LangGraph mockado, despacho com drift e idempotência após config inválida cobertos.
+7. **Pendências:** segurança SEC-001/002/006, validação real SEC-003 só com autorização; F0-002/Q2–Q12/ADRs humanos continuam pendentes. Revisão independente `review_core004` aprovada após correções e delta de privacidade (69 focados).
+8. **Próxima tarefa recomendada:** V2-SEC-001, proteger todas as rotas.
+9. **Aceite:** SECURITY_GOVERNANCE CA1, Host/loopback/token e integração frontend compatível, testes API/vitest/e2e mockados; revisão e handoff, sem quota real.
+10. **Comandos:** ativar .venv; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test; build/lint; python scripts/check_docs.py. Commit somente dev autorizado; sem merge/push/deploy.

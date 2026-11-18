@@ -1,10 +1,19 @@
 # Próximos passos
 
-## Próxima tarefa: V2-CORE-004
+## Próxima tarefa recomendada: V2-SEC-001
 
-**Objetivo:** bindings papel→runtime/modelo substituindo leitura direta de env no core; env vira fonte da configuração legada e reviewer é configurável internamente. Dependência CORE-003 concluída.
+**Objetivo:** proteger todas as rotas com política local Host/loopback + token conforme SECURITY_GOVERNANCE CA1, mantendo frontend e contratos legados. Tarefa P0 sem dependências, após conclusão do núcleo CORE-001..004.
 
-**Aceite:** configuração por papel resolvida/validada usando registry/capacidades e snapshots por run; manter comportamento legacy-v1 e digest/idempotência das execuções gerenciadas. Defaults atuais Claude/Claude/Codex preservados; não presumir Q2/Q5 nem habilitar novos papéis/permissões sem suas tarefas. Tests de config/digest/caracterização/fallback sem CLIs reais; revisão distinta, handoff e commit dev após testes. Ler PROVIDER_SYSTEM, DATA_MODEL e configuração gerenciada atual antes de editar.
+**Aceite:** requisições com Host/peer/origem inválidos rejeitadas em todas as rotas aplicáveis; autenticação local por token conforme especificação e integração frontend; testes API + vitest/e2e mockados, sem CLI real. Ler SECURITY_GOVERNANCE e ADR-0009 antes de editar; respeitar compatibilidade e modo web existente. Revisão distinta e handoff antes do commit em dev.
+
+## CORE-004 concluída
+
+- Bindings imutáveis por papel, registry/capacidades/permissões validados; env só fonte do preset legado. Defaults Claude/Claude/Codex e fallback exato preservados. Reviewer configurável internamente; papéis/permissões futuros não antecipados.
+- execute_scope aceita bindings/registry internos, congela snapshot em State e started; resume CLI restaura snapshot se presente. Runs gerenciados continuam sem retomada.
+- Worker passa bindings de managed_runs.config sem reescrever env de providers/modelos. Config padrão/digest antigos preservados; config explícita inclui bindings, digest e projeção plana checados. Sem migração.
+- Leitura de snapshots antigos reproduz truthiness do runner; leitura direta do ambiente preserva strings vazias. Modelos agy nulos em bindings explícitos resolvidos para default conhecido, sem herdar env na chamada.
+- Reviewer fake + LangGraph, ambiente divergente após planejamento/despacho, idempotência e digests testados. Retornos inválidos de plugins geram invalid_output estático sem payload em evento/traceback.
+- Evidências: 179 pytest / 33 vitest; 69 focados; build/lint/docs verdes; revisão `review_core004`. E2E não executado.
 
 ## CORE-003 concluída
 
@@ -26,7 +35,7 @@
 ## Decisões humanas pendentes
 
 - V2-F0-001 concluída: baseline `f8e6949` em `dev`, preservando o WIP. Novos commits em dev autorizados após testes; sem merge/push.
-- V2-F0-002 `blocked`: Q2–Q12 e ADRs aguardam revisão humana. Não impedem CORE-004. Quota real segue não autorizada.
+- V2-F0-002 `blocked`: Q2–Q12 e ADRs aguardam revisão humana. Não impedem SEC-001/002/006; SEC-003 requer autorização de validação real. Quota real segue não autorizada.
 
 ## Referência concluída: V2-CORE-001
 

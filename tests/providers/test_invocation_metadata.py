@@ -188,3 +188,18 @@ def test_direct_antigravity_observer_sees_effective_default_model(monkeypatch):
     runtime.invoke(InvocationRequest(prompt='task', cwd='/tmp', permission='read_only'))
     assert observed[0].model == 'effective-env-model'
     assert observed[0].model_reported is None
+
+
+def test_invalid_plugin_result_is_recorded_without_return_value_content():
+    observed = []
+    request = InvocationRequest(prompt='task', cwd='/tmp', permission='read_only')
+    invalid_return = 'secret-invalid-return'
+    with pytest.raises(RuntimeError, match='invalid InvocationResult') as caught:
+        base.invoke_measured('broken_plugin', request, lambda: invalid_return, observed.append)
+    assert 'secret-invalid-return' not in str(caught.value)
+    import traceback
+    assert 'secret-invalid-return' not in ''.join(traceback.format_exception(
+        type(caught.value), caught.value, caught.value.__traceback__))
+    assert len(observed) == 1
+    assert observed[0].error_code == 'invalid_output'
+    assert 'secret-invalid-return' not in observed[0].model_dump_json()

@@ -40,14 +40,14 @@ Não é necessário ler toda a pasta `docs/`. Leia apenas a especificação da �
 
 - v1 funcional preservada: projetos, solicitações, fila SQLite, worker separado, LangGraph linear e worktrees Git. Baseline testado e revisado em `dev`: `f8e6949`.
 - WIP de tema claro/escuro, exclusão lógica e migração v3 preservado e commitado em `dev`, conforme autorização do operador. Sem merge/push/main/master.
-- `V2-DOC-001` e `V2-CORE-001..003` concluídas: verificador de documentação, adapters CLI, metadados por invocação e registry/manifests/probes com `/providers`; comandos/fallback legados preservados.
-- Validação: **154 pytest / 33 vitest**, build/lint e documentação verdes (2026-11-17). Nenhum agente CLI real executado; E2E não executado.
+- `V2-DOC-001` e `V2-CORE-001..004` concluídas: verificador de documentação, adapters, metadados, registry e bindings por papel com snapshots; comandos/fallback/digests legados preservados.
+- Validação: **179 pytest / 33 vitest**, build/lint e documentação verdes (2026-11-17). Nenhum agente CLI real executado; E2E não executado.
 
 ## 5. Próxima tarefa
 
-1. **`V2-CORE-004`** — bindings papel→runtime/modelo, substituindo leitura direta de env no core. Env como fonte legada, reviewer configurável internamente e snapshot/digest compatíveis.
+1. **`V2-SEC-001`** — estender proteção local Host/loopback/token a todas as rotas, mantendo frontend e contratos legados. Ler SECURITY_GOVERNANCE; usar mocks, sem quota real.
 2. **`V2-F0-002`** — pendente de revisão humana dos ADRs e de [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md). Não assumir respostas; bloquear apenas tarefas dependentes.
-3. Depois: tarefas de segurança ou WF-001 (schema de workflow), uma por vez, respeitando dependências e decisões humanas.
+3. Depois: SEC-002 (ambiente por allowlist), SEC-006 (Git seguro) ou WF-001, uma por vez e respeitando dependências/decisões humanas. SEC-003 exige validação real autorizada.
 
 Detalhes e comandos: [NEXT_STEPS.md](../handoff/NEXT_STEPS.md).
 

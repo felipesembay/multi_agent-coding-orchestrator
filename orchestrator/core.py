@@ -15,7 +15,9 @@ from typing import TypedDict
 
 from langgraph.graph import END, StateGraph
 
-from .providers.base import AgentCall, InvocationRequest
+from .providers.base import AgentCall, InvocationRequest, invoke_measured
+from .providers.bindings import AgentBindings, legacy_bindings, validate_bindings
+from .providers.registry import ProviderRegistry
 from .providers.runtimes.antigravity import AntigravityRuntime
 from .providers.runtimes.claude_code import ClaudeCodeRuntime
 from .providers.runtimes.codex_cli import CodexCliRuntime
@@ -34,6 +36,7 @@ class State(TypedDict, total=False):
     status: str
     error: str
     managed: bool
+    bindings: dict
 
 
 SCHEMA = '''
@@ -104,6 +107,27 @@ def extract_json(value: str) -> dict:
 
 # Scope metadata to a run without changing public facade signatures or patch points.
 _agent_context = ContextVar('agent_context', default=None)
+_provider_registry = ContextVar('provider_registry', default=None)
+
+
+@contextmanager
+def _using_provider_registry(registry):
+    token = _provider_registry.set(registry)
+    try:
+        yield
+    finally:
+        _provider_registry.reset(token)
+
+
+def _registry():
+    return _provider_registry.get() or ProviderRegistry()
+
+
+def _resolved_bindings(state=None):
+    saved = state.get('bindings') if state else None
+    config = AgentBindings.model_validate(saved) if saved is not None else legacy_bindings()
+    return validate_bindings(config, _registry())
+
 
 
 @contextmanager
@@ -161,79 +185,42 @@ def coding_agent(prompt: str, cwd: str, role: str, state: State | None = None) -
         return _coding_agent(prompt, cwd, role, state)
 
 
+def _invoke_binding(binding, prompt, cwd, role, timeout):
+    # Preserve the legacy facade patch points and their exact call arguments.
+    if binding.adapter == 'claude_code':
+        return claude(prompt, cwd, timeout)
+    if binding.adapter == 'codex_cli':
+        return codex(prompt, cwd, timeout)
+    if binding.adapter == 'antigravity':
+        return antigravity(prompt, cwd, timeout=timeout,
+                           mode='plan' if binding.permission == 'read_only' else 'accept-edits',
+                           model=binding.model)
+    runtime = _registry().get(binding.adapter)
+    request = InvocationRequest(role=role, prompt=prompt, cwd=cwd, model=binding.model,
+                                permission=binding.permission, timeout_s=timeout)
+    return invoke_measured(binding.adapter, request, lambda: runtime.invoke(request), _record_agent_call).text
+
+
 def _coding_agent(prompt: str, cwd: str, role: str, state: State | None = None) -> str:
     if role not in ('planner', 'implementer'):
         raise ValueError(f'Invalid agent role: {role}')
-
-    provider = os.getenv(f'ORCH_{role.upper()}', 'claude').lower()
-
-    if provider == 'claude':
-        try:
-            return claude(
-                prompt,
-                cwd,
-                int(os.getenv('AGENT_TIMEOUT', '900'))
-            )
-        except RuntimeError as exc:
-            message = str(exc).lower()
-
-            quota_errors = (
-                'rate limit',
-                'rate_limit',
-                'usage limit',
-                'usage_limit',
-                'quota exceeded',
-                'out of extra usage',
-                'hit your limit',
-                'you have reached your limit',
-            )
-
-            if role != 'planner' or not any(
-                marker in message for marker in quota_errors
-            ):
-                raise
-
-            if state is not None:
-                event(state, 'agent_fallback', {
-                    'role': role,
-                    'primary': 'claude',
-                    'fallback': 'antigravity',
-                    'reason': 'usage_limit',
-                })
-
-            print(
-                '[orchestrator] Claude usage limit detected. '
-                'Falling back to Antigravity.',
-                flush=True
-            )
-
-            return antigravity(
-                prompt,
-                cwd,
-                timeout=int(os.getenv('AGENT_TIMEOUT', '900')),
-                mode='plan',
-                model=os.getenv(
-                    'ORCH_PLANNER_MODEL',
-                    'gemini-4-argon-medium'
-                )
-            )
-
-    if provider == 'antigravity':
-        mode = 'plan' if role == 'planner' else 'accept-edits'
-        model = os.getenv(
-            f'ORCH_{role.upper()}_MODEL',
-            'gemini-4-argon-medium'
-        )
-
-        return antigravity(
-            prompt,
-            cwd,
-            timeout=int(os.getenv('AGENT_TIMEOUT', '900')),
-            mode=mode,
-            model=model
-        )
-
-    raise ValueError(f'Unsupported agent provider: {provider}')
+    config = _resolved_bindings(state)
+    binding = getattr(config, role)
+    try:
+        return _invoke_binding(binding, prompt, cwd, role, config.agent_timeout)
+    except RuntimeError as exc:
+        quota_errors = ('rate limit', 'rate_limit', 'usage limit', 'usage_limit',
+                        'quota exceeded', 'out of extra usage', 'hit your limit',
+                        'you have reached your limit')
+        if (role != 'planner' or config.planner_fallback is None
+                or not any(marker in str(exc).lower() for marker in quota_errors)):
+            raise
+        if state is not None:
+            event(state, 'agent_fallback', {
+                'role': role, 'primary': 'claude', 'fallback': 'antigravity', 'reason': 'usage_limit',
+            })
+        print('[orchestrator] Claude usage limit detected. Falling back to Antigravity.', flush=True)
+        return _invoke_binding(config.planner_fallback, prompt, cwd, role, config.agent_timeout)
 
 
 def plan(state: State) -> State:
@@ -342,9 +329,10 @@ def review(state: State) -> State:
         f'Diff excerpt: {diff[:16000]}\n'
         f'Automated test results: {json.dumps(test_result)}'
     )
+    config = _resolved_bindings(state)
     with _agent_call_context(state, 'reviewer'):
-        result = extract_json(codex(
-            prompt, worktree, int(os.getenv('AGENT_TIMEOUT', '900')),
+        result = extract_json(_invoke_binding(
+            config.reviewer, prompt, worktree, 'reviewer', config.agent_timeout,
         ))
     if not isinstance(result.get('approved'), bool) or not isinstance(
         result.get('findings'), list
@@ -448,22 +436,29 @@ def execute(repo: str, scope_file: str) -> State:
     return execute_scope(repo, scope)
 
 
-def execute_scope(repo: str, scope: str, run_id: str | None = None, *, managed: bool = False) -> State:
+def execute_scope(repo: str, scope: str, run_id: str | None = None, *, managed: bool = False,
+                  bindings: AgentBindings | dict | None = None, provider_registry=None) -> State:
     """Shared entry point: CLI reads its file; the manager supplies saved requirements."""
     if len(scope) > 100_000:
         raise ValueError('Scope exceeds 100k characters')
     run_id = run_id or 'run-' + uuid.uuid4().hex[:12]
     if not re.fullmatch(r'run-[0-9a-f]{12}', run_id):
         raise ValueError('Invalid run_id')
+    registry = provider_registry or _registry()
+    resolved = validate_bindings(
+        AgentBindings.model_validate(bindings.model_dump() if isinstance(bindings, AgentBindings) else bindings)
+        if bindings is not None else legacy_bindings(), registry,
+    )
     repo_path = Path(repo).resolve()
-    with repository_lock(repo_path):
+    with _using_provider_registry(registry), repository_lock(repo_path):
         worktree = prepare(repo_path, run_id)
         state: State = {
             'run_id': run_id, 'repo': str(repo_path),
             'worktree': str(worktree), 'scope': scope, 'managed': managed,
+            'bindings': resolved.model_dump(),
         }
         event(state, 'started', {
-            'repo': str(repo_path), 'worktree': str(worktree),
+            'repo': str(repo_path), 'worktree': str(worktree), 'bindings': resolved.model_dump(),
         })
         return _invoke(state, 'plan')
 
@@ -568,6 +563,8 @@ def resume(run_id: str, dry_run: bool = False) -> State:
         'run_id': run_id, 'repo': str(repo), 'worktree': str(worktree),
         'scope': '', 'plan': planned, 'task_index': task_index,
         'attempts': attempts, 'review': feedback, 'status': 'resuming',
+        'bindings': (AgentBindings.model_validate(started['bindings'])
+                     if 'bindings' in started else legacy_bindings()).model_dump(),
     }
     if dry_run:
         return {**state, 'entry_point': entry_point}

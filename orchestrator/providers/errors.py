@@ -22,7 +22,7 @@ def error_code(exc: Exception) -> ErrorCode:
                              'out of extra usage', 'hit your limit', 'you have reached your limit')),
         ('auth_failed', ('authentication failed', 'unauthorized', 'invalid api key', 'auth failed')),
         ('timeout', ('timed out',)),
-        ('invalid_output', ('invalid cli json', 'empty or invalid response')),
+        ('invalid_output', ('invalid cli json', 'empty or invalid response', 'invalid invocationresult')),
         ('permission_denied', ('permission denied', 'denied requiredactions')),
         ('unavailable', ('executable missing:',)),
     ):

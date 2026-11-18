@@ -1,12 +1,12 @@
 # Estado atual
 
-Atualizado: 2026-11-17 · Por: Codex (V2-CORE-003)
+Atualizado: 2026-11-17 · Por: Codex (V2-CORE-004)
 
 ## Repositório
-- Branch: `dev`, criada pelo operador. Baseline: `f8e6949`; extração dos runtimes: `87a034f` (CORE-001); metadados: `56e44d2` (CORE-002).
+- Branch: `dev`, criada pelo operador. Baseline: `f8e6949`; extração dos runtimes: `87a034f` (CORE-001); metadados: `56e44d2` (CORE-002); registry: `6737c2f` (CORE-003).
 - Operador autorizou implementação e commits em `dev` após testes; sem merge/push/deploy/main/master.
 - WIP anterior (tema, exclusão lógica, migração v3) preservado, revisado e incluído no baseline.
-- CORE-003 testada e aprovada por `review_core003`, registrada nesta sessão no commit `V2-CORE-003: add opt-in provider registry and catalog`; consulte `git log -1` para hash final. Nenhum WIP externo identificado.
+- CORE-004 testada e aprovada por `review_core004`, registrada nesta sessão no commit `V2-CORE-004: freeze role bindings and preserve legacy snapshots`; consulte `git log -1` para hash final. Nenhum WIP externo identificado.
 
 ## Implementado
 - v1 preservada, conforme [CURRENT_STATE_AUDIT.md](../architecture/CURRENT_STATE_AUDIT.md), mais tema/exclusão/migração v3 do baseline.
@@ -21,13 +21,18 @@ Atualizado: 2026-11-17 · Por: Codex (V2-CORE-003)
 - **V2-CORE-003 done:** registry, Capability/CapabilityManifest/ProbeResult, manifestos nos três runtimes, probe passivo e GET /providers sob proteção Host/peer/Origin local. Não usa subprocessos/keyring no probe; presença de executável não atesta autenticação/quota; versão e credenciais nulas.
 - Registry permite runner/observer nos built-ins e factories de plugins sem argumentos, só com nomes explicitamente habilitados. Sem opt-in nem descobre plugins; duplicatas/colisões rejeitadas e falhas isoladas por códigos estáticos sem caminhos/mensagens brutas. Listagem valida/copía manifest/probe; plugins de modelos e runtimes separados por kind.
 - provider_configs não existe até WF-002; API padrão só built-ins, HTTP não habilita plugins. Built-ins verified=false, billing unknown, usage_source none; capacidades atuais, sem declarar telemetria/saída estruturada/papéis futuros.
-- Flags/prompts/seleção inalterados. Claude continua acceptEdits e Codex read-only; segurança permanece nas tarefas SEC. Bindings ficam em CORE-004 e usage_records em OBS-001.
+- **V2-CORE-004 done:** RoleBinding/AgentBindings tipados/imutáveis, fonte env legada separada, validação registry/capacidades/permissões e dispatch por binding. Reviewer configurável internamente via runtime registrado apropriado. Defaults Claude/Claude/Codex e fallback exato legados preservados.
+- execute_scope congela bindings no State e evento started; resume CLI restaura quando presentes. Worker lê snapshot gerenciado sem env atual e passa bindings diretamente, sem reescrever env dos agentes. Sem migração; config padrão/digest antigos preservados. Config explícita interna inclui bindings e confere consistência com projeção plana.
+- Snapshots antigos reproduzem truthiness do runner para modelos nulos/vazios; ambiente direto preserva strings vazias. Modelos agy nulos explícitos viram default determinístico. Modelos para adapters legados Claude/Codex que não encaminham escolha são rejeitados.
+- Novos executores exigem verified=true; somente editores Claude/Antigravity e planner Claude nas combinações legadas preservam exceções necessárias. Reviewer/planners novos read_only; não habilita novas flags/papéis ou ModelProviders. Regras de workflow em WF-001 continuam separadas.
+- Invocação medida compartilhada com plugins; retorno inválido gera invalid_output e erro estático sem expor payload/cadeia no traceback.
+- Flags/prompts/defaults inalterados. Claude continua acceptEdits e Codex read-only; segurança permanece nas tarefas SEC. Usage_records ficam em OBS-001; segurança de roles e workflows segue nas tarefas próprias.
 
 ## Testes desta sessão
 | Comando | Resultado |
 |---|---|
-| `ORCH_DB=<tmp> python -m pytest -q -p no:cacheprovider` | Baseline 130 passed; final 154 passed, 1 warning LangGraph |
-| `python -m pytest -q -p no:cacheprovider tests/providers tests/test_planner_fallback.py` | Incluídos no conjunto completo; revisão independente repetiu 52 de registry/contratos/caracterização/API |
+| `ORCH_DB=<tmp> python -m pytest -q -p no:cacheprovider` | Baseline 154 passed; final 179 passed, 1 warning LangGraph |
+| `python -m pytest -q -p no:cacheprovider tests/providers tests/test_planner_fallback.py` | 69 focados (bindings/caracterização/metadata/fallback), repetidos pela revisão independente |
 | `npm --prefix frontend test` | 33 passed (6 arquivos), no baseline; frontend não alterado nesta tarefa |
 | `npm --prefix frontend run build` / `run lint` | sucesso |
 | `python scripts/check_docs.py` / `git diff --check` | sucesso |
@@ -36,8 +41,8 @@ Atualizado: 2026-11-17 · Por: Codex (V2-CORE-003)
 Suíte completa Python executada fora do sandbox com autorização automática para sockets locais e subprocessos mockados. Sem quota real.
 
 ## Próximas etapas e pendências
-- Próxima tarefa: CORE-004 bindings por papel/runtime/modelo e configuração legada, preservando snapshot/digest e defaults.
-- F0-002 continua blocked: Q2–Q12 e revisão humana dos ADRs pendentes. Não bloqueia CORE-004. Não assumir decisões nem iniciar spikes reais sem autorização.
+- Próxima recomendada: SEC-001 proteger todas as rotas; alternativas SEC-002/006, uma por vez. Núcleo CORE-001..004 concluído.
+- F0-002 continua blocked: Q2–Q12 e revisão humana dos ADRs pendentes. Não bloqueia SEC-001/002/006; SEC-003 exige validação real autorizada. Não assumir decisões nem iniciar spikes reais sem autorização.
 
 ## Ambiente observado
 Python 3.9.7 (.venv), LangGraph 0.6.11, Node 22.18.0. Sem dependências novas; Pydantic usa Optional compatível com Python 3.9. Versões de CLIs seguem apenas a auditoria anterior, sem nova verificação ou execução.

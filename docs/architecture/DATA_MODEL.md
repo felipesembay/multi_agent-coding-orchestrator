@@ -16,6 +16,8 @@ erDiagram
 
 `events.run_id` não tem chave estrangeira: runs legados do CLI só existem em `events`.
 
+**CORE-004 (sem migração):** managed_runs.config mantém o formato plano legado por padrão. Configuração interna explícita pode incluir a chave JSON `bindings` (AgentBindings v1), coberta pelo mesmo digest e conferida contra os campos planos. O worker resolve snapshots antigos deterministicamente e passa bindings diretamente ao core, sem ler seleção/modelos do ambiente atual. Novos eventos started incluem bindings; State carrega o snapshot durante o run e retomada CLI. Isso não cria a coluna dedicada bindings/workflow_digest proposta para WF-002/WF-007 nem habilita retomada gerenciada.
+
 ## 2. Proposto (migrações 4+)
 
 Regras: migrações apenas **aditivas**; nenhuma coluna existente removida ou renomeada; `events` permanece fonte da timeline; cada migração tem número próprio em `platform_migrations` e teste de upgrade a partir de um banco v3.
