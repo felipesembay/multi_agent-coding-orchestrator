@@ -1,12 +1,23 @@
 # Próximos passos
 
-## Próxima tarefa: V2-WF-007 — snapshot e digest por run
+## Próxima tarefa: V2-WF-008 — API e seleção de workflow
 
-**Objetivo:** congelar workflow+bindings no run, com workflow_version_id e digest de confirmação; dependências WF-002/WF-003 concluídas. Catálogo WF-004 disponível para materializar escolhas do host.
+**Objetivo:** endpoints WORKFLOW_ENGINE §6.6 e seleção no StartExecution, usando versões/bindings/digest congelados em WF-007. Dependência WF-007 concluída; não recriar a lógica de snapshot no HTTP.
 
-**Aceite:** CA4 de WORKFLOW_ENGINE, incluindo mudança de preset/configuração após enfileirar sem alterar o run; idempotência/digests e compatibilidade dos snapshots antigos preservados. Ler WORKFLOW_ENGINE, DATA_MODEL/PERSISTENCE e contratos de presets/compiler/manager. Referências pc-* do catálogo são lógicas, não registros habilitados já existentes; resolver via configurações do host e validar manifestos reais. Não ativar preset A antes de capacidades/permissões correspondentes nem criar bypass por nome/identidade de clone.
+**Aceite:** endpoints GET/POST workflows, versões/validate/presets e seleção por versão/bindings no preflight/start; testes API e vitest, preservando clientes/contratos/defaults anteriores. Readonly de presets no servidor, provider_configs habilitados pelo host, sem dados de credenciais/configuração arbitrária em JSON, sem habilitar plugins por payload HTTP. APIs de seleção devem apresentar indisponibilidade real de A/B/C até capacidades/permissões/provider implementados. Nunca decidir compatibilidade legada pelo name de um workflow/clonado.
 
-**Comandos:** git status/log; source .venv/bin/activate; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test; check_docs/diff --check. Revisão/handoff/commit dev após verdes; sem push/merge/deploy. Testes sempre com mocks.
+**Ler:** WORKFLOW_ENGINE §6.3.3/6.6, DATA_MODEL, SECURITY_GOVERNANCE, snapshot.py/store.py, execution_manager/runner e api/frontend StartExecution. Editor completo é WF-009; permissões/adapters e ModelProvider continuam nas tarefas próprias.
+
+**Comandos:** git status/log; source .venv/bin/activate; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test; build/lint/check_docs/diff --check. Revisão/handoff/commit dev após verdes; sem novo push/merge/deploy. Testes com mocks; Q10 autoriza apenas spikes específicos.
+
+## WF-007 concluída
+
+- Push autorizado dos oito commits locais db12642..7431745 para origin/dev concluído antes da tarefa. Commit WF-007 novo fica local nesta sessão; sem force/main/master.
+- Store interno append_version valida Pydantic e JSON canônico/SHA; não cria definições/configs/seed ou CRUD HTTP. Snapshot explícito resolve versão ativa/íntegra e provider_configs persistidos habilitados; captura definição/bindings/adapter/kind, sem credenciais/settings.
+- Config.workflow opcional e colunas workflow_version_id/bindings/workflow_digest preenchidas apenas na seleção explícita. Digest de confirmação cobre config inteira. Reserva reconsulta drift sob lock; retries idempotentes devolvem run original antes de resolver config alterada. Sem seleção, formato/digest/colunas nulas antigos preservados.
+- Runner valida concordância/integridade/capacidades antes de worktree; host AgentRuntime usa somente snapshot e perfil de teste congelado, com modelos/permissões diretamente em request. Alterações posteriores de definição, versão, providerconfig/estado enabled ou env não redirecionam run; capacidades instaladas revogadas bloqueiam execução.
+- Gates/budget/fallback/parâmetros/ModelProvider/settings/credential_ref ainda não integrados são recusados antes da fila. HTTP StartInput continua sem campo workflow até esta próxima tarefa. Não promover manifestos de built-ins ou autoaprovar gates.
+- Evidência:521 pytest /38 vitest;36 novos; build/lint/docs verdes. Revisor review_wf007 aprovou após ajuste de deadline comum Git/testes/agente/eventos,214 focados+35 manager. Nenhum CLI real; E2E não reexecutado. Detalhes em CURRENT_STATE/SESSION_LOG.
 
 ## WF-004 concluída
 

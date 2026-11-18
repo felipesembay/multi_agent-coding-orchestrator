@@ -22,6 +22,8 @@ from .providers.bindings import (AgentBindings, bindings_from_snapshot, legacy_a
                                  legacy_projection, validate_bindings)
 from .providers.registry import ProviderRegistry
 from .policy.env import current_allowlist, snapshot_allowlist
+from .workflows.snapshot import (WorkflowSelection, WorkflowSnapshot, load_snapshot,
+                                 validate_snapshot)
 
 ACTIVE = ('queued', 'running')
 TERMINAL = ('ready_for_human_review', 'blocked', 'failed', 'interrupted')
@@ -60,6 +62,7 @@ class ExecutionConfiguration(BaseModel):
     worktree_base: str
     bindings: Optional[AgentBindings] = None
     environment_allowlist: Optional[dict[str, list[str]]] = None
+    workflow: Optional[WorkflowSnapshot] = None
 
     @model_serializer(mode='wrap')
     def preserve_legacy_shape(self, handler):
@@ -68,6 +71,8 @@ class ExecutionConfiguration(BaseModel):
             result.pop('bindings', None)
         if self.environment_allowlist is None:
             result.pop('environment_allowlist', None)
+        if self.workflow is None:
+            result.pop('workflow', None)
         return result
 
 
@@ -133,16 +138,31 @@ def validate_test_command(command):
     return argv
 
 
-def configuration(project, *, bindings: Optional[AgentBindings] = None):
+def configuration(project, *, bindings: Optional[AgentBindings] = None,
+                  workflow: Optional[WorkflowSelection] = None, provider_registry=None):
     try:
+        if bindings is not None and workflow is not None:
+            raise ValueError('Legacy bindings and workflow selection are exclusive')
+        selected = load_snapshot(workflow, registry=provider_registry or ProviderRegistry()) if workflow is not None else None
         explicit = AgentBindings.model_validate(bindings.model_dump()) if bindings is not None else None
-        agent_settings = legacy_projection(explicit) if explicit is not None else legacy_agent_settings()
+        if selected is not None:
+            roles = {s.role: selected.bindings[s.id] for s in selected.definition.steps if hasattr(s, 'role')}
+            agent_settings = {'agent_timeout': int(os.getenv('AGENT_TIMEOUT', '900')), 'planner_fallback_model': ''}
+            for role in ('planner', 'implementer', 'reviewer'):
+                binding = roles.get(role)
+                agent_settings[role] = selected.providers[binding.provider_config_id].adapter if binding else ''
+                if role != 'reviewer':
+                    agent_settings[role + '_model'] = binding.model if binding else None
+        else:
+            agent_settings = legacy_projection(explicit) if explicit is not None else legacy_agent_settings()
         config = ExecutionConfiguration(
             **agent_settings,
             bindings=explicit,
+            workflow=selected,
             environment_allowlist=current_allowlist() or None,
             test_command=os.getenv('ORCH_TEST_COMMAND', '').strip(),
-            max_attempts=int(os.getenv('MAX_ATTEMPTS', '3')),
+            max_attempts=max((s.max_attempts for s in selected.definition.steps if s.type == 'implement'), default=3)
+            if selected is not None else int(os.getenv('MAX_ATTEMPTS', '3')),
             test_timeout=int(os.getenv('TEST_TIMEOUT', '300')),
             worktree_base=str(Path(os.getenv('ORCH_WORKTREES', str(Path(project['repo_path']).parent / (Path(project['repo_path']).name + '-agent-worktrees')))).expanduser().resolve()),
         ).model_dump(mode='json')
@@ -156,19 +176,23 @@ def validate_configuration(config, *, provider_registry=None):
     registry = provider_registry or ProviderRegistry()
     try:
         snapshot_allowlist(config)
-        bindings = validate_bindings(bindings_from_snapshot(config), registry)
+        selected = validate_snapshot(config['workflow'], registry=registry) if config.get('workflow') is not None else None
+        bindings = None if selected is not None else validate_bindings(bindings_from_snapshot(config), registry)
     except (ValueError, KeyError, TypeError) as exc:
         raise projects.ProjectError('Bindings de execução inválidos ou provider não suportado.', 422) from exc
     tools = {'git'}
-    for role in ('planner', 'implementer', 'reviewer'):
-        runtime = registry.get(getattr(bindings, role).adapter)
+    adapters = {p.adapter for p in selected.providers.values()} if selected is not None else {
+        getattr(bindings, role).adapter for role in ('planner', 'implementer', 'reviewer')}
+    for adapter in adapters:
+        runtime = registry.get(adapter)
         executable = getattr(runtime, 'executable', None)
         if executable:
             tools.add(executable)
     missing = sorted(tool for tool in tools if not shutil.which(tool))
     if missing:
         raise projects.ProjectError('Ferramentas locais ausentes: ' + ', '.join(missing), 422)
-    validate_test_command(config['test_command'])
+    if selected is None or any(s.type == 'test' for s in selected.definition.steps):
+        validate_test_command(config['test_command'])
     if not (1 <= config['max_attempts'] <= 20 and 1 <= config['agent_timeout'] <= 86400 and 1 <= config['test_timeout'] <= 86400):
         raise projects.ProjectError('Tentativas e timeouts configurados fora dos limites.', 422)
     projects.authorized_path(config['worktree_base'], allow_root=True)
@@ -189,11 +213,11 @@ def validate_repository(project):
     return common
 
 
-def preflight(project_id):
+def preflight(project_id, *, workflow=None, provider_registry=None):
     project = projects.get_project(project_id)
-    config, digest = configuration(project)
+    config, digest = configuration(project, workflow=workflow, provider_registry=provider_registry)
     errors = []
-    for check in (lambda: validate_configuration(config), lambda: validate_repository(project)):
+    for check in (lambda: validate_configuration(config, provider_registry=provider_registry), lambda: validate_repository(project)):
         try:
             check()
         except (projects.ProjectError, OSError, ValueError) as exc:
@@ -210,7 +234,7 @@ def preflight(project_id):
     return dict(configuration=config, configuration_digest=digest, worker=worker, ready=not errors, errors=errors)
 
 
-def submit(project_id, request_id, data):
+def submit(project_id, request_id, data, *, workflow=None, provider_registry=None):
     with connection() as conn:
         projects.get_project(project_id, conn)
         previous = conn.execute('SELECT * FROM managed_runs WHERE idempotency_key=?', (data.idempotency_key,)).fetchone()
@@ -226,10 +250,10 @@ def submit(project_id, request_id, data):
         raise projects.ProjectError('A solicitação não pertence a este projeto.', 409)
     if project['state'] != 'active':
         raise projects.ProjectError('Reative o projeto antes de executar.', 409)
-    config, digest = configuration(project)
+    config, digest = configuration(project, workflow=workflow, provider_registry=provider_registry)
     if data.configuration_digest != digest:
         raise projects.ProjectError('A configuração mudou. Revise a confirmação novamente.', 409)
-    validate_configuration(config)
+    validate_configuration(config, provider_registry=provider_registry)
     common = validate_repository(project)
     if not worker_status()['online']:
         raise projects.ProjectError('Worker offline. Inicie python -m orchestrator.worker com o mesmo ORCH_DB.', 503)
@@ -246,9 +270,22 @@ def submit(project_id, request_id, data):
                 return {key: previous[key] for key in ('run_id', 'status', 'project_id', 'request_id')}
             if projects.get_project(project_id, conn)['state'] != 'active':
                 raise projects.ProjectError('Projeto arquivado durante a confirmação.', 409)
-            conn.execute('''INSERT INTO managed_runs(run_id,project_id,request_id,request_title,scope,repo,repo_identity,config,idempotency_key,status,dispatch_token)
-                            VALUES(?,?,?,?,?,?,?,?,?,'queued',?)''',
-                         (run_id, project_id, request_id, request['title'], scope, project['repo_path'], common, json.dumps(config), data.idempotency_key, uuid.uuid4().hex))
+            snapshot = None
+            if workflow is not None:
+                try:
+                    snapshot = load_snapshot(workflow, registry=provider_registry or ProviderRegistry(), conn=conn)
+                    if snapshot.model_dump(mode='json') != config['workflow']:
+                        raise ValueError('Workflow changed')
+                except ValueError:
+                    raise projects.ProjectError('Workflow ou providers mudaram durante a confirmação.', 409) from None
+            conn.execute('''INSERT INTO managed_runs(run_id,project_id,request_id,request_title,scope,repo,repo_identity,config,
+                            idempotency_key,status,dispatch_token,workflow_version_id,bindings,workflow_digest)
+                            VALUES(?,?,?,?,?,?,?,?,?,'queued',?,?,?,?)''',
+                         (run_id, project_id, request_id, request['title'], scope, project['repo_path'], common,
+                          json.dumps(config), data.idempotency_key, uuid.uuid4().hex,
+                          snapshot.workflow_version_id if snapshot else None,
+                          json.dumps(snapshot.model_dump(mode='json')['bindings']) if snapshot else None,
+                          snapshot.digest() if snapshot else None))
             projects.audit(conn, 'execution.queued', project_id, run_id=run_id, request_id=request_id)
             conn.commit()
     except sqlite3.IntegrityError as exc:

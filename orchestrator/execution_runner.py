@@ -10,9 +10,12 @@ from .execution_manager import validate_configuration, validate_repository
 from .project_store import connection
 from .providers.bindings import bindings_from_snapshot
 from .policy.env import environment_config, snapshot_allowlist
+from .providers.registry import ProviderRegistry
+from .workflows.snapshot import verify_run_snapshot
+from .workflows.execution import execute_snapshot
 
 
-def run(run_id):
+def run(run_id, *, provider_registry=None):
     # Spawn/registration handshake closes the crash window before PID persistence.
     row = None
     for _ in range(100):
@@ -29,14 +32,16 @@ def run(run_id):
     result = None
     try:
         config = json.loads(row['config'])
+        snapshot = verify_run_snapshot(row, config)
+        registry = provider_registry or ProviderRegistry(runner=core.run_command)
         with environment_config(snapshot_allowlist(config)):
-            validate_configuration(config)
+            validate_configuration(config, provider_registry=registry)
             project = projects.get_project(row['project_id'])
             if project['state'] != 'active' or project['repo_path'] != row['repo']:
                 raise projects.ProjectError('Projeto arquivado ou repositório alterado após o despacho.', 409)
             if validate_repository(project) != row['repo_identity']:
                 raise projects.ProjectError('Identidade do repositório mudou. Nova confirmação necessária.', 409)
-            bindings = bindings_from_snapshot(config)
+            bindings = bindings_from_snapshot(config) if snapshot is None else None
             mapping = {'ORCH_TEST_COMMAND': 'test_command', 'MAX_ATTEMPTS': 'max_attempts',
                        'TEST_TIMEOUT': 'test_timeout',
                        'ORCH_WORKTREES': 'worktree_base'}
@@ -45,7 +50,12 @@ def run(run_id):
             # Worktree path comes only from server policy and the server-generated run ID.
             expected = Path(config['worktree_base']) / run_id
             projects.authorized_path(str(expected))
-            result = core.execute_scope(row['repo'], row['scope'], run_id=run_id, managed=True, bindings=bindings)
+            if snapshot is not None:
+                result = execute_snapshot(row['repo'], row['scope'], run_id=run_id,
+                                          snapshot=snapshot, config=config, registry=registry)
+            else:
+                extra = {'provider_registry': provider_registry} if provider_registry is not None else {}
+                result = core.execute_scope(row['repo'], row['scope'], run_id=run_id, managed=True, bindings=bindings, **extra)
             saved = {key: result.get(key) for key in ('status', 'worktree', 'task_index', 'review')}
             with connection() as conn:
                 conn.execute('UPDATE managed_runs SET result=?,worktree=? WHERE run_id=?', (json.dumps(saved), result.get('worktree'), run_id))

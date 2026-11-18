@@ -39,7 +39,7 @@ Não é necessário ler toda a pasta `docs/`. Leia apenas a especificação da �
 ## 4. Estado atual resumido
 
 - v1 funcional preservada: projetos, solicitações, fila SQLite, worker separado, LangGraph linear e worktrees Git. Baseline testado e revisado em `dev`: `f8e6949`.
-- WIP de tema claro/escuro, exclusão lógica e migração v3 preservado e commitado em `dev`, conforme autorização do operador. Sem merge/push/main/master.
+- WIP de tema claro/escuro, exclusão lógica e migração v3 preservado e commitado em `dev`, conforme autorização do operador. Sem merge/deploy/main/master; push dev autorizado em 2026-11-18 concluído até7431745.
 - `V2-DOC-001` e `V2-CORE-001..004` concluídas: verificador de documentação, adapters, metadados, registry e bindings por papel com snapshots; comandos/fallback/digests legados preservados.
 - `V2-SEC-001` concluída: política local global e token em leituras/escritas, bootstrap /session e liveness /health locais; frontend autenticado.
 - `V2-SEC-002` concluída: ambiente por allowlist de escopo, nomes congelados no snapshot/digest e marcador de supervisão preservado.
@@ -48,11 +48,12 @@ Não é necessário ler toda a pasta `docs/`. Leia apenas a especificação da �
 - `V2-WF-002` concluída: migração aditiva v4 para workflows/provider_configs, novas colunas anuláveis e versões imutáveis; sem integração ao executor/API ou seeds.
 - `V2-WF-003` concluída: compilador LangGraph com executores host obrigatórios, limites/envelopes; core.graph delega ao layout privado legado, com topologia/callbacks/pontos de entrada preservados.
 - `V2-WF-004` concluída: catálogo/clonagem/escolhas por etapa, default UI A/CLIlegacy e bloqueio B até PROV-001; execução real continua dependente das capacidades/permissões e UI futuras.
-- Validação: **485 pytest / 38 vitest**, build/lint/docs verdes; revisão independente (2026-11-18). E2E não reexecutado em WF-004; última execução SEC-002: 9 passed / 2 skipped com mocks. Nenhum CLI de agente real.
+- `V2-WF-007` concluída: snapshots internos opcionais e digests no run, store versionado e runner íntegro usando configuração congelada. HTTP/seleção de UI ainda em WF-008.
+- Validação: **521 pytest / 38 vitest**, build/lint/docs verdes; revisão independente (2026-11-18). E2E não reexecutado em WF-007; última execução SEC-002: 9 passed / 2 skipped com mocks. Nenhum CLI de agente real.
 
 ## 5. Próxima tarefa
 
-1. **`V2-WF-007`** — snapshot/digest de workflow+bindings por run, preservando config/idempotência legadas. Catálogo WF-004 pronto; ativar preset A real ainda depende de capacidades/permissões/integração.
+1. **`V2-WF-008`** — API de workflows/versões/validate/presets e seleção por versão/bindings no início, usando snapshots WF-007. Preservar contratos/defaults legados; A real depende de capacidades/permissões verificadas.
 2. **`V2-F0-002`** — decisões Q2–Q12 registradas em [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md), Q7 adiada; revisão integral dos ADRs ainda pendente. Alvo Python3.12 e quota limitada dos spikes autorizados; não reabrir bloqueios de perguntas respondidas.
 3. Depois: API/editor e demais tarefas liberadas, uma por vez. SEC-003 tem validação real autorizada no escopo de Q10; SEC-004 também tem revisão humana obrigatória conforme especificação.
 

@@ -581,7 +581,7 @@ O planejamento da versão 2.0 está documentado em [docs/planning/IMPLEMENTATION
 
 Roadmap, backlog, decisões arquiteturais e questões em aberto estão em [docs/planning/](docs/planning/ROADMAP.md) e [docs/architecture/DECISIONS/](docs/architecture/DECISIONS/).
 
-**Implementação parcial:** a base de providers/bindings, proteções locais e os módulos internos de schema, compilação e catálogo de presets já existem. A seleção/edição de workflows ainda não está disponível na interface atual; custos, retomada gerenciada e desktop continuam no roadmap. O catálogo define Claude → Codex → Antigravity como novo padrão desejado para a futura seleção na UI, condicionado às integrações/permissões; o CLI mantém `legacy-v1`. O comportamento disponível continua descrito nas seções anteriores, e o estado detalhado está em [CURRENT_STATE.md](docs/handoff/CURRENT_STATE.md).
+**Implementação parcial:** a base de providers/bindings, proteções locais e os módulos internos de schema, compilação, catálogo de presets e snapshots de workflows por run já existem. A seleção/edição de workflows ainda não está disponível na interface atual; custos, retomada gerenciada e desktop continuam no roadmap. O catálogo define Claude → Codex → Antigravity como novo padrão desejado para a futura seleção na UI, condicionado às integrações/permissões; o CLI mantém `legacy-v1`. O comportamento disponível continua descrito nas seções anteriores, e o estado detalhado está em [CURRENT_STATE.md](docs/handoff/CURRENT_STATE.md).
 
 ## Contribuindo
 

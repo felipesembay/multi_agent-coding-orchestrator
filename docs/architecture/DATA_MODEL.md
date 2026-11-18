@@ -55,6 +55,8 @@ erDiagram
 - SQLite com JSON1 é requerido pelas constraints (verificado localmente em 3.36.0). Constraints SQL validam estrutura básica; o futuro caminho de escrita deve validar `workflow_versions.body` com Pydantic antes de inserir e não persistir segredos em `settings`. Nenhum CRUD de workflow/provider, integração ao executor, keyring ou API foi criado em WF-002. `credential_ref` é apenas referência, anulável para CLI.
 - Presets somente leitura e snapshots/digests de workflow em runs serão integrados em WF-004/WF-007; criar tabelas/colunas não ativa esses comportamentos.
 
+**Integração WF-007 (sem nova migração):** append_version valida body via Pydantic e grava JSON canônico/digest SHA-256; snapshots explícitos incluem definição inteira, bindings e adapter/kind de provider_configs habilitados. managed_runs.config.workflow e as três colunas dedicadas são conferidos no runner antes de criar worktree. O digest de confirmação cobre config inteira; workflow_digest cobre o snapshot canônico. Corrida de configuração na reserva é recusada; alterações posteriores em definições/providers não são relidas pelo runner. Runs antigos/default sem seleção preservam colunas nulas/config/digest anteriores. Não há CRUD HTTP, seeds ou credenciais copiadas: settings não vazios/credential_ref e recursos ainda sem executor são recusados. Nenhum preset real é promovido automaticamente.
+
 ### Migração 5 — uso e custos (F3)
 
 | Tabela | Colunas principais |
