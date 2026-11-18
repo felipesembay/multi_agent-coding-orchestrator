@@ -1,10 +1,18 @@
 # Próximos passos
 
-## Próxima tarefa: V2-CORE-003
+## Próxima tarefa: V2-CORE-004
 
-**Objetivo:** registry de providers built-in, `CapabilityManifest`, probe e entry points (`orchestrator.providers`), expondo `GET /providers`. Dependência CORE-001 concluída.
+**Objetivo:** bindings papel→runtime/modelo substituindo leitura direta de env no core; env vira fonte da configuração legada e reviewer é configurável internamente. Dependência CORE-003 concluída.
 
-**Aceite:** listar Claude/Codex/Antigravity com capacidades, disponibilidade e status de verificação honestos; entry point fake aparece sem alteração do core; plugins de terceiros só carregados por opt-in explícito. Nenhum segredo exposto; não inferir quota ou autenticação a partir de executável encontrado. Ler PROVIDER_SYSTEM e ADR-0004, testar sem rede/CLIs reais, revisar e registrar handoff antes do commit em dev.
+**Aceite:** configuração por papel resolvida/validada usando registry/capacidades e snapshots por run; manter comportamento legacy-v1 e digest/idempotência das execuções gerenciadas. Defaults atuais Claude/Claude/Codex preservados; não presumir Q2/Q5 nem habilitar novos papéis/permissões sem suas tarefas. Tests de config/digest/caracterização/fallback sem CLIs reais; revisão distinta, handoff e commit dev após testes. Ler PROVIDER_SYSTEM, DATA_MODEL e configuração gerenciada atual antes de editar.
+
+## CORE-003 concluída
+
+- `Capability`, `CapabilityManifest`, `ProbeResult`; manifestos honestos nos três runtimes e probe passivo (só presença do executável), versão/credenciais desconhecidas.
+- Registry com runner/observer injetáveis, `get(adapter)` e listagem; built-ins por padrão. Entry points só com opt-in explícito, factories sem argumentos, sem descoberta/carregamento quando desativados; colisões/duplicatas e falhas isoladas.
+- `GET /providers` retorna manifest/probe/source por adapter, sob proteção local Host/peer/Origin. HTTP não habilita plugins. provider_configs virá em WF-002; dependência padrão segue sem terceiros.
+- Todos os built-ins verified=false, billing unknown e usage_source none; não anuncia papéis/telemetria futuros. Defaults/flags/fallback permanecem inalterados.
+- Evidências: 154 pytest / 33 vitest, build/lint/docs verdes; revisão `review_core003` (52 testes repetidos). E2E não executado.
 
 ## CORE-002 concluída
 
@@ -18,7 +26,7 @@
 ## Decisões humanas pendentes
 
 - V2-F0-001 concluída: baseline `f8e6949` em `dev`, preservando o WIP. Novos commits em dev autorizados após testes; sem merge/push.
-- V2-F0-002 `blocked`: Q2–Q12 e ADRs aguardam revisão humana. Não impedem CORE-002/003. Quota real segue não autorizada.
+- V2-F0-002 `blocked`: Q2–Q12 e ADRs aguardam revisão humana. Não impedem CORE-004. Quota real segue não autorizada.
 
 ## Referência concluída: V2-CORE-001
 

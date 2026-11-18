@@ -40,14 +40,14 @@ Não é necessário ler toda a pasta `docs/`. Leia apenas a especificação da �
 
 - v1 funcional preservada: projetos, solicitações, fila SQLite, worker separado, LangGraph linear e worktrees Git. Baseline testado e revisado em `dev`: `f8e6949`.
 - WIP de tema claro/escuro, exclusão lógica e migração v3 preservado e commitado em `dev`, conforme autorização do operador. Sem merge/push/main/master.
-- `V2-DOC-001`, `V2-CORE-001` e `V2-CORE-002` concluídas: verificador de documentação, adapters CLI e resultados/metadados por invocação; comandos/fallback legados preservados.
-- Validação: **130 pytest / 33 vitest**, build/lint e documentação verdes (2026-11-17). Nenhum agente CLI real executado; E2E não executado.
+- `V2-DOC-001` e `V2-CORE-001..003` concluídas: verificador de documentação, adapters CLI, metadados por invocação e registry/manifests/probes com `/providers`; comandos/fallback legados preservados.
+- Validação: **154 pytest / 33 vitest**, build/lint e documentação verdes (2026-11-17). Nenhum agente CLI real executado; E2E não executado.
 
 ## 5. Próxima tarefa
 
-1. **`V2-CORE-003`** — registry, `CapabilityManifest`, probe e entry points opt-in; endpoint `/providers`. Testes com executáveis e plugins simulados, sem chamadas reais de agentes.
+1. **`V2-CORE-004`** — bindings papel→runtime/modelo, substituindo leitura direta de env no core. Env como fonte legada, reviewer configurável internamente e snapshot/digest compatíveis.
 2. **`V2-F0-002`** — pendente de revisão humana dos ADRs e de [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md). Não assumir respostas; bloquear apenas tarefas dependentes.
-3. Depois: CORE-004 bindings por papel ou tarefas de segurança independentes, uma por vez.
+3. Depois: tarefas de segurança ou WF-001 (schema de workflow), uma por vez, respeitando dependências e decisões humanas.
 
 Detalhes e comandos: [NEXT_STEPS.md](../handoff/NEXT_STEPS.md).
 

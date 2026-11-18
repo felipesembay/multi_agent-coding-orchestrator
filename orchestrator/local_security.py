@@ -28,7 +28,7 @@ def allowed_origins():
 
 async def protect_project_routes(request: Request, call_next):
     path = request.url.path
-    protected = path == '/session' or path == '/project-policy' or path == '/projects' or path.startswith('/projects/')
+    protected = path == '/providers' or path == '/session' or path == '/project-policy' or path == '/projects' or path.startswith('/projects/')
     if not protected:
         return await call_next(request)
     try:

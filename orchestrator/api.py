@@ -3,7 +3,7 @@ import os
 from contextlib import closing
 from importlib.metadata import PackageNotFoundError, version
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query
 from starlette.responses import JSONResponse
 
 from .project_api import router as project_router
@@ -11,6 +11,7 @@ from .projects import ProjectError
 from .local_security import protect_project_routes
 
 from .core import db, db_path
+from .providers.registry import ProviderInfo, ProviderRegistry, get_provider_registry
 from .dashboard import summarize
 from .execution_manager import all_summaries, get_managed, consolidated
 
@@ -103,3 +104,8 @@ def run_detail(run_id: str):
     if not history:
         raise HTTPException(status_code=404, detail='Execução não encontrada')
     return dict(**summarize(run_id, history), events=history)
+
+
+@app.get('/providers', response_model=list[ProviderInfo])
+def providers(registry: ProviderRegistry = Depends(get_provider_registry)):
+    return registry.list()

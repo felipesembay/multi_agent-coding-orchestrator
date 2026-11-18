@@ -2,11 +2,18 @@
 import json
 import os
 
-from ..base import CommandRuntime, InvocationRequest, InvocationResult
+from ..base import Capability, CapabilityManifest, CommandRuntime, InvocationRequest, InvocationResult
 
 
 class AntigravityRuntime(CommandRuntime):
     provider = 'antigravity'
+    executable = 'agy'
+    manifest = CapabilityManifest(
+        adapter='antigravity', kind='agent_runtime',
+        capabilities={Capability.TEXT, Capability.PLANNING, Capability.CODE_EDIT, Capability.REPO_CONTEXT},
+        permission_modes=['read_only', 'workspace_write'], auth_modes=['cli_managed'],
+        billing_mode='unknown', usage_source='none', verified=False,
+    )
 
     def _resolve_model(self, req: InvocationRequest):
         return req.model if req.model is not None else os.getenv(

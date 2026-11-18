@@ -122,3 +122,35 @@
 8. **Próxima tarefa:** V2-CORE-003, registry e CapabilityManifest.
 9. **Aceite:** GET /providers com built-ins e fake de entry point; plugins de terceiros só por opt-in; probes sem segredos, nenhuma inferência de quota; testes mockados, revisão e handoff.
 10. **Comandos:** .venv; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test; npm --prefix frontend run build; npm --prefix frontend run lint; python scripts/check_docs.py. Commit em dev autorizado, sem merge/push/deploy.
+
+## 2026-11-17 — Codex — início V2-CORE-003
+
+- [FATO] `dev`, HEAD `56e44d2`, árvore limpa; handoff confere. Operador autorizou CORE-003; commits testados em dev permanecem autorizados.
+- Escopo: manifestos honestos, probes passivos (somente descoberta do executável), registry e GET /providers. Sem inferir versão/autenticação/quota, sem subprocessos no probe.
+- provider_configs ainda não existe (WF-002); opt-in será parâmetro explícito do registry, API padrão sem terceiros; futura integração só habilitará configs enabled. Não antecipar migração ou UI.
+
+### CORE-003 — baseline e testes vermelhos
+
+- Baseline: 130 pytest passed (1 warning), 33 vitest passed.
+- Escritos testes de registry/API: built-ins honestos, probe passivo, opt-in, entry points legados/select, rejeição de duplicatas/colisão, falhas isoladas sem vazamento, API local sem ativação por query.
+- Coleta vermelha esperada: registry ainda inexistente. Nenhum agente CLI chamado.
+
+### CORE-003 — marco verde e revisão
+
+- Manifestos nos três runtimes, Protocol completo manifest/probe/invoke, probe passivo com shutil.which (sem caminho/versão/credenciais inferidos). Todas as verificações permanecem false, billing unknown e usage_source none. Capacidades futuras não anunciadas.
+- Registry aceita injeção de runner/observer nos built-ins e factories de terceiros sem argumentos somente com opt-in explícito de nomes. Sem opt-in nem descobre entry points. Compatibilidade select/dict para Python 3.9+, duplicatas/colisões rejeitadas antes de carregar e falhas isoladas em códigos estáticos sem conteúdo de exceção.
+- GET /providers protegido pela política local existente (Host/peer/Origin), sem ativação por query. Dependência padrão retorna apenas built-ins; provider_configs ficará em WF-002. Nenhuma mudança em core/fallback/argv.
+- Primeira suíte completa: 149 pytest passed, 1 warning. Baseline frontend 33 passed e build/lint verdes. Adicionados mais 5 testes significativos de runner injetado, falha discovery/probe, payload inválido e plugin model_provider; registry 17 passed.
+
+### 2026-11-17 — Codex — fechamento V2-CORE-003
+
+1. **Planejado:** registry, CapabilityManifest, probe e GET /providers, preservando execução legada e sem carregar terceiros por padrão.
+2. **Implementado:** contratos Capability/CapabilityManifest/ProbeResult, manifestos atuais dos três adapters, probe shutil.which sem comando/version/auth; registry com lookup/listagem e factories opt-in, compatibilidade entry_points select/dict, validação de identidade/interface e isolamento de falhas. API local protegida sem opt-in HTTP. Nenhuma mudança de core/argv/prompts/fallback.
+3. **Arquivos:** api.py, local_security.py (somente incluir rota nova), providers/base.py, três runtimes; registry.py e tests/providers/test_{registry,provider_api}.py novos; BACKLOG, IMPLEMENTATION_PLAN, PROVIDER_SYSTEM, CURRENT_STATE, NEXT_STEPS, SESSION_LOG. `git diff --stat` intermediário: 9 arquivos rastreados, 106 inserções/8 remoções; inclui novos e documentação final no commit.
+4. **Testes:** baseline 130 pytest/33vitest; testes novos vermelhos por registry inexistente. Primeira suite 149 verdes; após mais cinco casos de integração/falha, final `ORCH_DB=<tmp> python -m pytest -q -p no:cacheprovider` → 154 passed, 1 warning, 8,32 s. Registry isolado 17 passed. Build/lint frontend e check_docs/diff --check verdes. Frontend inalterado após baseline 33 verdes. E2E não executado.
+5. **Decisões:** detalhes documentados em PROVIDER_SYSTEM §6.3, sem aceitar ADRs humanos. Como provider_configs só vem em WF-002, opt-in é configuração explícita do registry e API padrão não habilita plugins; não antecipar migração. Plugins são código confiável instalado; não isolados pelo registry.
+6. **Problemas:** nenhum bloqueante. Probes passivos mantêm versão/credenciais desconhecidas; manifesto mostra capacidades atuais, todos verified=false/billing unknown/usage_source none. Não anunciar capacidades de tarefas futuras. Descoberta/importação/probe não expõem mensagens/caminhos/ambiente em erros públicos.
+7. **Pendências:** Q2–Q12/ADRs; provider_configs em WF-002, parsers e verificações reais dependem de spike autorizado. Revisão independente `review_core003` aprovada com 52 testes (registry/contrato/caracterização/API) e documentação válida; nenhum agente CLI real executado.
+8. **Próxima tarefa:** V2-CORE-004, bindings por papel/runtime/modelo.
+9. **Aceite:** env como fonte legada; reviewer configurável internamente; snapshots/digest/idempotência e defaults legacy preservados; caracterização/fallback verdes e sem permissões novas por presunção.
+10. **Comandos:** .venv; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test; build/lint; python scripts/check_docs.py. Commit em dev autorizado, sem merge/push/deploy.

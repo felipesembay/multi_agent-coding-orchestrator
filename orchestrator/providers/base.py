@@ -1,18 +1,64 @@
 """Runtime contracts and measured invocations without CLI telemetry assumptions.
 
-Manifests, probing and plugin registration belong to CORE-003. CLIs keep usage
+Manifest discovery and passive probes never invoke agents. CLIs keep usage
 unavailable until parsers have been verified; no raw CLI content is retained.
 """
 from __future__ import annotations
 
+from enum import Enum
 import logging
+import shutil
 import time
 from typing import Callable, Literal, Optional, Protocol
 import uuid
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_serializer, model_validator
 
 from .errors import ErrorCode, error_code
+
+
+class Capability(str, Enum):
+    TEXT = 'text'
+    STRUCTURED_OUTPUT = 'structured_output'
+    PLANNING = 'planning'
+    CODE_EDIT = 'code_edit'
+    CODE_EXEC = 'code_exec'
+    TOOL_CALLING = 'tool_calling'
+    REVIEW = 'review'
+    STREAMING = 'streaming'
+    REPO_CONTEXT = 'repo_context'
+    USAGE_METRICS = 'usage_metrics'
+    COST_REPORT = 'cost_report'
+    SESSION_RESUME = 'session_resume'
+
+
+class CapabilityManifest(BaseModel):
+    model_config = {'extra': 'forbid'}
+    adapter: str = Field(pattern=r'^[a-z][a-z0-9_-]{0,63}$')
+    kind: Literal['agent_runtime', 'model_provider']
+    capabilities: set[Capability]
+    permission_modes: list[Literal['read_only', 'workspace_write']]
+    auth_modes: list[Literal['cli_managed', 'api_key', 'oauth', 'none']]
+    billing_mode: Literal['api_metered', 'subscription_quota', 'local', 'unknown']
+    usage_source: Literal['provider_reported', 'cli_reported', 'none']
+    verified: bool
+
+    @field_serializer('capabilities')
+    def sorted_capabilities(self, value):
+        return sorted(capability.value for capability in value)
+
+
+class ProbeResult(BaseModel):
+    """Executable discovery only; presence does not imply authentication or quota."""
+    model_config = {'extra': 'forbid'}
+    executable_found: Optional[bool] = None
+    version: Optional[str] = Field(default=None, max_length=80,
+                                  pattern=r'^[0-9]+(?:\.[0-9]+){1,3}(?:[-+][a-zA-Z0-9.-]+)?$')
+    credential_present: Optional[bool] = None
+    error_code: Optional[Literal[
+        'probe_failed', 'load_failed', 'invalid_provider', 'duplicate_entry_point',
+        'entry_point_missing',
+    ]] = None
 
 
 class InvocationRequest(BaseModel):
@@ -74,6 +120,10 @@ class AgentCall(BaseModel):
 
 
 class AgentRuntime(Protocol):
+    manifest: CapabilityManifest
+
+    def probe(self) -> ProbeResult: ...
+
     def invoke(self, req: InvocationRequest) -> InvocationResult: ...
 
 
@@ -86,11 +136,17 @@ class CommandRuntime:
     """Inject execution and an optional metadata sink; no dependency on core/DB."""
 
     provider: str
+    executable: str
+    manifest: CapabilityManifest
+
+    def probe(self) -> ProbeResult:
+        return ProbeResult(executable_found=shutil.which(self.executable) is not None)
 
     def __init__(self, runner: CommandRunner,
                  observer: Optional[Callable[[AgentCall], None]] = None):
         self._runner = runner
         self._observer = observer
+        self.manifest = type(self).manifest.model_copy(deep=True)
 
     def _resolve_model(self, req: InvocationRequest) -> Optional[str]:
         return req.model
