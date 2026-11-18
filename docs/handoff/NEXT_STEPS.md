@@ -1,10 +1,20 @@
 # Próximos passos
 
-## Próxima tarefa recomendada: V2-WF-003
+## Próxima tarefa: V2-WF-004 — decisão Q2 pendente
 
-**Objetivo:** compilador definição→StateGraph com equivalência ao grafo atual. Dependências WF-001 e CORE-004 concluídas.
+**Objetivo:** presets legacy-v1, A/B/C e preservação do CLI legado. WF-003/CORE-004 concluídas. Q2 sobre mudança de padrão bloqueia a conclusão/ativação desta tarefa conforme OPEN_QUESTIONS; não presumir resposta. Q5/SEC-004/WF-005 também limitam Codex executor real, e preset B fica desabilitado até PROV-001. Os testes de presets devem usar manifestos fakes, sem promover built-ins não verificados.
 
-**Aceite:** CA1 de WORKFLOW_ENGINE: legacy-v1 conserva comportamento, com snapshot de topologia e suíte existente passando. Ler WORKFLOW_ENGINE, ADR-0005, core.graph e contratos de bindings. Compatibilidade legada deve ser explícita, sem bypass de segurança baseado apenas no nome de workflow. Não ativar novos presets/padrões dependentes de Q2/Q5; não consumir quota real. Revisão independente obrigatória também pela especificação, handoff e commit em dev após testes; sem push/merge/deploy.
+**Aceite:** presets validados com fakes, CLI permanece legacy-v1 por padrão, decisões de ativação registradas pelo operador e revisão independente. Ler WORKFLOW_ENGINE/OPEN_QUESTIONS/ADR-0005; usar compilador genérico apenas com executores confiáveis, e compatibilidade legada explícita, sem bypass por nome de usuário.
+
+**Alternativa liberada:** V2-WF-007 (WF-002/WF-003 prontos), snapshot/digest de workflow+bindings por run, sem mudar padrão, permitindo aguardar Q2. Não iniciar tarefa sem registrar escolha e baseline.
+
+## WF-003 concluída
+
+- compiler.py compila WorkflowDefinition estrita em StateGraph com executores host injetados por tipo. nodes.py define WorkflowState/StepContext e envelopes com eventos por etapa, contadores por tarefa, prazo e limite global.
+- core.graph delega a compile_legacy com layout privado de compatibilidade e mesmos callbacks, entradas/recursion250; review legado continua incluindo testes. Topologia congelada antes de alterar core em fixture JSON de fc93cd1. Sem novas flags/CLI/defaults ou retomada gerenciada.
+- Gate exige executor e approved booleano; política após plano reutiliza gate explícito ou gera um. Testes falhos e revisão antiga após nova escrita impedem sucesso. Evidência atual por revisão lógica não substitui ledger/digest/approvals futuros.
+- Budget não nulo e fallbacks configuráveis são recusados até OBS/WF-010. Executores devem aplicar timeout restante a chamadas em andamento; checagens síncronas são antes/depois da chamada. Nenhum executor CLI concreto/API/ledger/uso/gate persistido foi adiantado. Contrato detalhado em WORKFLOW_ENGINE §6.3.1.
+- Revisão review_wf003 aprovada: 134 focados passaram; inclui 30 novos testes de compilador/topologia. Contagens completas desta sessão em CURRENT_STATE/SESSION_LOG. Sem agentes reais ou quota.
 
 ## WF-002 concluída
 

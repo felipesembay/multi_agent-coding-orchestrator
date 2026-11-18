@@ -360,3 +360,26 @@
 - Problemas: nenhum bloqueio; triggers incluem proteção BEFORE INSERT para REPLACE, que pode omitir DELETE triggers com configuração SQLite padrão. Rollback/concurrency/failure injection e preservação de sequência de eventos cobertos.
 - Pendências: Q2–Q12, integração de CRUD/API, presets, compilador e snapshot no executor em tarefas próprias. Sem merge/push/deploy; commit local dev autorizado após testes/revisão.
 - Próxima recomendada: V2-WF-003. Aceite: equivalência legacy-v1 ao core.graph, snapshot de topologia e suíte existente. Ler WORKFLOW_ENGINE/ADR-0005/core/bindings; compatibilidade explícita sem bypass por nome ou mudanças dependentes de Q2/Q5. Comandos: git status/log; source .venv/bin/activate; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test; revisão/handoff/commit dev após verdes.
+
+
+## 2026-11-18 — Codex — V2-WF-003 início
+- Solicitado resumo de entregas/pendências, apresentado antes da implementação. Planejado compilador definição→StateGraph, equivalência exata do legado, limites/loop e executores injetados; integração CLI/API/snapshots/fallbacks/presets ficam em tarefas próprias.
+- Plano/handoff/WORKFLOW_ENGINE/ADR-0005 lidos; dependências WF-001/CORE-004 done. Dev limpa fc93cd1, cinco commits locais sem push novo autorizado. Baseline pytest isolado:424 passed,1 warning,14,86s; vitest38. Sem divergência ou quota real.
+
+### WF-003 — marcos de testes e código
+- Snapshot legacy_graph_topology.json capturado de fc93cd1 antes de alterar core.graph: três pontos de entrada passaram na caracterização original. Teste novo de compilador vermelho (ModuleNotFoundError) antes da implementação.
+- compiler.py/nodes.py criados; core.graph agora delega ao layout privado legado com os mesmos callbacks (testes continuam dentro de review). Compilador público estrito usa executores injetados, sem bypass por nome.
+- 28 testes novos de compilador/topologia verdes: retries/tarefas/limites/gates/falhas/imutabilidade/ordem e evidência fresca após escrita. Budget e fallback configurados recusados até integrações próprias, sem ignorar configuração.
+
+### WF-003 — regressão completa intermediária
+- Suite completa após primeiro conjunto: 452 passed, 1 warning LangGraph,15,06s. Build/lint verdes. Dois casos adicionais (test global inicial e gate explícito reutilizado) entram na suíte final após revisão. Contrato/limitações dos executores e fronteiras com WF/OBS/RES documentados em WORKFLOW_ENGINE §6.3.1.
+
+### WF-003 — fim / revisão aprovada
+- Implementado V2-WF-003: compiler.py/nodes.py, core.graph delegando ao layout legado privado e duas suítes novas com fixture JSON congelada antes da refatoração. Compilador strict de definições com executores host síncronos obrigatórios, configuração congelada, etapas/gates/bloco por tarefa/loops limitados, contagem/prazo e evidências ligadas à última escrita. Contrato documentado em WORKFLOW_ENGINE §6.3.1.
+- Arquivos: core.py, workflows/compiler.py e nodes.py, tests/workflows/test_compiler.py e test_legacy_topology.py, tests/fixtures/legacy_graph_topology.json, WORKFLOW_ENGINE, IMPLEMENTATION_PLAN, BACKLOG e três documentos de handoff. Estatísticas finais inspecionadas no staged diff antes do commit.
+- Testes finais: ORCH_DB temporário python -m pytest -q -p no:cacheprovider: 454 passed, 1 warning LangGraph,14,83s; 30 casos novos. npm --prefix frontend test:38 passed no baseline (frontend intacto); build/lint verdes. python scripts/check_docs.py e git diff --check:sucesso. E2E não rodado; nenhum agente CLI real/quota de agente.
+- Revisão review_wf003 aprovada sem bloqueios,134 focados workflows/core verdes. Revalidados casos adicionais de teste global inicial e gate explícito reutilizado. Nenhum assert de testes existentes alterado; topologia e callbacks/entradas plan/implement/review do legado preservados.
+- Decisões/limites: ADR-0005 permanece proposto, sem presumir Q2–Q12. Novo compiler não é ativado na UI/worker; executores são dependência confiável do host e não carregam CLIs implicitamente. Ledger/uso/gates persistidos/concretização CLI/API pertencem a tarefas próprias. Budget/fallback configurados falham explicitamente em vez de ignorar campos. Deadline síncrono é cooperativo via timeout_s; verificações antes/depois não interrompem callback arbitrário.
+- Problemas prevenidos nos testes: falha no segundo bloco não repete tarefa; revisão anterior a escrita não aprova mudanças posteriores; documento escritor exige novas evidências; gate existente após plano não pede duas aprovações. Sem bloqueios atuais.
+- Pendências: presets WF-004 com Q2 antes de concluir/ativar; snapshots WF-007 e demais áreas. Nenhum merge/push/deploy. Commit local dev após revisão/testes autorizado.
+- Próxima tarefa: WF-004 após decisão humana Q2; alternativa liberada WF-007 (snapshot/digest por run). Aceite WF-004: presets A/B/C/legacy validam com fakes, CLI legado e decisões registradas; B sem ativação até PROV-001. Aceite WF-007: edição após enfileirar não muda snapshot, idempotência/digest testados. Ler NEXT_STEPS/WORKFLOW_ENGINE/OPEN_QUESTIONS; git status/log; source .venv/bin/activate; ORCH_DB temporário python -m pytest -q -p no:cacheprovider; npm --prefix frontend test; revisão/handoff/commit dev após verdes.

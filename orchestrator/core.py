@@ -13,8 +13,6 @@ from contextvars import ContextVar
 from pathlib import Path
 from typing import TypedDict
 
-from langgraph.graph import END, StateGraph
-
 from .providers.base import AgentCall, InvocationRequest, invoke_measured
 from .policy.env import command_env
 from .policy.git import run_git
@@ -385,26 +383,12 @@ def blocked(state: State) -> State:
 
 
 def graph(entry_point: str = 'plan'):
-    if entry_point not in ('plan', 'implement', 'review'):
-        raise ValueError(f'Invalid graph entry point: {entry_point}')
-    g = StateGraph(State)
-    for name, fn in (
-        ('plan', plan), ('implement', implement), ('review', review),
-        ('advance', advance), ('finish', finish), ('blocked', blocked),
-    ):
-        g.add_node(name, fn)
-    g.set_entry_point(entry_point)
-    g.add_edge('plan', 'implement')
-    g.add_edge('implement', 'review')
-    g.add_conditional_edges('review', decide, {
-        'next': 'advance', 'retry': 'implement', 'blocked': 'blocked',
+    from .workflows.compiler import compile_legacy
+    return compile_legacy(state_schema=State, entry_point=entry_point, handlers={
+        'plan': plan, 'implement': implement, 'review': review,
+        'advance': advance, 'finish': finish, 'blocked': blocked,
+        'decide': decide, 'more': more,
     })
-    g.add_conditional_edges('advance', more, {
-        'continue': 'implement', 'finish': 'finish',
-    })
-    g.add_edge('finish', END)
-    g.add_edge('blocked', END)
-    return g.compile()
 
 
 def prepare(repo: Path, run_id: str) -> Path:

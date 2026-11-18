@@ -39,7 +39,7 @@ Fonte única de status das tarefas. Atualize a linha da tarefa ao iniciar (`doin
 |---|---|---|---|---|---|---|---|---|
 | V2-WF-001 | Schema `WorkflowDefinition` + validação | done | P0 | S | CORE-003 | BE | Regras §6.2 de WORKFLOW_ENGINE; schema/validation, revisão review_wf001 aprovada | 75 focados; 398 pytest / 38 vitest; build/lint/docs |
 | V2-WF-002 | Migração 4: `workflow_definitions`, `workflow_versions`, `provider_configs`, colunas em `managed_runs` | done | P0 | S | WF-001 | BE | Upgrade v3 preserva dados/índices; revisão review_wf002 aprovada | 26 migração; 424 pytest / 38 vitest; build/lint/docs |
-| V2-WF-003 | Compilador definição→StateGraph com equivalência ao grafo atual | todo | P0 | L | WF-001, CORE-004 | BE | CA1 de WORKFLOW_ENGINE | Snapshot de topologia + suíte atual |
+| V2-WF-003 | Compilador definição→StateGraph com equivalência ao grafo atual | done | P0 | L | WF-001, CORE-004 | BE | CA1 de WORKFLOW_ENGINE; layout legado e compiler estrito, revisão review_wf003 aprovada | 30 novos; 454 pytest / 38 vitest; build/lint/docs |
 | V2-WF-004 | Presets `legacy-v1`, A, B, C (B desabilitado até PROV-001) | todo | P0 | S | WF-003 | BE | Presets validam; CLI usa `legacy-v1` por padrão | Testes por preset com fakes |
 | V2-WF-007 | Snapshot de workflow+bindings no run e digest de confirmação | todo | P0 | M | WF-002, WF-003 | BE | CA4 de WORKFLOW_ENGINE | Testes de idempotência/digest |
 | V2-WF-005 | Codex CLI como executor (`workspace-write`) | todo | P1 | M | SEC-004, F0-002 (Q5) | BE/SEC | Preset A implementa com Codex mockado; flags corretas | argv + integração mockada |
