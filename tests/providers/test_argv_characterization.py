@@ -41,15 +41,18 @@ def assert_process(call, argv, timeout):
                           timeout=timeout, check=False, pass_fds=())
 
 
-@pytest.mark.parametrize('role,mode', [('planner', 'plan'), ('implementer', 'acceptEdits')])
+@pytest.mark.parametrize('role,expected_flags', [
+    ('planner', ['--permission-mode', 'plan']),
+    ('implementer', ['--permission-mode', 'acceptEdits', '--disallowedTools', 'Bash']),
+])
 @pytest.mark.parametrize('timeout', [None, '123'])
-def test_claude_roles(process, monkeypatch, role, mode, timeout):
+def test_claude_roles(process, monkeypatch, role, expected_flags, timeout):
     if timeout:
         monkeypatch.setenv('AGENT_TIMEOUT', timeout)
     assert core.coding_agent(PROMPT, CWD, role) == 'output'
     assert process.call_count == 1
     assert_process(process.call_args,
-                   ['claude', '-p', '--permission-mode', mode, PROMPT],
+                   ['claude', '-p', *expected_flags, PROMPT],
                    int(timeout or '900'))
 
 

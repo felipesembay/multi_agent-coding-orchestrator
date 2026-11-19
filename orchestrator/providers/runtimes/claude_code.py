@@ -1,4 +1,5 @@
-"""Claude Code runtime with read-only plan mode and workspace_write acceptEdits."""
+"""Claude Code runtime with mechanism-enforced role permissions (SEC-003/SEC-004)."""
+from ...policy.roles import build_claude_argv
 from ..base import Capability, CapabilityManifest, CommandRuntime, InvocationRequest, InvocationResult
 
 
@@ -14,10 +15,11 @@ class ClaudeCodeRuntime(CommandRuntime):
     )
 
     def _invoke(self, req: InvocationRequest) -> InvocationResult:
-        if req.permission not in ('read_only', 'workspace_write'):
-            raise ValueError(f'Unsupported Claude permission: {req.permission}')
-        mode = 'plan' if req.permission == 'read_only' else 'acceptEdits'
-        text = self._run(
-            ['claude', '-p', '--permission-mode', mode, req.prompt], req,
+        argv = build_claude_argv(
+            role=req.role,
+            permission=req.permission,
+            prompt=req.prompt,
+            supported_modes=self.manifest.permission_modes,
         )
+        text = self._run(argv, req)
         return InvocationResult(text=text)

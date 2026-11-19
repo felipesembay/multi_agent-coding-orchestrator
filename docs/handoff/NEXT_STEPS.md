@@ -13,6 +13,12 @@ O operador solicitou um documento geral para continuar o desenvolvimento com out
 
 **Comandos:** `git status/log`; `source .venv/bin/activate`; `ORCH_DB="$(mktemp -d)/events.db" python -m pytest -q -p no:cacheprovider`; `npm --prefix frontend test/build/lint`; `python scripts/check_docs.py`; `git diff --check`.
 
+## V2-SEC-004 implementada (em `review`)
+
+- `orchestrator/policy/roles.py` impõe a matriz de permissões por papel (`planner`/`reviewer` → `read_only`, `implementer` → `workspace_write`, `documenter` → `read_only`|`workspace_write`) e gera `argv` determinístico para Claude (`--permission-mode plan` ou `--permission-mode acceptEdits --disallowedTools Bash`), Codex (`--sandbox read-only|workspace-write`) e Antigravity (`--mode plan|accept-edits`).
+- Testes em `tests/security/test_role_argv.py` (23 casos) comprovam CA3 de `SECURITY_GOVERNANCE.md`.
+- Mantida em `review (Antigravity)` para revisão humana obrigatória conforme `SECURITY_GOVERNANCE.md` §15.
+
 ## V2-SEC-003 implementada (em `review`)
 
 - `ClaudeCodeRuntime` mapeia `read_only` → `--permission-mode plan` e `workspace_write` → `--permission-mode acceptEdits`.

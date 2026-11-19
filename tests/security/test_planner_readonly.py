@@ -30,7 +30,15 @@ def test_claude_runtime_maps_read_only_to_plan_and_workspace_write_to_accept_edi
     )
 
     assert calls[0] == ["claude", "-p", "--permission-mode", "plan", "create plan"]
-    assert calls[1] == ["claude", "-p", "--permission-mode", "acceptEdits", "edit code"]
+    assert calls[1] == [
+        "claude",
+        "-p",
+        "--permission-mode",
+        "acceptEdits",
+        "--disallowedTools",
+        "Bash",
+        "edit code",
+    ]
     assert core.extract_json(res_plan.text)["tasks"][0]["id"] == "T1"
     assert res_impl.text.startswith("{")
 

@@ -14,16 +14,16 @@ from orchestrator.providers.runtimes.claude_code import ClaudeCodeRuntime
 from orchestrator.providers.runtimes.codex_cli import CodexCliRuntime
 
 
-@pytest.mark.parametrize('runtime,permission,output', [
-    (ClaudeCodeRuntime, 'workspace_write', 'answer'),
-    (CodexCliRuntime, 'read_only', 'answer'),
-    (AntigravityRuntime, 'read_only', '{"status":"SUCCESS","response":"answer","usage":{"input_tokens":42},"session_id":"unverified"}'),
+@pytest.mark.parametrize('runtime,role,permission,output', [
+    (ClaudeCodeRuntime, 'implementer', 'workspace_write', 'answer'),
+    (CodexCliRuntime, 'reviewer', 'read_only', 'answer'),
+    (AntigravityRuntime, 'planner', 'read_only', '{"status":"SUCCESS","response":"answer","usage":{"input_tokens":42},"session_id":"unverified"}'),
 ])
-def test_results_are_measured_but_usage_is_unavailable(monkeypatch, runtime, permission, output):
+def test_results_are_measured_but_usage_is_unavailable(monkeypatch, runtime, role, permission, output):
     monkeypatch.setattr(base.time, 'monotonic_ns', Mock(side_effect=[1000000000, 1123000000]))
     observed = []
     result = runtime(Mock(return_value=output), observer=observed.append).invoke(
-        InvocationRequest(prompt='task', cwd='/tmp', permission=permission, role='planner'))
+        InvocationRequest(prompt='task', cwd='/tmp', permission=permission, role=role))
     assert result.text == 'answer'
     assert result.duration_ms == 123
     assert result.structured is None

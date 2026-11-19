@@ -1,14 +1,15 @@
 # Estado atual
 
-Atualizado: 2026-11-19 · Por: Antigravity (V2-SEC-003)
+Atualizado: 2026-11-19 · Por: Antigravity (V2-SEC-004)
 
 ## Repositório
-- Branch `dev`; commits testados/revisados autorizados pelo operador. Sem merge/deploy/main/master. Push solicitado pelo operador em 2026-11-18 concluído até 7431745 em origin/dev; sem force/main/master. Commits WF-007 (6f1c167), CI-DIST-004 (feb4caf), WF-008 (58051a2), WF-009 (1d05736), WF-010 (2986229), F0-005 (a85d13f), DIST-002 (57bacaf) e SEC-003 ficam locais; nenhum novo push solicitado.
+- Branch `dev`; commits testados/revisados autorizados pelo operador. Sem merge/deploy/main/master. Push solicitado pelo operador em 2026-11-18 concluído até 7431745 em origin/dev; sem force/main/master. Commits WF-007 (6f1c167), CI-DIST-004 (feb4caf), WF-008 (58051a2), WF-009 (1d05736), WF-010 (2986229), F0-005 (a85d13f), DIST-002 (57bacaf), SEC-003 (db340b4) e SEC-004 ficam locais; nenhum novo push solicitado.
 - Baseline `f8e6949`; CORE-001..004 em `87a034f`, `56e44d2`, `6737c2f`, `db12642`. Histórico remoto dev atualizado até 7431745 nesta sessão.
-- SEC-001 `8d94e7d`, SEC-002 `065d9ed`, SEC-006 `7ac3634`, WF-001 `caee20e`, WF-002 `fc93cd1` locais. WF-003 `1474f4b`. Registro parcial F0-002 em `588c6db`. WF-004 em `7431745` (já em origin/dev). WF-007 em `6f1c167`, CI-DIST-004 em `feb4caf`, WF-008 em `58051a2`, WF-009 em `1d05736`, WF-010 em `2986229`, F0-005 em `a85d13f`, DIST-002 em `57bacaf`.
+- SEC-001 `8d94e7d`, SEC-002 `065d9ed`, SEC-006 `7ac3634`, WF-001 `caee20e`, WF-002 `fc93cd1` locais. WF-003 `1474f4b`. Registro parcial F0-002 em `588c6db`. WF-004 em `7431745` (já em origin/dev). WF-007 em `6f1c167`, CI-DIST-004 em `feb4caf`, WF-008 em `58051a2`, WF-009 em `1d05736`, WF-010 em `2986229`, F0-005 em `a85d13f`, DIST-002 em `57bacaf`, SEC-003 em `db340b4`.
 - WIP original de tema/exclusão/migração v3 preservado no baseline. Nenhum WIP externo identificado.
 
 ## Implementado
+- **SEC-004 implementada (`review`):** criado `orchestrator/policy/roles.py` aplicando a matriz autoritativa de permissões por papel (`planner` e `reviewer` → somente `read_only`; `implementer` → somente `workspace_write`; `documenter` → `read_only` ou `workspace_write`) e construtores determinísticos de `argv` para os três adapters (`ClaudeCodeRuntime` adiciona `--disallowedTools Bash` em `workspace_write`, `AntigravityRuntime` usa `--mode plan|accept-edits`, `CodexCliRuntime` usa `--sandbox read-only|workspace-write`). Novos testes em `tests/security/test_role_argv.py` (23 casos). Evidência: **590 pytest / 54 Vitest**, build/lint/docs verdes. Mantida em `review` para revisão humana obrigatória conforme `SECURITY_GOVERNANCE.md` §15.
 - **SEC-003 implementada (`review`):** `ClaudeCodeRuntime` passa a suportar `permission_modes=['read_only', 'workspace_write']`, mapeando `read_only` → `--permission-mode plan` e `workspace_write` → `--permission-mode acceptEdits`. `bindings.py` remove a exceção legada que permitia `planner` com `workspace_write` no Claude, exigindo `read_only` em todos os planners e reviewers. Patch point legado `core.claude` preservado. Novos testes em `tests/security/test_planner_readonly.py` confirmam `argv`, recusa de `workspace_write` no planner e extração de JSON (raw e cercado por markdown). Evidência: **567 pytest / 54 Vitest**, build/lint/docs verdes. Mantida em `review` conforme protocolo porque o critério de aceite inclui 1 validação real / revisão humana sem consumo de quota em testes automatizados.
 - **DIST-002 concluída:** job `frontend` (Ubuntu 24.04, Node 22, cache `npm`, `npm --prefix frontend ci`, `lint`, `build`, `test`) adicionado a `.github/workflows/tests.yml`; teste de contrato do workflow CI adicionado em `tests/test_python_checkpoint_compat.py`. Evidência: **564 pytest / 54 Vitest**, build/lint/docs verdes; revisão independente `review_dist002` aprovada.
 - **F0-005 concluída:** ambiente `.venv` migrado para Python 3.12.3 (auto-contido no workspace, removendo symlink externo de Python 3.9.7), `langgraph-checkpoint-sqlite>=2,<4` adicionado a `requirements.txt`, CI `.github/workflows/tests.yml` atualizado para Python 3.12 em `ubuntu-24.04` e novo teste `tests/test_python_checkpoint_compat.py` validando runtime `>=3.12` e round-trip persistente de `SqliteSaver` com `StateGraph`. Evidência: **563 pytest / 54 Vitest**, build/lint/docs verdes, zero warnings do LangGraph em Python 3.12; revisão independente `review_f0005` aprovada. Retomada gerenciada não foi adiantada (permanece em `V2-RES-002`/`003`).
@@ -133,3 +134,9 @@ Próxima recomendada F0-005 (Python3.12/SqliteSaver), alternativa de continuidad
 - `bindings.py` exige `read_only` para `planner`, `planner_fallback` e `reviewer` sem exceção de escrita para o planner Claude.
 - `tests/security/test_planner_readonly.py` adicionado (3 testes); `test_argv_characterization.py`, `test_bindings.py`, `test_registry.py` e `test_runtime_contract.py` atualizados.
 - Resultado: **567 pytest / 54 Vitest**, build/lint/docs verdes. Status `review (Antigravity)` aguardando validação real/humana.
+
+## Marco V2-SEC-004 — Matriz de permissões por papel em argv
+- `orchestrator/policy/roles.py` centraliza a matriz `ROLE_ALLOWED_PERMISSIONS` e os builders `build_claude_argv`, `build_codex_argv` e `build_antigravity_argv`.
+- `ClaudeCodeRuntime` em `workspace_write` inclui `--disallowedTools Bash` além de `--permission-mode acceptEdits`; qualquer combinação `(role, permission)` proibida levanta `RolePermissionError` antes de iniciar subprocesso.
+- `tests/security/test_role_argv.py` adicionado com 23 testes cobrindo CA3 de `SECURITY_GOVERNANCE.md`.
+- Resultado: **590 pytest / 54 Vitest**, build/lint/docs verdes. Status `review (Antigravity)` aguardando revisão humana obrigatória.

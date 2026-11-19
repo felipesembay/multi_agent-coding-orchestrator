@@ -1,4 +1,5 @@
-"""Codex CLI legacy read-only reviewer."""
+"""Codex CLI runtime with mechanism-enforced role permissions (SEC-004)."""
+from ...policy.roles import build_codex_argv
 from ..base import Capability, CapabilityManifest, CommandRuntime, InvocationRequest, InvocationResult
 
 
@@ -14,9 +15,13 @@ class CodexCliRuntime(CommandRuntime):
     )
 
     def _invoke(self, req: InvocationRequest) -> InvocationResult:
-        if req.permission != 'read_only':
+        if req.permission not in self.manifest.permission_modes:
             raise ValueError('Legacy Codex runtime requires read_only')
-        text = self._run(
-            ['codex', 'exec', '--sandbox', 'read-only', req.prompt], req,
+        argv = build_codex_argv(
+            role=req.role,
+            permission=req.permission,
+            prompt=req.prompt,
+            supported_modes=self.manifest.permission_modes,
         )
+        text = self._run(argv, req)
         return InvocationResult(text=text)

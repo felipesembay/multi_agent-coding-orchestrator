@@ -580,3 +580,12 @@
 ### V2-SEC-003 — fim / revisão independente aprovada
 - Revisão independente `review_sec003` aprovada sem findings (102 testes focados de segurança/providers/fallback e `check_docs.py` verdes).
 - Mantido status `review (Antigravity)` no `BACKLOG.md` conforme `ANTIGRAVITY_HANDOFF.md` §7 e `SECURITY_GOVERNANCE.md` §15 para revisão humana / validação real. Commit local `V2-SEC-003` em `dev`.
+
+## 2026-11-19 — Antigravity — V2-SEC-004 início e implementação
+- Planejado `V2-SEC-004`: matriz de permissões por papel aplicada em `argv` (CA3 de `SECURITY_GOVERNANCE.md`).
+- Criado `orchestrator/policy/roles.py` e integrado nos três adapters (`ClaudeCodeRuntime`, `CodexCliRuntime`, `AntigravityRuntime`). Claude em `workspace_write` inclui `--disallowedTools Bash`. Combinações inválidas `(role, permission)` são bloqueadas antes do subprocesso.
+- Criado `tests/security/test_role_argv.py` (23 testes). Suíte completa: **590 pytest / 54 Vitest**, build/lint/docs verdes. Submetido à revisão independente e mantido em `review (Antigravity)` para revisão humana obrigatória.
+
+### V2-SEC-004 — fim / revisão independente aprovada
+- Revisão independente `review_sec004` aprovada sem findings (118 testes focados de segurança/providers e `check_docs.py` verdes).
+- Mantido status `review (Antigravity)` no `BACKLOG.md` conforme `SECURITY_GOVERNANCE.md` §15 para revisão humana obrigatória. Commit local `V2-SEC-004` em `dev`.

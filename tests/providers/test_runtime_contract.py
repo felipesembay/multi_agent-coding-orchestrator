@@ -10,16 +10,16 @@ from orchestrator.providers.runtimes.claude_code import ClaudeCodeRuntime
 from orchestrator.providers.runtimes.codex_cli import CodexCliRuntime
 
 
-@pytest.mark.parametrize('runtime,permission,output', [
-    (ClaudeCodeRuntime, 'read_only', 'text'),
-    (ClaudeCodeRuntime, 'workspace_write', 'text'),
-    (CodexCliRuntime, 'read_only', 'text'),
-    (AntigravityRuntime, 'read_only', '{"status":"SUCCESS","response":"text"}'),
+@pytest.mark.parametrize('runtime,role,permission,output', [
+    (ClaudeCodeRuntime, 'planner', 'read_only', 'text'),
+    (ClaudeCodeRuntime, 'implementer', 'workspace_write', 'text'),
+    (CodexCliRuntime, 'reviewer', 'read_only', 'text'),
+    (AntigravityRuntime, 'planner', 'read_only', '{"status":"SUCCESS","response":"text"}'),
 ])
-def test_runtime_injects_runner_and_passes_explicit_environment(runtime, permission, output):
+def test_runtime_injects_runner_and_passes_explicit_environment(runtime, role, permission, output):
     runner = Mock(return_value=output)
     adapter: AgentRuntime = runtime(runner)
-    request = InvocationRequest(prompt='task', cwd='/tmp/tree', role='planner',
+    request = InvocationRequest(prompt='task', cwd='/tmp/tree', role=role,
                                 permission=permission, timeout_s=17, env={'LANG': 'C'})
     assert adapter.invoke(request).text == 'text'
     assert runner.call_count == 1

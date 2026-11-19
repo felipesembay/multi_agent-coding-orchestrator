@@ -1,7 +1,8 @@
-"""Antigravity legacy argv and JSON envelope validation."""
+"""Antigravity runtime with mechanism-enforced role permissions and JSON envelope validation."""
 import json
 import os
 
+from ...policy.roles import build_antigravity_argv
 from ..base import Capability, CapabilityManifest, CommandRuntime, InvocationRequest, InvocationResult
 
 
@@ -21,12 +22,14 @@ class AntigravityRuntime(CommandRuntime):
         )
 
     def _invoke(self, req: InvocationRequest) -> InvocationResult:
-        mode = 'plan' if req.permission == 'read_only' else 'accept-edits'
-        model = req.model
-        raw = self._run([
-            'agy', '--print', req.prompt, '--model', model,
-            '--mode', mode, '--output-format', 'json',
-        ], req)
+        argv = build_antigravity_argv(
+            role=req.role,
+            permission=req.permission,
+            prompt=req.prompt,
+            model=req.model,
+            supported_modes=self.manifest.permission_modes,
+        )
+        raw = self._run(argv, req)
         try:
             result = json.loads(raw)
         except json.JSONDecodeError as exc:
