@@ -11,6 +11,7 @@ import shutil
 import time
 from typing import Callable, Literal, Optional, Protocol
 import uuid
+from datetime import datetime,timezone
 
 from pydantic import BaseModel, Field, ValidationError, field_serializer, field_validator, model_validator
 
@@ -159,6 +160,18 @@ class AgentCall(BaseModel):
     usage: UsageReport = Field(default_factory=UsageReport)
     billing_mode: Literal['api_metered', 'subscription_quota', 'local', 'unknown'] = 'unknown'
     error_code: Optional[ErrorCode] = None
+    started_at: Optional[str] = Field(default=None,max_length=64)
+
+    @field_validator('started_at')
+    @classmethod
+    def aware_start(cls,value):
+        if value is None:return value
+        try:
+            parsed=datetime.fromisoformat(value.replace('Z','+00:00'))
+            if parsed.utcoffset() is None:raise ValueError()
+            return parsed.astimezone(timezone.utc).isoformat()
+        except Exception:
+            raise ValueError('Invocation timestamp must include timezone') from None
 
 
 def invoke_measured(provider: str, req: InvocationRequest,
@@ -167,6 +180,7 @@ def invoke_measured(provider: str, req: InvocationRequest,
                     call_id: Optional[str] = None) -> InvocationResult:
     """Measure a call at a single owned boundary, including registered plugins."""
     call_id = call_id or str(uuid.uuid4())
+    started_stamp = datetime.now(timezone.utc).isoformat()
     started = time.monotonic_ns()
     try:
         raw = invoke()
@@ -180,7 +194,7 @@ def invoke_measured(provider: str, req: InvocationRequest,
             try:
                 observer(AgentCall(
                     call_id=call_id, provider=provider, role=req.role,
-                    model=req.model, duration_ms=duration, error_code=error_code(exc),
+                    model=req.model, duration_ms=duration, error_code=error_code(exc),started_at=started_stamp,
                 ))
             except Exception:
                 # Metadata persistence must not replace the primary CLI error.
@@ -191,7 +205,7 @@ def invoke_measured(provider: str, req: InvocationRequest,
         observer(AgentCall(
             call_id=call_id, provider=provider, role=req.role, model=req.model,
             model_reported=result.model_reported, session_id=result.session_id,
-            duration_ms=result.duration_ms, usage=result.usage, error_code=result.error_code,
+            duration_ms=result.duration_ms, usage=result.usage, error_code=result.error_code,started_at=started_stamp,
         ))
     return result
 

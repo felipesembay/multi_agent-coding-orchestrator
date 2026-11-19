@@ -60,11 +60,11 @@ Não é necessário ler toda a pasta `docs/`. Leia apenas a especificação da �
 
 ## 5. Próximas tarefas
 
-1. **V2-PROV-001** concluída e revisada: OpenRouter básico integrado ao host/snapshot/keyring; testes HTTP em mocks, nenhuma chave real alterada.
-2. **V2-RES-002 concluída**; **V2-SEC-007 também concluída**; próxima **V2-OBS-003**, uma tarefa por vez conforme BACKLOG/NEXT_STEPS.
-3. **V2-SEC-003** em review: validação real exigida pendente, não opcional. **V2-F0-002** permanece parcial pela revisão formal dos ADRs. Não reabrir questões do operador já respondidas.
+1. Sequência PROV-001/RES-002/SEC-007/OBS-003 concluída e revisada nesta sessão. Validação final721pytest/54Vitest,11E2E/2opt-ins skipped, build/lint/docs verdes. Nenhuma API de geração real/credencial alterada; commits locais dev, sem push.
+2. Próxima recomendada **V2-RES-004**, depois **V2-RES-003**, ou alternativas liberadas OBS-008/PROV-002 conforme prioridade. Uma tarefa por vez; nenhuma iniciada automaticamente após a sequência.
+3. **V2-SEC-003** em review: validação real exigida pendente, não opcional. **V2-F0-002** blocked pela revisão formal dos ADRs. Não reabrir questões já respondidas nem inventar evidência.
 
-Detalhes e evidências atuais: [CURRENT_STATE](../handoff/CURRENT_STATE.md) e [NEXT_STEPS](../handoff/NEXT_STEPS.md).
+Detalhes e critérios: [CURRENT_STATE](../handoff/CURRENT_STATE.md), [NEXT_STEPS](../handoff/NEXT_STEPS.md) e [guia Antigravity](../handoff/ANTIGRAVITY_HANDOFF.md).
 
 ## 6. Invariantes que nenhuma tarefa pode quebrar sem ADR
 

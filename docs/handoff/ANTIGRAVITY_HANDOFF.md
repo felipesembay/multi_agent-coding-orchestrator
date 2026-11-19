@@ -1,6 +1,6 @@
 # Continuidade do Conductor no Antigravity
 
-Atualizado em 2026-11-19. A fotografia inicial abaixo é histórica; prevalecem BACKLOG/CURRENT_STATE. SEC-003 está em review por validação real pendente; PROV-001 concluída e revisada nesta sessão. Próxima sequência: RES-002, SEC-007, OBS-003. Entrega de origem: V2-WF-010 concluída e aprovada em revisão independente. Commit local em dev com título `V2-WF-010: execute safe frozen fallback chains`; confira o hash em git log.
+Atualizado em 2026-11-19. Sequência PROV-001/RES-002/SEC-007/OBS-003 concluída e revisada; consulte os commits locais em dev. Baseline final721pytest/54Vitest,11E2E/2opt-ins skipped, build/lint/docs verdes. SEC-003 em review por evidência real pendente; F0-002 blocked por ADRs. Backlog31done/30todo/1review/1blocked de63. BACKLOG/CURRENT_STATE prevalecem sobre os marcos históricos abaixo.
 
 Este documento permite continuar sem o histórico da conversa. O operador solicitou a transferência porque as quotas de GPT/Claude estão se esgotando. Usar o Antigravity como ambiente de desenvolvimento **não** autoriza chamadas de agentes reais nos testes do produto.
 
@@ -87,13 +87,14 @@ Execute uma por vez, verificando o status atual no BACKLOG antes de iniciar:
 
 | Ordem sugerida | Tarefa | Entrega e cuidado |
 |---|---|---|
-| 1 | V2-RES-002 | Checkpointer SQLite com DB separado/thread_id=run_id; não liberar retomada gerenciada sem RES-003/004 |
-| 2 | V2-SEC-007 | Auditoria estendida sem valores sensíveis, testes positivos/negativos |
-| 3 | V2-OBS-003 | Catálogo manual/import versionado; alterações de preço não mudam custo histórico |
+| 1 | V2-RES-004 | Aprovações humanas persistidas/autenticadas na UI/API; audit da decisão na transação, sem auto-approve |
+| 2 | V2-RES-003 | Retomada gerenciada após aprovação/inspeção de efeitos; não chamar invoke(None) cegamente |
+| Alternativa | V2-OBS-008 | Aba de uso por run com fonte e billing_mode separados, não somar assinatura/API |
+| Alternativa | V2-PROV-002 | Sync de modelos/preços/parâmetros com HTTPmock; preservar catálogo/custos anteriores e keyring |
 
-F0-005, DIST-002, SEC-004/005, WF-005/006, OBS-001, RES-001 e PROV-001 foram implementadas. SEC-003 continua review até evidência real ou dispensa explícita; sem consumo de quota nesta sessão. Consulte BACKLOG para status corrente, não use a lista histórica de WF-010 como fila de trabalho.
+PROV-001/RES-002/SEC-007/OBS-003 estão concluídas. O host estrito usa ModelProvider sem cwd/env/tools, keyring no calltime e checkpoint síncrono separado; um run com checkpoint não é reiniciado automaticamente. Catálogo manual/import só acrescenta versões viaAPI; custos reportados/estimados permanecem distintos e históricos não são recalculados. Não há preços de mercado embutidos ou chamadas reais nos testes. Sessão D-Bus apenas runner.
 
-OpenRouter básico agora executa plan/review com chave consultada no keyring em call time; sem cwd/env/tools no ModelProvider. Referência e modelo explícito ficam congelados no snapshot. Uso reportado é persistido inclusive em resposta inválida; timeout/5xx não autorizam retry cego. Catálogo/preços avançados e UI de chave permanecem tarefas futuras. Somente a sessão do runner recebe D-Bus para Secret Service.
+SEC-003 continua review até evidência real ou dispensa explícita. As alternativas não foram iniciadas, e nada autoriza executar duas tarefas no mesmo commit. Revisão independente/humana conforme cada especificação continua obrigatória.
 
 ## 8. Verificação sem gastar quota
 
@@ -107,7 +108,7 @@ python scripts/check_docs.py
 git diff --check
 ```
 
-Validação final WF-010: **561 pytest/54 Vitest**, build/lint/docs verdes, **11 E2E/2 opt-ins skipped** em QA temporário encerrado. Revisão independente aprovada. Backlog nesta entrega: **19 concluídas de63;44 restantes (43 todo,1 blocked)**. Use BACKLOG/CURRENT_STATE para atualizações e versões efetivas; ambiente de origem ainda usa Python3.9.7, migração3.12 pendente. Um aviso de depreciação LangGraph já existia. Falha de TestClient por restrição de sockets deve ser distinguida de teste vermelho; não enfraquecer autenticação para contornar sandbox.
+Validação final desta sequência:721pytest/54Vitest, build/lint/docs e revisões independentes verdes;11E2E/2opt-ins skipped, QA temporário encerrado. Ambiente Python3.12.3, LangGraph1.2.22, checkpoint4.3.2/sqlite3.1.3. Confira versões/status novamente antes de editar. Restrições de sockets do sandbox não justificam enfraquecer autenticação para fazer TestClient passar.
 
 E2E requer API/worker/Vite de QA com DB/repos temporários e agentes substituídos por `tests/fixtures/managed_server.py`. Os testes de escrita de workflows exigem `EXECUTION_E2E_MOCKED=1` e raízes `/tmp/orchestrator-execution-qa.*`; outros opt-ins têm guardas próprios. Não apontar a suíte para o banco normal. Encerrar os serviços temporários ao final. Não presumir que scripts auxiliares em `/tmp` estarão presentes em outra máquina.
 

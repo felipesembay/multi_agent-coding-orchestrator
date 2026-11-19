@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import datetime,timezone
 from typing import Any, Optional
 
 from ..project_store import connection
@@ -67,6 +68,9 @@ def record_usage(
     effective_billing = billing_mode or call.billing_mode or "unknown"
     effective_model = call.model_reported if call.model_reported is not None else call.model
     raw_json = redact_raw_usage(call.usage.raw)
+    from .pricing import estimate_for_call,timestamp
+    call_start=call.started_at if call.started_at is not None else datetime.now(timezone.utc)
+    started_at=timestamp(call_start)
 
     with connection() as conn:
         conn.execute("BEGIN IMMEDIATE")
@@ -76,6 +80,8 @@ def record_usage(
         if existing is not None:
             conn.commit()
             return
+        if estimated_cost_usd is None and price_entry_id is None and currency=='USD':
+            estimated_cost_usd,price_entry_id=estimate_for_call(call,billing_mode=effective_billing,at=call_start,conn=conn)
         resolved_project = project_id
         if resolved_project is None:
             row = conn.execute(
@@ -95,8 +101,8 @@ def record_usage(
                 adapter, model, call_index, duration_ms, input_tokens, output_tokens,
                 cache_read_tokens, cache_write_tokens, reasoning_tokens, token_source,
                 billing_mode, reported_cost_usd, estimated_cost_usd, price_entry_id,
-                currency, error_kind, retry_of, raw_usage
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                currency, error_kind, retry_of, raw_usage, started_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 call.call_id,
                 run_id,
@@ -122,6 +128,7 @@ def record_usage(
                 call.error_code,
                 retry_of,
                 raw_json,
+                started_at,
             ),
         )
         conn.commit()

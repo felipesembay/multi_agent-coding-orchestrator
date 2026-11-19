@@ -1,6 +1,6 @@
 # Estado atual
 
-Atualizado: 2026-11-19 · Por: Codex (V2-SEC-007)
+Atualizado: 2026-11-19 · Por: Codex (V2-OBS-003)
 
 ## Repositório
 - Branch `dev`; commits testados/revisados autorizados pelo operador. Sem merge/deploy/main/master. Push solicitado pelo operador em 2026-11-18 concluído até 7431745 em origin/dev; sem force/main/master. Commits WF-007 (6f1c167), CI-DIST-004 (feb4caf), WF-008 (58051a2), WF-009 (1d05736), WF-010 (2986229), F0-005 (a85d13f), DIST-002 (57bacaf), SEC-003 (db340b4), SEC-004 (0ec638d), WF-005 (dd172fb), WF-006 (6c387d4), OBS-001 (09ce461), SEC-005 (76d37bd) e RES-001 ficam locais; nenhum novo push solicitado.
@@ -10,9 +10,11 @@ Atualizado: 2026-11-19 · Por: Codex (V2-SEC-007)
 
 ## Estado atual autoritativo — 2026-11-19
 
-- PROV-001 concluída: OpenRouter de texto para plan/review integrado a registry/snapshot/host/keyring/usage_records; API mockada, sem acesso do modelo ao sistema de arquivos.666 pytest/54 Vitest,11 E2E/2 opt-ins skipped, build/lint/docs verdes. review_prov001 aprovada após corrigir uso em saída inválida, ledger, contexto e sessão D-Bus exclusiva do runner.
-- SEC-003 em review por validação real exigida pendente, sem dispensa explícita. SEC-004 continua done com aprovação humana. Passagens antigas abaixo são marcos históricos e não substituem este estado/BACKLOG.
-- Próxima sequência autorizada: RES-002, SEC-007, OBS-003, uma tarefa por vez. Sem push/merge/deploy; commit local dev autorizado. Nenhuma API de geração/CLI real ou alteração de credencial real nesta sessão.
+- Sequência autorizada concluída: PROV-001 (`066baa0`), RES-002 (`0be622d`), SEC-007 (`ad1c2e9`) e OBS-003 (commit local com ID da tarefa). Uma tarefa por commit, revisões independentes aprovadas; nenhum push/merge/deploy ou alteração em main/master.
+- Validação final **721 pytest /54 Vitest**, build/lint/docs verdes; **11 E2E passed/2 skipped** (opt-ins projetos/exclusão),15,3s, serviços QA temporários encerrados. Nenhuma API de geração/CLI real nem alteração de credencial real. Baseline da sequência624/54.
+- OpenRouter básico via keyring/snapshot/contexto textual seguro; checkpoints estritos síncronos em DB separado sem auto-resume; auditoria estendida com metadados permitidos; catálogo manual/import com vigência e estimativas separadas/congeladas. Limites específicos nos marcos abaixo.
+- SEC-003 em review por validação real exigida pendente, sem dispensa explícita. SEC-004 continua done com aprovação humana. F0-002 blocked pela revisão formal dos ADRs. Backlog:31 done/30 todo/1 review/1 blocked de63 tarefas.
+- Próxima recomendada RES-004 (aprovações persistidas), depois RES-003 (retomada com inspeção); alternativas liberadas OBS-008/PROV-002 conforme prioridades. Nenhuma dessas novas tarefas iniciada. Passagens antigas abaixo são históricas e não substituem este estado/BACKLOG.
 
 ## Implementado
 - **RES-001 concluída:** criados `orchestrator/resilience/digest.py` (`compute_tree_digest` sobre `git status --porcelain=v2`, `git diff --no-ext-diff HEAD` e hashes de arquivos não rastreados limitados, além de `current_git_head`) e `orchestrator/resilience/ledger.py` (`StepLedger`, `start_step_execution`, `complete_step_execution`, `fail_step_execution`, `list_step_executions`, `next_step_attempt`), integrados ao executor de workflows (`workflows/execution.py`) e vinculados a `usage_records.step_execution_id`. Retomada gerenciada não foi adiantada (permanece em `V2-RES-002`/`003`). Novos testes em `tests/workflows/test_step_ledger.py` (4 casos). Evidência: **624 pytest / 54 Vitest**, build/lint/docs verdes; revisão independente `review_res001` aprovada.
@@ -210,3 +212,13 @@ Auditoria de ações estendidas validada por allowlist de campos/tipos/IDs, sem 
 - policy.audit valida metadados dos eventos estendidos antes de projects.audit inserir; IDs/referência canônica/decision enum e nenhuma chave/objeto/freetext extra. Produtores de workflow/versão/provider/credential integrados; contratos futuros approval/budget/resume não ativam fluxos de domínio. Legado project/request/execution preservado.
 - Baseline675pytest/54Vitest; final700pytest,22,80s/54Vitest/build/lint/docs verdes.25novos incluindo integração HTTP sem nomes/corpos e rollback SQL. review_sec007 aprovada com30focados/diff limpo. E2E não repetido:sem UI/execução alterada, último PROV00111passed/2skip.
 - Sem nova migração/endpoints/credenciais/quota/push. Commit local SEC-007 dev autorizado; próxima OBS-003. SEC-003 segue review por evidência real pendente.
+
+## Marco OBS-003 — catálogo em revisão
+Catálogo manual/import JSON em tabelas existentes, versões somente acréscimo via API, vigência UTC e unidade/moeda explícitas. Lookup temporal e estimativa separada por chamada com price_entry_id, sem reprecificar histórico; captura started_at no envelope.20novospricing passaram;65focadosusage/audit/metadados verdes antes dos últimos4 casos. Sem sync externo/preços embutidos/heurística de tokens; pendentes suites/revisão.
+
+## OBS-003 concluída
+
+- Catálogo manual/import JSON com fonte/unidade/moeda/vigênciaUTC, versões só acrescentadas via writer/API, lote atômico e conflito temporal rejeitado. GET/POSTpricing/quote autenticados; nenhuma atualização/remoção de versões pela API, sem migração adicional.
+- AgentCall captura inícioUTC real; record_usage usa a cotação vigente nesse início e congela estimate/priceentry por call_id. Reportado e assinatura/API permanecem separados; não reprecifica/repreenche histórico nem converte moeda. Componentes cache/reasoning ambíguos, dados ausentes, overflow/underflow mantêm estimate null. Nenhum preço real embutido ou fetch externo/heurística de tokens.
+- Baseline700pytest/54Vitest; final721pytest,26,00s/54Vitest/build/lint/docs verdes.21novospricing/API; E2E11passed/2skipped,15,3s em QA encerrado. review_obs003 aprovada após underflow corrigido,67focados iniciais e19focados/2desmarcados finais; diff limpo.
+- UI financeira, agregações, orçamento e sync de preços continuam OBS-004..008/PROV-002. Todas as alterações desta sequência são locais em dev; CI remoto não reexecutado. Documento Antigravity e NEXT_STEPS atualizados para a próxima etapa, sem chamar agentes reais.

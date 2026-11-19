@@ -4,16 +4,26 @@
 
 O operador solicitou um documento geral para continuar o desenvolvimento com outro agente: [ANTIGRAVITY_HANDOFF](ANTIGRAVITY_HANDOFF.md). Contém contexto, decisões, invariantes, mapa de código, testes e prompt pronto para colar. Nenhuma tarefa nova foi iniciada automaticamente.
 
-## Sequência atual — 2026-11-19
+## Sequência concluída — 2026-11-19
 
-1. **V2-PROV-001 concluída** —666 pytest/54 Vitest,11E2E/2skip,build/lint/docs; revisão independente aprovada. Nenhuma chamada real ou chave alterada.
-2. **V2-RES-002 concluída** —675pytest/54Vitest,9novos,build/lint/docs e revisão aprovados. Checkpoint síncrono separado, sem retomada automática. Próxima ativa sugerida SEC-007.
-3. **V2-SEC-007 concluída** —700pytest/54Vitest/build/lint/docs; revisão independente aprovada. Contratos de eventos futuros não antecipam decisões/retomada. Próxima OBS-003.
-4. **V2-OBS-003** — catálogo de preços versionado manual/import, preservando custos históricos. OBS-001 concluída.
+- PROV-001 `066baa0`: OpenRouter básico e keyring,666pytest/54Vitest, revisão aprovada.
+- RES-002 `0be622d`: checkpoints síncronos separados,675pytest/54Vitest, revisão aprovada.
+- SEC-007 `ad1c2e9`: auditoria validada,700pytest/54Vitest, revisão aprovada.
+- OBS-003: catálogo manual/import e estimativas históricas,721pytest/54Vitest,11E2E/2opt-ins skipped, build/lint/docs e revisão aprovados; commit local com ID da tarefa.
 
-**SEC-003 permanece em review:** código/mock/revisões aprovados, mas validação real exigida não executada (Claude ausente no ambiente anterior). Não houve dispensa explícita do critério; pendência não é opcional. Nenhum CLI real será chamado nesta sessão. SEC-004 mantém aprovação humana registrada.
+## Próxima tarefa recomendada: V2-RES-004 — aprovações humanas persistidas
 
-**Comandos:** git status/log; source .venv/bin/activate (Python3.12); ORCH_DB="$(mktemp -d)/events.db" python -m pytest -q -p no:cacheprovider; npm --prefix frontend test/build/lint; python scripts/check_docs.py; git diff --check. Uma tarefa por vez, revisão independente e commit local dev; sem push/merge/deploy.
+**Objetivo:** implementar approvals para plano/resultado/retomada, com identidade/proveniência da decisão, API autenticada e UI explícita; usar contrato de audit approval.decided na mesma transação. Não confundir reviewer automático com decisão humana. WF-002 concluída; SQLite checkpoint/ledger já disponíveis.
+
+**Aceite:** ler PERSISTENCE/SECURITY/ADR0007/0009; testes API/Vitest de aprovação/rejeição, autenticidade e decisões repetidas/concorrentes; nenhum auto-approve. Sem liberar retomada antes de RES-003, que depende dessa tarefa. Não antecipar orçamento/override nesta entrega. Revisão independente e handoff por marco.
+
+**Alternativas:** OBS-008 para aba de uso honesta e PROV-002 para sync de modelos/preços/parâmetros com mocks. Nenhuma dessas tarefas iniciada nesta sessão. Escolher uma conforme prioridade do operador.
+
+**Pendências humanas:** SEC-003 segue review: evidência real exigida não executada, sem dispensa explícita. F0-002 continua blocked por revisão formal dos ADRs. Não gastar quota/alterar credenciais ou marcar evidência não feita como opcional. SEC-004 conserva aprovação humana registrada.
+
+**Baseline/comandos:** git status/log; source .venv/bin/activate (Python3.12); ORCH_DB="$(mktemp -d)/events.db" python -m pytest -q -p no:cacheprovider (721); npm --prefix frontend test (54), run build, run lint; python scripts/check_docs.py; git diff --check. E2E exige QA temporário/mocks, nunca banco normal. Commits locais dev autorizados após verdes/revisão; sem push/merge/deploy.
+
+## Marcos anteriores (histórico)
 
 ## V2-RES-001 concluída
 

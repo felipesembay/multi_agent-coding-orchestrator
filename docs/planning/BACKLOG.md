@@ -56,7 +56,7 @@ Fonte única de status das tarefas. Atualize a linha da tarefa ao iniciar (`doin
 |---|---|---|---|---|---|---|---|---|
 | V2-OBS-001 | Migração 5 + gravação de `usage_records` | done | P1 | M | CORE-002 | BE | Toda chamada gera registro (inclusive `unavailable`) | Migração 5 + `orchestrator/accounting/usage.py`; 4 novos em `test_usage_records.py` (614 pytest / 54 vitest); revisão review_obs001 aprovada (2026-11-19) |
 | V2-OBS-002 | Parsers de telemetria por CLI | todo | P1 | M | F0-003, OBS-001 | BE | CA1 de TOKEN_ACCOUNTING | Fixtures por versão |
-| V2-OBS-003 | Catálogo de preços versionado (manual + import) | todo | P1 | M | OBS-001 | BE | CA4 de TOKEN_ACCOUNTING | Testes de vigência |
+| V2-OBS-003 | Catálogo de preços versionado (manual + import) | done | P1 | M | OBS-001 | BE | CA4: catálogo append-only e custo histórico congelado | 721pytest/54Vitest;21novos;11e2e/2skip;build/lint/docs;review_obs003 aprovada;commit OBS-003 dev |
 | V2-OBS-004 | Estimador local opcional (rotulado) | todo | P2 | S | OBS-001 | BE | Registros `estimated` só com opção ativa | Unitário |
 | V2-OBS-005 | Orçamentos run/projeto com warn/block | todo | P2 | M | OBS-003, RES-004 | BE | CA3 de TOKEN_ACCOUNTING | Integração |
 | V2-OBS-006 | API de agregações + projeções incrementais | todo | P2 | M | OBS-001 | BE | RNF3 de TOKEN_ACCOUNTING | Teste de desempenho com 10⁵ linhas |

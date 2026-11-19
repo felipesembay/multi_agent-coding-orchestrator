@@ -16,12 +16,14 @@ from .providers.registry import ProviderInfo, ProviderRegistry, get_provider_reg
 from .dashboard import summarize
 from .execution_manager import all_summaries, get_managed, consolidated
 from .workflow_api import router as workflow_router, field_errors
+from .pricing_api import router as pricing_router
 from .workflows.snapshot import WorkflowSnapshotError
 
 app = FastAPI(title='Multi-Agent Orchestrator — local project platform')
 app.middleware('http')(protect_routes)
 app.include_router(project_router)
 app.include_router(workflow_router)
+app.include_router(pricing_router)
 
 
 @app.exception_handler(RequestValidationError)

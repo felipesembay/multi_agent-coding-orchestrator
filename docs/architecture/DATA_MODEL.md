@@ -94,3 +94,7 @@ Sem alteração de schema/migração: workflows estritos gravam eventos usage_re
 ## Checkpoints RES-002
 
 SqliteSaver persiste em arquivo separado `<ORCH_DB resolvido>.checkpoints.sqlite3`, com tabelas internas checkpoints/writes geridas pela biblioteca; não altera a migração do catálogo. Chave de thread é run_id, metadata inclui workflow_digest e estado por superstep. Arquivo privado0600 e serializer restrito, gravação síncrona antes do próximo nó. Presença de checkpoint bloqueia início repetido até inspeção RES-003/004. Caminho legado não foi migrado nesta entrega.
+
+## Catálogo OBS-003
+
+Usa price_catalog_versions/price_entries existentes, sem nova migração. Writer/API apenas acrescentam versões, moeda/unidade/origem e vigênciaUTC; fonte de import é JSON explícito do operador. usage_records.started_at passa a representar o início real do AgentCall; estimated_cost_usd e price_entry_id são congelados no INSERT idempotente, sem atualização/reprice/backfill histórico. Sem cotação USD completa ou contagens reportadas não ambíguas, ambos ficam null. Não há conversão cambial nem soma de assinatura/API. Alteração manual de SQL fora do writer não é suportada como versionamento.

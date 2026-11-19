@@ -11,6 +11,7 @@ class AuditError(ValueError):
 
 
 _FIELDS = {
+    'pricing.catalog_created': ({'catalog_version_id','source','entry_count'},set()),
     'workflow.created': ({'workflow_id'}, set()),
     'workflow.version_created': ({'workflow_id','version_id'}, set()),
     'provider.configured': ({'provider_config_id','adapter'}, {'enabled'}),
@@ -20,7 +21,7 @@ _FIELDS = {
     'budget.override': ({'budget_id','approval_id'}, {'run_id','actor_id'}),
     'run.resumed': ({'run_id','approval_id'}, {'checkpoint_id','actor_id'}),
 }
-_NAMESPACES = {'workflow','provider','credential','approval','budget','run'}
+_NAMESPACES = {'workflow','provider','credential','approval','budget','run','pricing'}
 _IDENTIFIER = re.compile(r'^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,127}$')
 
 
@@ -35,6 +36,8 @@ def validate_audit(action, details):
         raise AuditError('Invalid audit metadata')
     for key,value in details.items():
         if key=='enabled': valid=type(value) is bool
+        elif key=='source': valid=value in ('manual','import')
+        elif key=='entry_count': valid=type(value) is int and 1<=value<=1000
         elif key=='decision': valid=value in ('approve','reject')
         elif key=='kind': valid=value in ('plan','result','resume','budget')
         elif key=='adapter': valid=isinstance(value,str) and re.fullmatch(r'[a-z][a-z0-9_-]{0,63}',value)

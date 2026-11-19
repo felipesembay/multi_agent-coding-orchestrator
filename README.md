@@ -607,3 +607,13 @@ Para continuar o desenvolvimento em outro agente, consulte o [guia de passagem p
 O host aceita OpenRouter para planejamento/revisão de workflows estritos, separado dos agentes CLI. Crie uma configuração com adapter=openrouter na API básica, vincule sua chave pelo CredentialStore/keyring existente e escolha um modelo explícito vendor/model por etapa. O modelo recebe somente texto/contexto preparado pelo backend; não recebe worktree, ambiente ou ferramentas de arquivos/shell. A interface completa de credenciais/catálogo continua planejada.
 
 Snapshots congelam referência de keyring e modelo, sem valor da chave. Uso reportado é gravado por chamada, inclusive se a resposta não puder ser usada. Registro/probe/preflight não fazem geração nem verificam saldo. Nenhuma chave ou chamada real foi usada para validar esta implementação; os testes usam HTTP/keyring simulados. Detalhes e limites: [PROVIDER_SYSTEM](docs/specifications/PROVIDER_SYSTEM.md).
+
+### Catálogo de preços manual/importado (OBS-003)
+
+A API local autenticada oferece GET/POST `/pricing` e GET `/pricing/quote`. O POST cria uma versão nova; `source="import"` recebe lote JSON no mesmo contrato. Não existem endpoints para alterar/apagar versões. Exemplo com **valores fictícios, não preços de mercado**:
+
+```json
+{"source":"manual","notes":"Exemplo sintético","entries":[{"adapter":"openrouter","model":"example/model","currency":"USD","unit":"per_1m_tokens","input_price":1.0,"output_price":2.0,"effective_from":"2026-11-19T00:00:00Z"}]}
+```
+
+Uso com tokens reportados pode receber `estimated_cost_usd` separado do custo reportado, vinculado ao preço vigente no início da chamada. Chamadas antigas não são recalculadas. Ausência de preço, contagens ou precisão suficiente mantém a estimativa indisponível; não há taxa de câmbio, cobrança inventada, sincronização remota ou nova tela financeira nesta entrega. Consulte [TOKEN_ACCOUNTING](docs/specifications/TOKEN_ACCOUNTING.md).
