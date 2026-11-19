@@ -44,7 +44,7 @@ def _command(argv, config):
                  and re.fullmatch(r'agent/run-[0-9a-f]{12}', args[3])
                  and os.path.isabs(args[4]) and args[5] == 'HEAD')
     elif command == 'status':
-        valid = options in ([], ['--porcelain'], ['--short'])
+        valid = options in ([], ['--porcelain'], ['--porcelain=v2'], ['--short'])
     elif command == 'rev-parse':
         valid = args in (['--git-common-dir'], ['--show-toplevel'], ['--verify', 'HEAD'], ['HEAD'])
     else:  # diff: only non-executing options and the current HEAD.

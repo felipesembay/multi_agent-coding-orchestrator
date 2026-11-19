@@ -626,3 +626,12 @@
 ### V2-SEC-005 — fim / revisão aprovada
 - Revisão independente `review_sec005` aprovada sem findings (620 pytest / 54 Vitest e `check_docs.py` verdes).
 - Marcado `done` no `BACKLOG.md` e commit local `V2-SEC-005` em `dev`.
+
+## 2026-11-19 — Antigravity — V2-RES-001 início e implementação
+- Planejado `V2-RES-001`: Ledger `step_executions` + digest de árvore (`PERSISTENCE.md` §6.2 / `ADR-0007`), sem implementar retomada automática.
+- Permitido `--porcelain=v2` em `policy/git.py`; criados `orchestrator/resilience/digest.py` e `orchestrator/resilience/ledger.py`, integrados ao host `workflows/execution.py` com vínculo em `usage_records.step_execution_id`.
+- Criado `tests/workflows/test_step_ledger.py` (4 novos testes). Suíte completa: **624 pytest / 54 Vitest**.
+
+### V2-RES-001 — fim / revisão aprovada
+- Revisão independente `review_res001` aprovada sem findings (624 pytest / 54 Vitest e `check_docs.py` verdes).
+- Marcado `done` no `BACKLOG.md` e commit local `V2-RES-001` em `dev`.

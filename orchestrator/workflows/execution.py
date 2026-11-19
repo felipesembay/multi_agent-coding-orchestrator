@@ -13,6 +13,7 @@ import time
 from .. import core
 from ..providers.base import InvocationRequest, invoke_measured
 from ..providers.errors import InvocationFailure
+from ..resilience.ledger import StepLedger, classify_side_effects, next_step_attempt
 from .compiler import compile_workflow
 from .nodes import WorkflowLimitError, slot
 from .snapshot import validate_snapshot
@@ -22,6 +23,8 @@ def execute_snapshot(repo, scope, *, run_id, snapshot, config, registry, clock=t
     snapshot = validate_snapshot(snapshot, registry=registry)
     if not re.fullmatch(r'run-[0-9a-f]{12}', run_id) or len(scope) > 100000:
         raise ValueError('Invalid workflow run identity or scope')
+
+    ledger = StepLedger()
 
     def remaining(context):
         # Absolute deadline includes stage_started and any preceding Git work.
@@ -33,6 +36,27 @@ def execute_snapshot(repo, scope, *, run_id, snapshot, config, registry, clock=t
 
     def agent(context):
         step, state = context.step, context.state
+        task_obj = (
+            state['plan']['tasks'][state['task_index']]
+            if getattr(step, 'per_task', False) and state.get('plan')
+            else None
+        )
+        task_id = task_obj.get('id') if isinstance(task_obj, dict) else None
+        attempt_num = next_step_attempt(state['run_id'], step.id, task_id)
+        side_effects = classify_side_effects(
+            stage_type=step.type,
+            permission=context.binding.permission if context.binding else None,
+            adapter=context.adapter,
+        )
+        step_exec_id = ledger.start(
+            run_id=state['run_id'],
+            node=step.id,
+            worktree=state['worktree'],
+            task_id=task_id,
+            attempt=attempt_num,
+            role=step.role,
+            side_effects=side_effects,
+        )
         if step.type == 'plan':
             prompt = ('Return ONLY JSON: {"tasks":[{"id":"T1","title":"...",'
                       '"instructions":"...","acceptance":["..."],"tests":["..."]}]}. '
@@ -91,6 +115,7 @@ def execute_snapshot(repo, scope, *, run_id, snapshot, config, registry, clock=t
                 call=call,
                 billing_mode=runtime.manifest.billing_mode,
                 provider_config_id=context.binding.provider_config_id,
+                step_execution_id=step_exec_id,
                 retry_of=context.retry_of,
             )
         def record(call):
@@ -102,47 +127,74 @@ def execute_snapshot(repo, scope, *, run_id, snapshot, config, registry, clock=t
         try:
             result = invoke_measured(context.adapter, request, lambda: runtime.invoke(request),
                                      record, call_id=context.call_id)
-        except InvocationFailure:
+        except InvocationFailure as exc:
+            ledger.fail(step_exec_id, error=exc.code, worktree=state['worktree'])
             if record_failed:
                 raise RuntimeError('Could not persist workflow invocation metadata') from None
             raise
         except Exception:
+            ledger.fail(step_exec_id, error='Workflow agent invocation failed', worktree=state['worktree'])
             raise RuntimeError('Workflow agent invocation failed') from None
         if result.error_code is not None:
+            ledger.fail(step_exec_id, error=result.error_code, worktree=state['worktree'])
             # Error-bearing results are failures, never successful stage output.
             # No verified no-effects attestation: never select a fallback here.
             raise InvocationFailure(result.error_code)
-        if step.type in ('plan', 'review'):
-            payload = result.structured if result.structured is not None else core.extract_json(result.text)
-            if step.type == 'plan':
-                tasks = payload.get('tasks')
-                if not isinstance(tasks, list) or any(not isinstance(t, dict) or not all(
-                        key in t for key in ('id', 'title', 'instructions', 'acceptance')) for t in tasks):
-                    raise ValueError('Invalid workflow plan tasks')
-                core.event(state, 'plan', payload)
-            else:
-                if tests and not all(test['passed'] for test in tests):
-                    payload = {**payload, 'approved': False}
-                core.event(state, 'review', {
-                    'task': task.get('id'), **payload,
-                    'test_result': {'passed': bool(tests) and all(test['passed'] for test in tests)},
+        try:
+            if step.type in ('plan', 'review'):
+                payload = result.structured if result.structured is not None else core.extract_json(result.text)
+                if step.type == 'plan':
+                    tasks = payload.get('tasks')
+                    if not isinstance(tasks, list) or any(not isinstance(t, dict) or not all(
+                            key in t for key in ('id', 'title', 'instructions', 'acceptance')) for t in tasks):
+                        raise ValueError('Invalid workflow plan tasks')
+                    core.event(state, 'plan', payload)
+                else:
+                    if tests and not all(test['passed'] for test in tests):
+                        payload = {**payload, 'approved': False}
+                    core.event(state, 'review', {
+                        'task': task.get('id'), **payload,
+                        'test_result': {'passed': bool(tests) and all(test['passed'] for test in tests)},
+                    })
+                ledger.complete(step_exec_id, worktree=state['worktree'])
+                return payload
+            payload = {'output': result.text[-6000:]}
+            if step.type == 'implement':
+                core.event(state, 'implementation', {
+                    'task': task.get('id'), 'output': payload['output'],
+                    'attempt': state['workflow_attempts'].get(slot(step, state), 0) + context.invocation_attempt,
                 })
+            ledger.complete(step_exec_id, worktree=state['worktree'])
             return payload
-        payload = {'output': result.text[-6000:]}
-        if step.type == 'implement':
-            core.event(state, 'implementation', {
-                'task': task.get('id'), 'output': payload['output'],
-                'attempt': state['workflow_attempts'].get(slot(step, state), 0) + context.invocation_attempt,
-            })
-        return payload
+        except Exception as exc:
+            ledger.fail(step_exec_id, error=str(exc), worktree=state['worktree'])
+            raise
 
     def test(context):
+        step, state = context.step, context.state
+        task_obj = (
+            state['plan']['tasks'][state['task_index']]
+            if getattr(step, 'per_task', False) and state.get('plan')
+            else None
+        )
+        task_id = task_obj.get('id') if isinstance(task_obj, dict) else None
+        step_exec_id = ledger.start(
+            run_id=state['run_id'],
+            node=step.id,
+            worktree=state['worktree'],
+            task_id=task_id,
+            attempt=next_step_attempt(state['run_id'], step.id, task_id),
+            role='tests',
+            side_effects='exec',
+        )
         timeout = min(config['test_timeout'], remaining(context))
         try:
             output = core.run_command(shlex.split(config['test_command']), context.state['worktree'],
                                       timeout)
+            ledger.complete(step_exec_id, worktree=state['worktree'])
             return {'passed': True, 'output': output[-2500:]}
         except Exception:
+            ledger.complete(step_exec_id, worktree=state['worktree'])
             return {'passed': False, 'error': 'Configured automated tests failed'}
 
     graph = compile_workflow(snapshot.definition, snapshot.bindings,

@@ -13,6 +13,11 @@ O operador solicitou um documento geral para continuar o desenvolvimento com out
 
 **Comandos:** `git status/log`; `source .venv/bin/activate`; `ORCH_DB="$(mktemp -d)/events.db" python -m pytest -q -p no:cacheprovider`; `npm --prefix frontend test/build/lint`; `python scripts/check_docs.py`; `git diff --check`.
 
+## V2-RES-001 concluída
+
+- `orchestrator/resilience/digest.py` e `orchestrator/resilience/ledger.py` implementam o cálculo de `tree_digest` e o ledger `step_executions` (`started` → `completed`/`failed`/`needs_inspection`) com `idempotency_key` única `run_id:node:task:attempt`, integrados ao executor de workflows e vinculados a `usage_records.step_execution_id`.
+- Retomada gerenciada não foi adiantada (permanece em `V2-RES-002`/`003`).
+
 ## V2-SEC-005 concluída
 
 - `orchestrator/secrets/store.py` gerencia chaves via `keyring` (com `InMemoryKeyringBackend` para testes e recusa de backends `fail`/`null`).
