@@ -57,7 +57,7 @@ def test_upgrade_preserves_every_legacy_row_and_adds_null_columns(legacy_db):
         old_columns = [r['name'] for r in old.execute('PRAGMA table_info(managed_runs)')]
         old_indexes = old.execute("SELECT name,sql FROM sqlite_master WHERE type='index'").fetchall()
     with project_store.connection() as conn:
-        assert [r[0] for r in conn.execute('SELECT version FROM platform_migrations ORDER BY version')] == [1, 2, 3, 4]
+        assert [r[0] for r in conn.execute('SELECT version FROM platform_migrations ORDER BY version')] == [1, 2, 3, 4, 5]
         after = snapshot(conn)
         for table, rows in before.items():
             if table == 'platform_migrations':
@@ -111,7 +111,7 @@ def test_failure_rolls_back_all_v4_ddl_and_can_retry(legacy_db, monkeypatch):
         assert not NEW_COLUMNS.intersection(row[1] for row in conn.execute('PRAGMA table_info(managed_runs)'))
         assert conn.execute('SELECT COUNT(*) FROM managed_runs').fetchone()[0] == 6
     with project_store.connection() as conn:
-        assert conn.execute('SELECT MAX(version) FROM platform_migrations').fetchone()[0] == 4
+        assert conn.execute('SELECT MAX(version) FROM platform_migrations').fetchone()[0] == 5
 
 
 def insert_version(conn, definition):

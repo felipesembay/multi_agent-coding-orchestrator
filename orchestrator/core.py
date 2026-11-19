@@ -151,8 +151,24 @@ def _request(**kwargs):
 def _record_agent_call(call: AgentCall):
     context = _agent_context.get()
     if context is not None and context[0] is not None:
+        state = context[0]
         # Explicitly exclude raw usage, even when future parsers populate it.
-        event(context[0], 'agent_call', call.model_dump(exclude={'usage': {'raw'}}))
+        event(state, 'agent_call', call.model_dump(exclude={'usage': {'raw'}}))
+        if isinstance(state, dict) and state.get('run_id'):
+            from .accounting.usage import record_usage
+            retry_of = state.get('_retry_of')
+            billing_mode = call.billing_mode
+            try:
+                manifest = _registry().get(call.provider).manifest
+                billing_mode = manifest.billing_mode
+            except Exception:
+                pass
+            record_usage(
+                run_id=state['run_id'],
+                call=call,
+                billing_mode=billing_mode,
+                retry_of=retry_of,
+            )
 
 
 def claude(prompt: str, cwd: str, timeout: int = 600,
@@ -246,12 +262,22 @@ def _coding_agent(prompt: str, cwd: str, role: str, state: State | None = None) 
         if (role != 'planner' or config.planner_fallback is None
                 or not any(marker in str(exc).lower() for marker in quota_errors)):
             raise
-        if state is not None:
+        retry_of = None
+        if state is not None and state.get('run_id'):
+            with db(db_path()) as conn:
+                row = conn.execute(
+                    "SELECT payload FROM events WHERE run_id=? AND stage='agent_call' ORDER BY id DESC LIMIT 1",
+                    (state['run_id'],),
+                ).fetchone()
+                if row is not None:
+                    retry_of = json.loads(row[0]).get('call_id')
             event(state, 'agent_fallback', {
                 'role': role, 'primary': 'claude', 'fallback': 'antigravity', 'reason': 'usage_limit',
             })
         print('[orchestrator] Claude usage limit detected. Falling back to Antigravity.', flush=True)
-        return _invoke_binding(config.planner_fallback, prompt, cwd, role, config.agent_timeout)
+        fallback_state = {**state, '_retry_of': retry_of} if state is not None and retry_of else state
+        with _agent_call_context(fallback_state, role):
+            return _invoke_binding(config.planner_fallback, prompt, cwd, role, config.agent_timeout)
 
 
 def plan(state: State) -> State:

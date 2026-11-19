@@ -100,6 +100,98 @@ WORKFLOW_MIGRATION = [
 ]
 
 
+ACCOUNTING_MIGRATION = [
+    """CREATE TABLE step_executions (
+        id TEXT PRIMARY KEY NOT NULL,
+        run_id TEXT NOT NULL,
+        node TEXT NOT NULL,
+        task_id TEXT,
+        attempt INTEGER NOT NULL CHECK(typeof(attempt)='integer' AND attempt>=1),
+        role TEXT,
+        idempotency_key TEXT NOT NULL UNIQUE,
+        status TEXT NOT NULL CHECK(status IN ('started','completed','failed','needs_inspection','skipped')),
+        side_effects TEXT NOT NULL DEFAULT 'none' CHECK(side_effects IN ('none','worktree_write','exec')),
+        git_head_before TEXT,
+        tree_digest_before TEXT,
+        tree_digest_after TEXT,
+        started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        finished_at TEXT,
+        error TEXT)""",
+    'CREATE INDEX step_executions_by_run ON step_executions(run_id, started_at)',
+    """CREATE TABLE price_catalog_versions (
+        id TEXT PRIMARY KEY NOT NULL,
+        source TEXT NOT NULL,
+        fetched_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        notes TEXT NOT NULL DEFAULT '')""",
+    """CREATE TABLE price_entries (
+        id TEXT PRIMARY KEY NOT NULL,
+        catalog_version_id TEXT NOT NULL REFERENCES price_catalog_versions(id),
+        adapter TEXT NOT NULL,
+        model TEXT NOT NULL,
+        unit TEXT NOT NULL DEFAULT 'per_1m_tokens' CHECK(unit IN ('per_1m_tokens')),
+        input_price REAL CHECK(input_price IS NULL OR input_price>=0),
+        output_price REAL CHECK(output_price IS NULL OR output_price>=0),
+        cache_read_price REAL CHECK(cache_read_price IS NULL OR cache_read_price>=0),
+        cache_write_price REAL CHECK(cache_write_price IS NULL OR cache_write_price>=0),
+        reasoning_price REAL CHECK(reasoning_price IS NULL OR reasoning_price>=0),
+        currency TEXT NOT NULL DEFAULT 'USD',
+        effective_from TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        effective_to TEXT)""",
+    'CREATE INDEX price_entries_lookup ON price_entries(adapter, model, effective_from)',
+    """CREATE TABLE usage_records (
+        id TEXT PRIMARY KEY NOT NULL,
+        run_id TEXT NOT NULL,
+        step_execution_id TEXT REFERENCES step_executions(id),
+        project_id TEXT REFERENCES projects(id),
+        role TEXT NOT NULL,
+        provider_config_id TEXT,
+        adapter TEXT NOT NULL,
+        model TEXT,
+        call_index INTEGER NOT NULL CHECK(typeof(call_index)='integer' AND call_index>=1),
+        started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        duration_ms INTEGER NOT NULL CHECK(typeof(duration_ms)='integer' AND duration_ms>=0),
+        input_tokens INTEGER CHECK(input_tokens IS NULL OR (typeof(input_tokens)='integer' AND input_tokens>=0)),
+        output_tokens INTEGER CHECK(output_tokens IS NULL OR (typeof(output_tokens)='integer' AND output_tokens>=0)),
+        cache_read_tokens INTEGER CHECK(cache_read_tokens IS NULL OR (typeof(cache_read_tokens)='integer' AND cache_read_tokens>=0)),
+        cache_write_tokens INTEGER CHECK(cache_write_tokens IS NULL OR (typeof(cache_write_tokens)='integer' AND cache_write_tokens>=0)),
+        reasoning_tokens INTEGER CHECK(reasoning_tokens IS NULL OR (typeof(reasoning_tokens)='integer' AND reasoning_tokens>=0)),
+        token_source TEXT NOT NULL CHECK(token_source IN ('provider_reported','cli_reported','estimated','unavailable')),
+        billing_mode TEXT NOT NULL CHECK(billing_mode IN ('api_metered','subscription_quota','local','unknown')),
+        reported_cost_usd REAL CHECK(reported_cost_usd IS NULL OR reported_cost_usd>=0),
+        estimated_cost_usd REAL CHECK(estimated_cost_usd IS NULL OR estimated_cost_usd>=0),
+        price_entry_id TEXT REFERENCES price_entries(id),
+        currency TEXT NOT NULL DEFAULT 'USD',
+        error_kind TEXT,
+        retry_of TEXT,
+        raw_usage TEXT NOT NULL DEFAULT '{}'
+            CHECK(length(raw_usage)<=8192 AND CASE WHEN json_valid(raw_usage) THEN json_type(raw_usage)='object' ELSE 0 END),
+        CHECK(token_source!='unavailable' OR (
+            input_tokens IS NULL AND output_tokens IS NULL AND cache_read_tokens IS NULL
+            AND cache_write_tokens IS NULL AND reasoning_tokens IS NULL AND reported_cost_usd IS NULL
+        )))""",
+    'CREATE INDEX usage_by_run ON usage_records(run_id, call_index)',
+    'CREATE INDEX usage_by_project_started ON usage_records(project_id, started_at)',
+    'CREATE INDEX usage_by_model ON usage_records(model)',
+    """CREATE TABLE budgets (
+        id TEXT PRIMARY KEY NOT NULL,
+        scope TEXT NOT NULL CHECK(scope IN ('project','run','global')),
+        scope_id TEXT,
+        limit_usd REAL NOT NULL CHECK(limit_usd>=0),
+        period TEXT NOT NULL CHECK(period IN ('run','month','total')),
+        warn_ratio REAL NOT NULL DEFAULT 0.8 CHECK(warn_ratio>0 AND warn_ratio<=1),
+        action TEXT NOT NULL DEFAULT 'warn' CHECK(action IN ('warn','block')))""",
+    """CREATE TABLE budget_events (
+        id TEXT PRIMARY KEY NOT NULL,
+        budget_id TEXT NOT NULL REFERENCES budgets(id),
+        run_id TEXT,
+        kind TEXT NOT NULL CHECK(kind IN ('warn','block','override')),
+        at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        details TEXT NOT NULL DEFAULT '{}'
+            CHECK(CASE WHEN json_valid(details) THEN json_type(details)='object' ELSE 0 END))""",
+    'INSERT INTO platform_migrations(version) VALUES(5)',
+]
+
+
 @contextmanager
 def connection():
     path = Path(db_path()).expanduser()
@@ -132,6 +224,12 @@ def connection():
             # committed the complete migration while this connection waited.
             if not conn.execute('SELECT 1 FROM platform_migrations WHERE version=4').fetchone():
                 for statement in WORKFLOW_MIGRATION:
+                    conn.execute(statement)
+            conn.commit()
+        if not conn.execute('SELECT 1 FROM platform_migrations WHERE version=5').fetchone():
+            conn.execute('BEGIN IMMEDIATE')
+            if not conn.execute('SELECT 1 FROM platform_migrations WHERE version=5').fetchone():
+                for statement in ACCOUNTING_MIGRATION:
                     conn.execute(statement)
             conn.commit()
         yield conn

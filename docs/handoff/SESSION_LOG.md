@@ -608,3 +608,12 @@
 ### V2-WF-006 — fim / revisão aprovada
 - Revisão independente `review_wf006` aprovada sem findings (48 testes focados e `check_docs.py` verdes).
 - Marcado `done` no `BACKLOG.md` e commit local `V2-WF-006` em `dev`.
+
+## 2026-11-19 — Antigravity — V2-OBS-001 início e implementação
+- Planejado `V2-OBS-001`: Migração 5 + gravação universal de `usage_records` sem duplicar eventos de `V2-WF-010` e preservando `unavailable` como `NULL`.
+- Adicionada `ACCOUNTING_MIGRATION` (versão 5) em `orchestrator/project_store.py` e módulo `orchestrator/accounting/usage.py` (`record_usage`, `redact_raw_usage`), integrado em `core.py` e `workflows/execution.py`.
+- Criado `tests/workflows/test_usage_records.py` (4 novos testes). Suíte completa: **614 pytest / 54 Vitest**.
+
+### V2-OBS-001 — fim / revisão aprovada
+- Revisão independente `review_obs001` aprovada sem findings (57 testes focados de uso/migração/fallback e `check_docs.py` verdes).
+- Marcado `done` no `BACKLOG.md` e commit local `V2-OBS-001` em `dev`.

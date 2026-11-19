@@ -73,6 +73,7 @@ def execute_snapshot(repo, scope, *, run_id, snapshot, config, registry, clock=t
         runtime = registry.get(context.adapter)
         record_failed = []
         def persist(call):
+            from ..accounting.usage import record_usage
             metadata = {'step_id': step.id, 'task_index': state['task_index'],
                         'attempt': (state['workflow_attempts'].get(slot(step, state), 0)
                                     if step.type == 'implement' else 0) + context.invocation_attempt,
@@ -85,6 +86,13 @@ def execute_snapshot(repo, scope, *, run_id, snapshot, config, registry, clock=t
                 'model': call.model, 'model_reported': call.model_reported,
                 'duration_ms': call.duration_ms, 'error_code': call.error_code,
                 'token_source': call.usage.source, 'billing_mode': runtime.manifest.billing_mode})
+            record_usage(
+                run_id=state['run_id'],
+                call=call,
+                billing_mode=runtime.manifest.billing_mode,
+                provider_config_id=context.binding.provider_config_id,
+                retry_of=context.retry_of,
+            )
         def record(call):
             try:
                 persist(call)

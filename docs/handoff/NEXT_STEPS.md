@@ -13,6 +13,12 @@ O operador solicitou um documento geral para continuar o desenvolvimento com out
 
 **Comandos:** `git status/log`; `source .venv/bin/activate`; `ORCH_DB="$(mktemp -d)/events.db" python -m pytest -q -p no:cacheprovider`; `npm --prefix frontend test/build/lint`; `python scripts/check_docs.py`; `git diff --check`.
 
+## V2-OBS-001 concluída
+
+- Migração 5 (`ACCOUNTING_MIGRATION`) entregue em `project_store.py`.
+- `orchestrator/accounting/usage.py` grava um registro em `usage_records` para toda invocação (inclusive `unavailable` com tokens/custos `NULL`), integrado tanto no fluxo legado quanto nos workflows estritos por `call_id`/`retry_of` sem duplicação.
+- Testes em `tests/workflows/test_usage_records.py` (4 casos) validam constraints da migração 5, redação/truncamento de `raw_usage`, chamadas legadas com fallback e workflows estritos com fallback.
+
 ## V2-WF-006 concluída
 
 - `AntigravityRuntime` declara `REVIEW` e `STRUCTURED_OUTPUT` e valida estritamente o JSON `{approved, findings, test_suggestions}` quando invocado como `reviewer`, recusando texto livre.
