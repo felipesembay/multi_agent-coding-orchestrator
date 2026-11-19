@@ -10,12 +10,14 @@ from ..policy.env import INTERNAL_SCOPES
 from .runtimes.antigravity import AntigravityRuntime
 from .runtimes.claude_code import ClaudeCodeRuntime
 from .runtimes.codex_cli import CodexCliRuntime
+from .models.openrouter import OpenRouterProvider
 
 
 BUILTINS = {
     'claude_code': ClaudeCodeRuntime,
     'codex_cli': CodexCliRuntime,
     'antigravity': AntigravityRuntime,
+    'openrouter': lambda runner, observer=None: OpenRouterProvider(),
 }
 
 

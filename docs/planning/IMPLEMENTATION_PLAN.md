@@ -3,7 +3,7 @@
 > **Ponto de entrada para qualquer agente (Claude, Codex, Antigravity ou humano) que assumir o projeto.**
 > Leia este arquivo primeiro. Ele indica o que ler, qual é o estado atual e qual tarefa executar em seguida.
 
-Última atualização: 2026-11-18 · Fase atual: **F2 — Workflows (início)** (Q2–Q12 registradas; revisão integral de ADRs e segurança restantes pendentes) · Autor da sessão: Codex
+Última atualização: 2026-11-19 · Fase atual: **F2 — Workflows (início)** (Q2–Q12 registradas; revisão integral de ADRs e segurança restantes pendentes) · Autor da sessão: Codex
 
 ## 1. Regra de ouro
 
@@ -54,15 +54,16 @@ Não é necessário ler toda a pasta `docs/`. Leia apenas a especificação da �
 - `V2-WF-009` concluída: editor em lista, validação ao vivo, cópias e versões imutáveis; bindings continuam por run.
 - `V2-WF-010` concluída: alternativas ordenadas por erro tipado seguro, snapshots de todos os candidatos e registros de uso no event store por chamada; tabela/contabilidade completa OBS-001 futura.
 - `V2-F0-005` concluída: migração para Python 3.12.3 validada localmente, `langgraph-checkpoint-sqlite` (`SqliteSaver`) testado com round-trip em `StateGraph`, CI atualizado para Python 3.12 em `ubuntu-24.04`.
-- Validação atual: **563 pytest / 54 vitest**, build/lint/docs verdes. Nenhum CLI de agente real acionado.
+- Incrementos Antigravity: SEC-004/WF-005/006, DIST-002, OBS-001, SEC-005 e RES-001 concluídos; SEC-003 em review pela evidência real pendente. Python3.12 e CI atualizados; OBS-001 inclui usage_records/migração5.
+- Baseline desta sessão: **624 pytest /54 Vitest**. PROV-001 concluída:666 pytest/54 Vitest,11E2E/2skip e build/lint/docs; resultados detalhados em CURRENT_STATE. Nenhum agente real/API de geração acionado.
 
-## 5. Próxima tarefa
+## 5. Próximas tarefas
 
-1. **`V2-SEC-003` / `V2-SEC-004`** — Planner Claude somente leitura (`--permission-mode plan`) e matriz de permissões por papel em `argv`, ou alternativas sem quota real (`V2-DIST-002`, `V2-SEC-005`, `V2-OBS-001`), conforme [guia Antigravity](../handoff/ANTIGRAVITY_HANDOFF.md), uma tarefa por vez.
-2. **`V2-F0-002`** — decisões Q2–Q12 registradas em [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md), Q7 adiada; revisão integral dos ADRs ainda pendente.
-3. Depois: WF-005/006, OBS-001, RES-001/002 e demais tarefas liberadas, uma por vez.
+1. **V2-PROV-001** concluída e revisada: OpenRouter básico integrado ao host/snapshot/keyring; testes HTTP em mocks, nenhuma chave real alterada.
+2. Depois **V2-RES-002**, **V2-SEC-007**, **V2-OBS-003**, uma tarefa por vez conforme BACKLOG/NEXT_STEPS.
+3. **V2-SEC-003** em review: validação real exigida pendente, não opcional. **V2-F0-002** permanece parcial pela revisão formal dos ADRs. Não reabrir questões do operador já respondidas.
 
-Detalhes e comandos: [NEXT_STEPS.md](../handoff/NEXT_STEPS.md).
+Detalhes e evidências atuais: [CURRENT_STATE](../handoff/CURRENT_STATE.md) e [NEXT_STEPS](../handoff/NEXT_STEPS.md).
 
 ## 6. Invariantes que nenhuma tarefa pode quebrar sem ADR
 

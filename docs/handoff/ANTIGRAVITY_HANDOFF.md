@@ -1,6 +1,6 @@
 # Continuidade do Conductor no Antigravity
 
-Atualizado em 2026-11-18. Entrega de origem: V2-WF-010 concluída e aprovada em revisão independente. Commit local em dev com título `V2-WF-010: execute safe frozen fallback chains`; confira o hash em git log.
+Atualizado em 2026-11-19. A fotografia inicial abaixo é histórica; prevalecem BACKLOG/CURRENT_STATE. SEC-003 está em review por validação real pendente; PROV-001 concluída e revisada nesta sessão. Próxima sequência: RES-002, SEC-007, OBS-003. Entrega de origem: V2-WF-010 concluída e aprovada em revisão independente. Commit local em dev com título `V2-WF-010: execute safe frozen fallback chains`; confira o hash em git log.
 
 Este documento permite continuar sem o histórico da conversa. O operador solicitou a transferência porque as quotas de GPT/Claude estão se esgotando. Usar o Antigravity como ambiente de desenvolvimento **não** autoriza chamadas de agentes reais nos testes do produto.
 
@@ -87,16 +87,13 @@ Execute uma por vez, verificando o status atual no BACKLOG antes de iniciar:
 
 | Ordem sugerida | Tarefa | Entrega e cuidado |
 |---|---|---|
-| 1 | V2-F0-005 | Python3.12 + compatibilidade SqliteSaver, CI e documentação. Alvo já autorizado; não remover ambiente atual antes de validar o novo |
-| 2 | V2-SEC-003 | Planner Claude somente leitura, testes de argv e extração do JSON. Se quota impedir a validação real exigida, registrar pendência e não marcar done |
-| 3 | V2-SEC-004 | Matriz de permissões por papel nas flags dos adapters; revisão humana exigida pela especificação |
-| 4 | V2-WF-005 | Codex executor com workspace-write, após SEC-004; integração mockada, sem inventar flags |
-| 5 | V2-WF-006 | Antigravity reviewer com JSON validado e fixtures; não confundir texto livre com aprovação |
-| 6 | V2-OBS-001 | Migração5/usage_records e gravação por chamada. Integrar eventos WF-010 por call_id/retry_of sem duplicar tentativa ou cobrança; preservar registros unavailable |
+| 1 | V2-RES-002 | Checkpointer SQLite com DB separado/thread_id=run_id; não liberar retomada gerenciada sem RES-003/004 |
+| 2 | V2-SEC-007 | Auditoria estendida sem valores sensíveis, testes positivos/negativos |
+| 3 | V2-OBS-003 | Catálogo manual/import versionado; alterações de preço não mudam custo histórico |
 
-**Alternativas sem quota de agentes reais:** V2-DIST-002 (CI frontend), V2-SEC-005 (keyring com backend de testes em memória), V2-RES-001 (ledger, sem implementar retomada automaticamente). Respeitar dependências/revisões e não juntar essas tarefas em um commit. Não modificar `.github` em paralelo com outra sessão que esteja migrando Python/CI.
+F0-005, DIST-002, SEC-004/005, WF-005/006, OBS-001, RES-001 e PROV-001 foram implementadas. SEC-003 continua review até evidência real ou dispensa explícita; sem consumo de quota nesta sessão. Consulte BACKLOG para status corrente, não use a lista histórica de WF-010 como fila de trabalho.
 
-Depois: OpenRouter básico, telemetria/parsers, aprovações/checkpoints/retomada, desktop/distribuição conforme roadmap. O spike Tauri precede compromisso definitivo com empacotamento. Não saltar resiliência ao implementar fechamento de desktop.
+OpenRouter básico agora executa plan/review com chave consultada no keyring em call time; sem cwd/env/tools no ModelProvider. Referência e modelo explícito ficam congelados no snapshot. Uso reportado é persistido inclusive em resposta inválida; timeout/5xx não autorizam retry cego. Catálogo/preços avançados e UI de chave permanecem tarefas futuras. Somente a sessão do runner recebe D-Bus para Secret Service.
 
 ## 8. Verificação sem gastar quota
 

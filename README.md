@@ -601,3 +601,9 @@ Para contexto adicional, consulte o [guia do frontend](frontend/README.md) e o [
 O repositório ainda não contém um arquivo `LICENSE`. A definição e inclusão de uma licença permanecem pendentes.
 
 Para continuar o desenvolvimento em outro agente, consulte o [guia de passagem para o Antigravity](docs/handoff/ANTIGRAVITY_HANDOFF.md), com decisões do operador, regras e tarefas sugeridas.
+
+### OpenRouter básico (PROV-001)
+
+O host aceita OpenRouter para planejamento/revisão de workflows estritos, separado dos agentes CLI. Crie uma configuração com adapter=openrouter na API básica, vincule sua chave pelo CredentialStore/keyring existente e escolha um modelo explícito vendor/model por etapa. O modelo recebe somente texto/contexto preparado pelo backend; não recebe worktree, ambiente ou ferramentas de arquivos/shell. A interface completa de credenciais/catálogo continua planejada.
+
+Snapshots congelam referência de keyring e modelo, sem valor da chave. Uso reportado é gravado por chamada, inclusive se a resposta não puder ser usada. Registro/probe/preflight não fazem geração nem verificam saldo. Nenhuma chave ou chamada real foi usada para validar esta implementação; os testes usam HTTP/keyring simulados. Detalhes e limites: [PROVIDER_SYSTEM](docs/specifications/PROVIDER_SYSTEM.md).

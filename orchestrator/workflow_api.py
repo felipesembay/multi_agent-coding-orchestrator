@@ -10,6 +10,7 @@ from .project_store import connection
 from .projects import ProjectError, audit
 from .providers.base import CapabilityManifest
 from .providers.registry import ProviderRegistry, get_provider_registry
+from .secrets.store import format_credential_ref
 from .workflows import store
 from .workflows.presets import clone_preset, get_preset, list_presets
 from .workflows.schema import Identifier, StepBinding, WorkflowDefinition
@@ -72,8 +73,11 @@ def provider_configs(registry):
             declared = manifest(registry, row['adapter'])
             info.update(capabilities=sorted(c.value for c in declared.capabilities),
                         permission_modes=declared.permission_modes, verified=declared.verified,
-                        available=bool(row['enabled'] and declared.kind == row['kind'] == 'agent_runtime'
-                                       and json.loads(row['settings']) == {} and row['credential_ref'] is None))
+                        available=bool(row['enabled'] and declared.kind == row['kind']
+                            and json.loads(row['settings']) == {} and (
+                                (row['kind'] == 'agent_runtime' and row['credential_ref'] is None)
+                                or (row['kind'] == 'model_provider' and row['adapter'] == 'openrouter'
+                                    and row['credential_ref'] == format_credential_ref('openrouter', row['id'])))))
         except Exception:
             pass  # Unavailable adapter never exposes plugin exception payloads.
         result.append(info)
@@ -186,14 +190,17 @@ def validate(data: ValidateInput, registry: ProviderRegistry = Depends(get_provi
         # Pydantic already checked the whole definition/topology. Binding and
         # execution checks remain mandatory in the run confirmation path.
         return {'valid': True, 'executable': None, 'errors': [], 'validation_scope': 'definition'}
-    providers = resolve_providers(data.bindings)
+    with connection() as conn:
+        configured = {row['id']: row['adapter'] for row in conn.execute(
+            'SELECT id,adapter FROM provider_configs WHERE enabled=1')}
     try:
         validate_workflow(data.definition, data.bindings,
-                          provider_configs={key: p.adapter for key, p in providers.items()}, registry=registry)
+                          provider_configs=configured, registry=registry)
     except ValidationError as error:
         raise HTTPException(status_code=422, detail=field_errors(error)) from None
     errors = []
     try:
+        providers = resolve_providers(data.bindings)
         validate_snapshot(WorkflowSnapshot(workflow_version_id='validation', definition=data.definition,
                                           bindings=data.bindings, providers=providers), registry=registry)
     except WorkflowSnapshotError as error:

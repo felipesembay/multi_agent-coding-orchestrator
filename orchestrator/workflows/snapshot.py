@@ -5,10 +5,11 @@ import json
 import os
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_serializer, model_validator
 
 from ..project_store import connection
-from ..providers.base import CapabilityManifest
+from ..providers.base import CapabilityManifest, GenerationRequest
+from ..secrets.store import format_credential_ref
 from ..providers.bindings import DEFAULT_AGY_MODEL
 from .schema import Identifier, StepBinding, WorkflowDefinition
 from .validation import validate_workflow
@@ -36,6 +37,14 @@ class FrozenProvider(BaseModel):
     model_config = {'extra': 'forbid', 'frozen': True}
     adapter: Identifier
     kind: Literal['agent_runtime', 'model_provider']
+    credential_ref: str | None = None
+
+    @model_serializer(mode='wrap')
+    def legacy_shape(self, handler):
+        value = handler(self)
+        if self.credential_ref is None:
+            value.pop('credential_ref', None)
+        return value
 
 
 class WorkflowSnapshot(WorkflowSelection):
@@ -77,9 +86,16 @@ def validate_snapshot(snapshot, *, registry):
         if any(parsed.providers[b.provider_config_id].adapter in ('claude_code', 'codex_cli') and b.model is not None
                for b in binding_candidates(parsed.bindings)):
             raise WorkflowSnapshotError('Selected CLI adapter does not support explicit models yet')
-        for provider in parsed.providers.values():
-            if provider.kind != 'agent_runtime':
-                raise WorkflowSnapshotError('Model providers require the provider integration')
+        for config_id, provider in parsed.providers.items():
+            if provider.kind == 'model_provider':
+                if provider.adapter != 'openrouter' or provider.credential_ref != format_credential_ref('openrouter', config_id):
+                    raise WorkflowSnapshotError('Model provider requires a supported keyring reference')
+                for binding in binding_candidates(parsed.bindings):
+                    if binding.provider_config_id == config_id:
+                        GenerationRequest(role='planner', prompt='', model=binding.model,
+                                          credential_ref=provider.credential_ref, permission=binding.permission)
+            elif provider.credential_ref is not None:
+                raise WorkflowSnapshotError('CLI credentials are managed by the CLI')
             raw = registry.get(provider.adapter).manifest
             manifest = CapabilityManifest.model_validate(raw.model_dump() if isinstance(raw, CapabilityManifest) else raw)
             if manifest.kind != provider.kind:
@@ -135,9 +151,15 @@ def resolve_providers(bindings, *, conn=None):
             row = owned.execute('SELECT * FROM provider_configs WHERE id=?', (config_id,)).fetchone()
             if row is None or not row['enabled']:
                 raise WorkflowSnapshotError('Provider configuration missing or disabled')
-            if json.loads(row['settings']) != {} or row['credential_ref'] is not None:
+            if json.loads(row['settings']) != {}:
                 raise WorkflowSnapshotError('Provider settings or credentials require integration')
-            providers[config_id] = FrozenProvider(adapter=row['adapter'], kind=row['kind'])
+            ref = row['credential_ref']
+            if row['kind'] == 'model_provider':
+                if row['adapter'] != 'openrouter' or ref != format_credential_ref('openrouter', config_id):
+                    raise WorkflowSnapshotError('Model provider requires a supported keyring reference')
+            elif ref is not None:
+                raise WorkflowSnapshotError('CLI credentials are managed by the CLI')
+            providers[config_id] = FrozenProvider(adapter=row['adapter'], kind=row['kind'], credential_ref=ref)
         return providers
 
 

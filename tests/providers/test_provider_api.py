@@ -37,7 +37,7 @@ def client(monkeypatch):
 def test_provider_api_lists_safe_manifest_and_probe(client):
     response = client.get('/providers')
     assert response.status_code == 200
-    assert {row['adapter'] for row in response.json()} == {'claude_code', 'codex_cli', 'antigravity'}
+    assert {row['adapter'] for row in response.json()} == {'claude_code', 'codex_cli', 'antigravity', 'openrouter'}
     for row in response.json():
         assert row['manifest']['verified'] is False
         assert row['probe']['version'] is None
@@ -65,7 +65,7 @@ def test_http_parameters_do_not_enable_plugins(client, monkeypatch):
     monkeypatch.setattr(registry.metadata, 'entry_points', lambda: {'orchestrator.providers': [plugin]})
     response = client.get('/providers?enabled_entry_points=fake_runtime')
     assert response.status_code == 200
-    assert len(response.json()) == 3
+    assert len(response.json()) == 4
     plugin.load.assert_not_called()
 
 

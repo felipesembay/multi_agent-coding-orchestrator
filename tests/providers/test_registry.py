@@ -8,7 +8,7 @@ from orchestrator.providers import registry
 from orchestrator.providers.base import Capability, CapabilityManifest, ProbeResult
 
 
-BUILTINS = {'claude_code', 'codex_cli', 'antigravity'}
+BUILTINS = {'claude_code', 'codex_cli', 'antigravity', 'openrouter'}
 
 
 class FakeRuntime:
@@ -46,6 +46,12 @@ def test_builtins_only_and_no_discovery_without_opt_in(discovery):
         assert row.source == 'builtin'
         assert row.manifest.adapter == row.adapter
         assert row.manifest.verified is False
+        if row.adapter == 'openrouter':
+            assert row.manifest.kind == 'model_provider'
+            assert row.manifest.usage_source == 'provider_reported'
+            assert row.manifest.billing_mode == 'api_metered'
+            assert row.probe.executable_found is None
+            continue
         assert row.manifest.usage_source == 'none'
         assert row.manifest.billing_mode == 'unknown'
         assert row.probe.executable_found is True
@@ -69,7 +75,7 @@ def test_probe_is_passive_and_does_not_infer_authentication(discovery, monkeypat
     monkeypatch.setattr('orchestrator.providers.base.shutil.which', lambda name: None)
     monkeypatch.setattr('subprocess.run', Mock(side_effect=AssertionError('No CLI probes')))
     rows = registry.ProviderRegistry().list()
-    assert all(row.probe.executable_found is False for row in rows)
+    assert all(row.probe.executable_found is False for row in rows if row.adapter != 'openrouter')
     assert all(row.probe.credential_present is None and row.probe.version is None for row in rows)
 
 
@@ -129,7 +135,7 @@ def test_broken_plugin_isolated_and_errors_are_redacted(discovery, problem, code
                 raise RuntimeError('secret-token from probe')
         plugin.load.return_value = BadProbe
     rows = registry.ProviderRegistry(enabled_entry_points=['fake_runtime']).list()
-    assert len(rows) == 4
+    assert len(rows) == len(BUILTINS) + 1
     row = next(row for row in rows if row.adapter == 'fake_runtime')
     assert row.probe.error_code == code
     assert 'secret-token' not in row.model_dump_json()
@@ -169,7 +175,7 @@ def test_injected_runner_and_observer_make_builtin_usable_without_core(discovery
 def test_discovery_failure_does_not_break_builtins(discovery):
     discovery.side_effect = RuntimeError('secret-discovery')
     rows = registry.ProviderRegistry(enabled_entry_points=['fake_runtime']).list()
-    assert len(rows) == 4
+    assert len(rows) == len(BUILTINS) + 1
     assert next(row for row in rows if row.adapter == 'fake_runtime').probe.error_code == 'load_failed'
     assert 'secret-discovery' not in ''.join(row.model_dump_json() for row in rows)
 
@@ -206,6 +212,6 @@ def test_model_provider_plugin_is_cataloged_separately(discovery):
 def test_builtin_probe_failure_does_not_leak_filesystem_details(discovery, monkeypatch):
     monkeypatch.setattr('orchestrator.providers.base.shutil.which', Mock(side_effect=OSError('/private/secret-path')))
     rows = registry.ProviderRegistry().list()
-    assert len(rows) == 3
-    assert all(row.probe.error_code == 'probe_failed' and row.manifest is not None for row in rows)
+    assert len(rows) == len(BUILTINS)
+    assert all(row.probe.error_code == 'probe_failed' and row.manifest is not None for row in rows if row.adapter != 'openrouter')
     assert '/private/secret-path' not in ''.join(row.model_dump_json() for row in rows)

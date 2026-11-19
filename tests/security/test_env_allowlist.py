@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import time
 from unittest.mock import Mock
 
 import pytest
@@ -88,10 +89,13 @@ def test_manifest_environment_names_are_scoped_at_runtime(monkeypatch):
 def test_real_fake_agent_proc_environment_is_clean(monkeypatch, tmp_path):
     monkeypatch.setenv('SENTINEL_SECRET', 'worker-secret-sentinel')
     monkeypatch.setenv('OPENAI_API_KEY', 'worker-api-sentinel')
+    monkeypatch.setenv('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/tmp/private-session-bus')
     monkeypatch.setenv('HOME', str(tmp_path))
     monkeypatch.setenv('ORCH_DISPATCH_TOKEN', 'generated-group-proof')
     release = tmp_path / 'release'
+    ready = tmp_path / 'ready'
     code = ('import time; from pathlib import Path\n'
+            f'Path({str(ready)!r}).touch()\n'
             f'while not Path({str(release)!r}).exists(): time.sleep(.01)\n'
             'print("fake-ok")\n')
     real_popen = subprocess.Popen
@@ -99,9 +103,14 @@ def test_real_fake_agent_proc_environment_is_clean(monkeypatch, tmp_path):
     def inspect(*args, **kwargs):
         process = real_popen(*args, **kwargs)
         try:
+            deadline = time.monotonic() + 5
+            while not ready.exists() and time.monotonic() < deadline:
+                time.sleep(.01)
+            assert ready.exists(), 'Fake process must finish exec before /proc inspection'
             raw = Path(f'/proc/{process.pid}/environ').read_bytes().split(b'\x00')
             env = dict(item.split(b'=', 1) for item in raw if b'=' in item)
             assert env.get(b'SENTINEL_SECRET') is None and env.get(b'OPENAI_API_KEY') is None
+            assert b'DBUS_SESSION_BUS_ADDRESS' not in env
             assert env[b'HOME'] == str(tmp_path).encode()
             assert env[b'ORCH_DISPATCH_TOKEN'] == b'generated-group-proof'
             inspected.append(process.pid)
@@ -124,12 +133,23 @@ def test_real_fake_agent_proc_environment_is_clean(monkeypatch, tmp_path):
     assert len(inspected) == 1
 
 
+def test_keyring_bus_is_reserved_to_runner_and_cannot_be_forwarded_by_allowlist(monkeypatch):
+    monkeypatch.setenv('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/tmp/private-session-bus')
+    assert 'DBUS_SESSION_BUS_ADDRESS' in safe_env('runner')
+    for scope in ('tests','git','claude_code','codex_cli','antigravity'):
+        assert 'DBUS_SESSION_BUS_ADDRESS' not in safe_env(scope)
+    with pytest.raises(EnvironmentPolicyError):
+        parse_allowlist({'tests':['DBUS_SESSION_BUS_ADDRESS']})
+
+
 def test_worker_spawn_is_clean_and_retains_frozen_downstream_configuration(monkeypatch, tmp_path):
     fake = tmp_path / 'fake-python'
-    fake.write_text(f'#!{sys.executable}\nimport time\ntime.sleep(30)\n')
+    ready = tmp_path / 'ready'
+    fake.write_text(f'#!{sys.executable}\nimport time\nfrom pathlib import Path\nPath({str(ready)!r}).touch()\ntime.sleep(30)\n')
     fake.chmod(0o755)
     monkeypatch.setenv('SENTINEL_SECRET', 'never-forward')
     monkeypatch.setenv('OPENAI_API_KEY', 'never-forward-api')
+    monkeypatch.setenv('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/tmp/private-session-bus')
     monkeypatch.setenv('ORCH_DB', str(tmp_path / 'events.db'))
     monkeypatch.setenv('ORCH_ALLOWED_ROOTS', str(tmp_path))
     monkeypatch.setenv('CUSTOM_CLI_DIR', '/tmp/selected-config')
@@ -140,10 +160,15 @@ def test_worker_spawn_is_clean_and_retains_frozen_downstream_configuration(monke
     child = worker.spawn({'run_id': 'fake-run', 'dispatch_token': 'proof',
                           'config': json.dumps({'environment_allowlist': policy})})
     try:
+        deadline = time.monotonic() + 5
+        while not ready.exists() and time.monotonic() < deadline:
+            time.sleep(.01)
+        assert ready.exists(), 'Fake worker must finish exec before /proc inspection'
         raw = Path(f'/proc/{child.pid}/environ').read_bytes().split(b'\x00')
         env = dict(item.split(b'=', 1) for item in raw if b'=' in item)
         assert env.get(b'SENTINEL_SECRET') is None and env.get(b'OPENAI_API_KEY') is None
         assert env[b'ORCH_DISPATCH_TOKEN'] == b'proof'
+        assert env[b'DBUS_SESSION_BUS_ADDRESS'] == b'unix:path=/tmp/private-session-bus'
         assert env[b'ORCH_WORKER_ID'] == worker.id.encode()
         assert env[b'ORCH_ALLOWED_ROOTS'] == str(tmp_path).encode()
         assert env[b'CUSTOM_CLI_DIR'] == b'/tmp/selected-config'

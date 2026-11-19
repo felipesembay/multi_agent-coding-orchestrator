@@ -56,10 +56,9 @@ def test_default_and_legacy_catalog_are_explicit():
     assert get_preset('legacy-v1').workflow is None  # no claim that split test/review is identical
 
 
-def test_openrouter_preset_is_disabled_even_with_fakes(registry):
-    assert get_preset('openrouter-plan').blocked_by == ('V2-PROV-001',)
-    with pytest.raises(PresetUnavailableError, match='V2-PROV-001'):
-        validate_preset('openrouter-plan', registry=registry)
+def test_openrouter_preset_validates_with_capable_fakes(registry):
+    assert get_preset('openrouter-plan').blocked_by == ()
+    validate_preset('openrouter-plan', registry=registry)
 
 
 @pytest.mark.parametrize('preset_id', ['default-v2', 'claude-heavy'])

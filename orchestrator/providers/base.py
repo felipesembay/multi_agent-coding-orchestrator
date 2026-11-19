@@ -91,6 +91,30 @@ class InvocationRequest(BaseModel):
     env: Optional[dict[str, str]] = None
 
 
+class GenerationRequest(BaseModel):
+    """Text-only API request: no filesystem path, environment or tool executor."""
+    model_config = {'extra': 'forbid', 'revalidate_instances': 'always'}
+    role: Literal['planner', 'reviewer', 'documenter']
+    prompt: str = Field(max_length=100000, repr=False)
+    model: str = Field(min_length=3, max_length=256, pattern=r'^[a-zA-Z0-9][a-zA-Z0-9._:-]*/[a-zA-Z0-9][a-zA-Z0-9._:/-]*$')
+    permission: Literal['read_only'] = 'read_only'
+    credential_ref: str = Field(min_length=1, max_length=256, repr=False, exclude=True)
+    timeout_s: int = Field(default=600, strict=True, ge=1, le=86400)
+
+
+class ContextItem(BaseModel):
+    model_config = {'extra': 'forbid'}
+    label: str = Field(max_length=100)
+    text: str = Field(max_length=32000, repr=False)
+
+
+class ModelInfo(BaseModel):
+    model_config = {'extra': 'forbid'}
+    id: str = Field(min_length=1, max_length=256)
+    name: str = Field(max_length=256)
+    context_length: Optional[int] = Field(default=None, strict=True, ge=1)
+
+
 class UsageReport(BaseModel):
     input_tokens: Optional[int] = Field(default=None, ge=0)
     output_tokens: Optional[int] = Field(default=None, ge=0)
@@ -178,6 +202,14 @@ class AgentRuntime(Protocol):
     def probe(self) -> ProbeResult: ...
 
     def invoke(self, req: InvocationRequest) -> InvocationResult: ...
+
+
+class ModelProvider(Protocol):
+    manifest: CapabilityManifest
+
+    def probe(self) -> ProbeResult: ...
+    def list_models(self) -> list[ModelInfo]: ...
+    def generate(self, req: GenerationRequest, context: list[ContextItem]) -> InvocationResult: ...
 
 
 class CommandRunner(Protocol):

@@ -74,13 +74,13 @@ def test_presets_are_read_only_and_openrouter_stays_disabled(workflow_client):
     assert presets['default-v2']['default_for_ui'] is True
     assert presets['legacy-v1']['default_for_cli'] is True
     assert presets['openrouter-plan']['available'] is False
-    assert presets['openrouter-plan']['blocked_by'] == ['V2-PROV-001']
+    assert presets['openrouter-plan']['blocked_by'] == []
     with connection() as conn:
         conn.execute("UPDATE workflow_definitions SET is_preset=1 WHERE id='wf'")
         conn.commit()
     response = client.post('/workflows/wf/versions', json={'definition': case[2]})
     assert response.status_code == 403
-    assert client.post('/workflows', json={'preset_id': 'openrouter-plan'}).status_code == 409
+    assert client.post('/workflows', json={'preset_id': 'openrouter-plan'}).status_code == 201
 
 
 def test_local_provider_config_only_uses_registered_adapter_no_secret_fields(workflow_client):

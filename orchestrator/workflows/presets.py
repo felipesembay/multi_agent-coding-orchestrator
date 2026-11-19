@@ -81,7 +81,7 @@ def get_preset(preset_id: str) -> SystemPreset:
         id=preset_id, title=preset_id, execution_mode='workflow',
         workflow=WorkflowConfiguration(definition=_definition(preset_id), bindings=bindings,
                                        provider_configs={ref: references[ref] for ref in primary}),
-        blocked_by=('V2-PROV-001',) if preset_id == 'openrouter-plan' else (),
+        blocked_by=(),
     )
 
 

@@ -4,14 +4,16 @@
 
 O operador solicitou um documento geral para continuar o desenvolvimento com outro agente: [ANTIGRAVITY_HANDOFF](ANTIGRAVITY_HANDOFF.md). Contém contexto, decisões, invariantes, mapa de código, testes e prompt pronto para colar. Nenhuma tarefa nova foi iniciada automaticamente.
 
-## Próxima tarefa recomendada: V2-SEC-003 (ou V2-SEC-004 / V2-DIST-002 sem quota real)
+## Sequência atual — 2026-11-19
 
-**Objetivo:** Com `V2-F0-005` concluída (Python 3.12.3 + `SqliteSaver` + CI 3.12), a sequência recomendada em [ANTIGRAVITY_HANDOFF](ANTIGRAVITY_HANDOFF.md) segue para:
-- **`V2-SEC-003`** — Planner Claude em modo somente leitura (`--permission-mode plan`), com testes de `argv` e extração de JSON (observando que o critério de aceite exige 1 validação real autorizada sob Q10; se realizada sem chamada real por preservação de quota, manter em `review`/`blocked` conforme protocolo).
-- **`V2-SEC-004`** — Matriz de permissões por papel aplicada em `argv` nos adapters (`CA3` de `SECURITY_GOVERNANCE`), com revisão humana obrigatória conforme especificação.
-- **Alternativas 100% sem quota/agentes reais:** **`V2-DIST-002`** (CI do frontend: lint, build, vitest), **`V2-SEC-005`** (Credential store com `keyring` e backend em memória nos testes) ou **`V2-OBS-001`** (Migração 5 + gravação de `usage_records`).
+1. **V2-PROV-001 concluída** —666 pytest/54 Vitest,11E2E/2skip,build/lint/docs; revisão independente aprovada. Nenhuma chamada real ou chave alterada.
+2. **V2-RES-002** — checkpointer SQLite, dependências F0-005/WF-003 concluídas. Persistir estado não equivale a liberar retomada gerenciada (RES-003).
+3. **V2-SEC-007** — auditoria estendida sem segredos, conforme SECURITY §6.6.
+4. **V2-OBS-003** — catálogo de preços versionado manual/import, preservando custos históricos. OBS-001 concluída.
 
-**Comandos:** `git status/log`; `source .venv/bin/activate`; `ORCH_DB="$(mktemp -d)/events.db" python -m pytest -q -p no:cacheprovider`; `npm --prefix frontend test/build/lint`; `python scripts/check_docs.py`; `git diff --check`.
+**SEC-003 permanece em review:** código/mock/revisões aprovados, mas validação real exigida não executada (Claude ausente no ambiente anterior). Não houve dispensa explícita do critério; pendência não é opcional. Nenhum CLI real será chamado nesta sessão. SEC-004 mantém aprovação humana registrada.
+
+**Comandos:** git status/log; source .venv/bin/activate (Python3.12); ORCH_DB="$(mktemp -d)/events.db" python -m pytest -q -p no:cacheprovider; npm --prefix frontend test/build/lint; python scripts/check_docs.py; git diff --check. Uma tarefa por vez, revisão independente e commit local dev; sem push/merge/deploy.
 
 ## V2-RES-001 concluída
 
@@ -46,12 +48,12 @@ O operador solicitou um documento geral para continuar o desenvolvimento com out
 - Testes em `tests/security/test_role_argv.py` (23 casos) comprovam CA3 de `SECURITY_GOVERNANCE.md`.
 - Revisão humana (§15) aprovada pelo operador em 2026-11-19.
 
-## V2-SEC-003 implementada (done)
+## V2-SEC-003 implementada (review — validação real pendente)
 
 - `ClaudeCodeRuntime` mapeia `read_only` → `--permission-mode plan` e `workspace_write` → `--permission-mode acceptEdits`.
 - `bindings.py` remove a exceção que permitia `planner` com `workspace_write` no Claude; todo planner agora roda com `read_only`.
 - Testes em `tests/security/test_planner_readonly.py` validam `argv`, recusa de `workspace_write` no planner e extração de plano JSON.
-- Revisão humana aprovada pelo operador em 2026-11-19; validação real com Claude CLI (Q10) não executada (pendência opcional).
+- Revisão humana aprovada pelo operador em 2026-11-19; validação real com Claude CLI (Q10) não executada (critério exigido ainda pendente, sem dispensa explícita).
 
 ## V2-DIST-002 concluída
 

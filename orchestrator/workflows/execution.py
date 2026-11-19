@@ -11,7 +11,8 @@ import shlex
 import time
 
 from .. import core
-from ..providers.base import InvocationRequest, invoke_measured
+from ..providers.base import GenerationRequest, InvocationRequest, invoke_measured
+from ..providers.context import review_context
 from ..providers.errors import InvocationFailure
 from ..resilience.ledger import StepLedger, classify_side_effects, next_step_attempt
 from .compiler import compile_workflow
@@ -36,6 +37,9 @@ def execute_snapshot(repo, scope, *, run_id, snapshot, config, registry, clock=t
 
     def agent(context):
         step, state = context.step, context.state
+        frozen = snapshot.providers[context.binding.provider_config_id]
+        model_provider = frozen.kind == 'model_provider'
+        supplied_context = []
         task_obj = (
             state['plan']['tasks'][state['task_index']]
             if getattr(step, 'per_task', False) and state.get('plan')
@@ -75,8 +79,17 @@ def execute_snapshot(repo, scope, *, run_id, snapshot, config, registry, clock=t
             tests = [state['workflow_outputs'][slot(s, state)] for s in snapshot.definition.steps
                      if s.type == 'test' and (not s.per_task or step.per_task)
                      and slot(s, state) in state['workflow_outputs']]
-            diff = core.run_command(['git', 'diff', '--no-ext-diff', 'HEAD'], state['worktree'], min(600, remaining(context)))
-            status = core.run_command(['git', 'status', '--short'], state['worktree'], min(600, remaining(context)))
+            if model_provider:
+                try:
+                    supplied_context = review_context(state['worktree'], runner=core.run_command,
+                                                      timeout=lambda: min(600, remaining(context)))
+                    diff, status = supplied_context[0].text, supplied_context[1].text
+                except Exception:
+                    ledger.fail(step_exec_id, error='Model review context unavailable', worktree=state['worktree'])
+                    raise RuntimeError('Model review context unavailable') from None
+            else:
+                diff = core.run_command(['git', 'diff', '--no-ext-diff', 'HEAD'], state['worktree'], min(600, remaining(context)))
+                status = core.run_command(['git', 'status', '--short'], state['worktree'], min(600, remaining(context)))
             prompt = ('Independently review this task against its acceptance criteria. '
                       'Do not edit files or execute tests/commands. Reject security defects '
                       'and regressions; do not reject work assigned to later tasks. '
@@ -89,11 +102,19 @@ def execute_snapshot(repo, scope, *, run_id, snapshot, config, registry, clock=t
                       'Respect the supplied permission; do not commit, merge, push, deploy, '
                       'execute shell commands, access secrets or edit outside the worktree. '
                       + state['scope'])
-        request = InvocationRequest(
-            role=step.role, prompt=prompt, cwd=state['worktree'], model=context.binding.model,
-            permission=context.binding.permission,
-            timeout_s=min(config['agent_timeout'], max(1, math.ceil(remaining(context)))),
-        )
+        timeout = min(config['agent_timeout'], max(1, math.ceil(remaining(context))))
+        if model_provider:
+            try:
+                request = GenerationRequest(role=step.role, prompt=prompt, model=context.binding.model,
+                    credential_ref=frozen.credential_ref, permission=context.binding.permission, timeout_s=timeout)
+            except Exception:
+                ledger.fail(step_exec_id, error='Invalid model generation request', worktree=state['worktree'])
+                raise RuntimeError('Invalid model generation request') from None
+        else:
+            request = InvocationRequest(
+                role=step.role, prompt=prompt, cwd=state['worktree'], model=context.binding.model,
+                permission=context.binding.permission, timeout_s=timeout,
+            )
         runtime = registry.get(context.adapter)
         record_failed = []
         def persist(call):
@@ -125,7 +146,8 @@ def execute_snapshot(repo, scope, *, run_id, snapshot, config, registry, clock=t
                 record_failed.append(True)
                 raise
         try:
-            result = invoke_measured(context.adapter, request, lambda: runtime.invoke(request),
+            result = invoke_measured(context.adapter, request,
+                                     lambda: runtime.generate(request, supplied_context) if model_provider else runtime.invoke(request),
                                      record, call_id=context.call_id)
         except InvocationFailure as exc:
             ledger.fail(step_exec_id, error=exc.code, worktree=state['worktree'])

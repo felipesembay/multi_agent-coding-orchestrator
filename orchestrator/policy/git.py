@@ -44,11 +44,12 @@ def _command(argv, config):
                  and re.fullmatch(r'agent/run-[0-9a-f]{12}', args[3])
                  and os.path.isabs(args[4]) and args[5] == 'HEAD')
     elif command == 'status':
-        valid = options in ([], ['--porcelain'], ['--porcelain=v2'], ['--short'])
+        valid = options in ([], ['--porcelain'], ['--porcelain=v2'], ['--short'],
+                            ['--porcelain=v1', '-z', '--untracked-files=all'])
     elif command == 'rev-parse':
         valid = args in (['--git-common-dir'], ['--show-toplevel'], ['--verify', 'HEAD'], ['HEAD'])
     else:  # diff: only non-executing options and the current HEAD.
-        valid = (all(arg in ('HEAD', '--no-ext-diff', '--no-textconv', '--ignore-submodules=all') for arg in options)
+        valid = (all(arg in ('HEAD', '--no-ext-diff', '--no-textconv', '--ignore-submodules=all', '--numstat') for arg in options)
                  and options.count('HEAD') <= 1)
     if not valid:
         raise UnsafeGitConfiguration('Unsupported or unsafe Git invocation')

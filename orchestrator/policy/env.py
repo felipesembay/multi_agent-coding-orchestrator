@@ -16,7 +16,8 @@ BASE_VARIABLES = frozenset({
     'SSL_CERT_FILE', 'SSL_CERT_DIR', 'REQUESTS_CA_BUNDLE', 'NODE_EXTRA_CA_CERTS',
 })
 BUILTIN_CONFIG_VARIABLES = frozenset({'CLAUDE_CONFIG_DIR', 'CODEX_HOME'})
-RUNNER_VARIABLES = frozenset({'ORCH_DB', 'ORCH_ALLOWED_ROOTS', 'ORCH_ALLOWED_TEST_COMMANDS'})
+RUNNER_VARIABLES = frozenset({'ORCH_DB', 'ORCH_ALLOWED_ROOTS', 'ORCH_ALLOWED_TEST_COMMANDS',
+                              'DBUS_SESSION_BUS_ADDRESS'})
 _active_config = ContextVar('subprocess_environment_config', default=None)
 _active_scope = ContextVar('subprocess_environment_scope', default=('tests', frozenset()))
 
@@ -31,7 +32,7 @@ def validate_env_names(names):
     for name in names:
         if (not isinstance(name, str) or not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', name)
                 or name.startswith(('ORCH_', 'GIT_', 'LD_', 'DYLD_'))
-                or name in ('PYTHONPATH', 'PYTHONHOME', 'PYTHONSTARTUP', 'PYTHONINSPECT')
+                or name in ('PYTHONPATH', 'PYTHONHOME', 'PYTHONSTARTUP', 'PYTHONINSPECT', 'DBUS_SESSION_BUS_ADDRESS')
                 or re.search(r'(^|_)(KEY|TOKEN|SECRET|PASSWORD|CREDENTIALS?)(_|$)', name, re.I)):
             raise EnvironmentPolicyError('Unsupported subprocess environment variable declaration')
     return frozenset(names)

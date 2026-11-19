@@ -89,7 +89,7 @@ test('system preset is cloned into an editable definition with execution restric
   await page.goto('/workflows')
   await expect(
     page.getByRole('button', { name: 'Criar cópia de openrouter-plan' }),
-  ).toBeDisabled()
+  ).toBeEnabled()
   await page.getByRole('button', { name: 'Criar cópia de default-v2' }).click()
   await expect(page).toHaveURL(/\/workflows\/wf-.*\?version=/)
   await expect(

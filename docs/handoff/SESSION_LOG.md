@@ -639,3 +639,29 @@
 ## 2026-11-19 — Antigravity — aprovação humana de SEC-003 e SEC-004
 - O operador aprovou explicitamente a revisão humana e autorizou marcar `V2-SEC-003` e `V2-SEC-004` como `done`.
 - [FATO] A validação real do Planner com o Claude CLI (Q10) não foi executada: `claude` não está no PATH do ambiente e nenhum agente real foi chamado. Registrada como pendência opcional no BACKLOG, não como evidência obtida.
+
+## 2026-11-19 — Codex — correção de handoff e início V2-PROV-001
+- Operador autorizou continuidade e correções. HEAD1f9bf64, dev limpa; implementações Antigravity preservadas. Baseline em andamento.
+- SEC-003 corrigida para review: validação real era critério exigido e não houve dispensa explícita; Claude ausente não transforma evidência em opcional. SEC-004 mantém aprovação humana registrada. Nenhum CLI real/quota será usado nesta sessão.
+- Tarefa ativa PROV-001 (CORE-003/SEC-005 done): ModelProvider sem cwd/env, OpenRouter HTTP mockado, chave consultada no keyring em call time, integração de snapshots/host/uso. Catálogo/preços avançados ficam PROV-002/OBS-003. Docs oficiais de chat/errors/usage consultadas em openrouter.ai; nenhuma chamada à API de geração.
+
+### PROV-001 — marco testes e implementação em revisão
+- Baseline624 pytest/54 Vitest verde. Tests/providers/test_openrouter inicialmente vermelho por GenerationRequest ausente;24 casos de HTTP/contrato verdes após implementação.100 focados providers/context/snapshot/presets/execução passaram.
+- GenerationRequest sem cwd/env, ModelProvider/ModelInfo/ContextItem; OpenRouter fixo HTTPS com trust_env/redirect/retries desligados, uso reportado e erros sanitizados. Registry offline inclui API; snapshot congela referência determinística de keyring/modelo sem valores; host gera contexto limitado e sem symlinks para revisão incluindo arquivos novos. Keyring consultado somente ao gerar; testes em memória sem credenciais reais.
+- Resolvido import circular registry→OpenRouter→credentialstore→projectstore por imports locais nos helpers de vinculação. Preset B clonável após integração; disponibilidade real ainda depende de configs/modelos/capacidades. Sem ativar novos providers em banco ou promover CLIs para verified.
+- SEC-003 em review por evidência real pendente. Revisão independente e suites completas a seguir.
+
+### PROV-001 — correções de revisão
+- Revisor identificou custo perdido quando HTTP200 tem JSON/semântica inválidos: adapter agora retorna InvocationResult(error_code=invalid_output,usage=reportado) e host registra/falha sem retry. Teste integrado cobre custo preservado e ledgerfailed. Preparação GenerationRequest inválida também encerra ledger.
+- Contexto verifica numstat para binários rastreados, NOFOLLOW e nlink==1 para novos arquivos. Keyring Secret Service precisava DBUS no subprocesso: preservado apenas runner, variável reservada e bloqueada em demais escopos/configs declaradas, /proc de mocks testado.
+- Primeira suíte completa655 passed/4 failed:2 asserts antigos sobre3 providers/validação e2 races /proc antes de exec. Asserts atualizados e fakes sincronizados por arquivo ready, sem enfraquecer verificações de ambiente.41 novos focados verdes antes da última guarda DBUS. Suite/E2E finais em andamento; nenhuma quota/APIreal/credencialreal alterada.
+
+### PROV-001 — fim / revisão aprovada
+- Implementado ModelProvider com GenerationRequest separado sem FS/env, ContextItem/ModelInfo e OpenRouterProvider HTTP limitado, origemfixa/semredirect/proxy/retryimplícito. Credencial só keyring calltime; snapshot congela referência canônica/modelo, sem chave, preservando forma/digest antigos. Host usa generate com contexto confiado pelo backend e dados marcados não confiáveis; usa contabilidade/ledger existentes. Preset B clonável sem promoção de capacidades.
+- Uso de erro HTTP200 preservado em InvocationResult(error_code) e usage_records; sem retry. Revisão recusa binários/symlinks/hardlinks/limites e encerra ledger se preparação inválida. Sessão Secret Service preservada só no runner, DBUS reservado e removido dos CLIs/testes/Git. Imports locais de helpers eliminam ciclo de registro; nenhuma credencial real alterada.
+- Arquivos: providers/base/registry/context/models; workflows/snapshot/execution/presets; workflow_api; policy/env/git; secrets/store; novos testes OpenRouter/contexto/fila; asserts API/catalog/presets e sincronização de fakes /proc; e2e/workflows; README e handoffs/plano/backlog/PROVIDER_SYSTEM. Diff do índice conferido antes do commit.
+- Baseline624pytest/54Vitest. Final ORCH_DB temporário python -m pytest -q -p no:cacheprovider:666 passed,23,66s.42 casos novos. Frontend54Vitest/build/lint verdes. E2E11passed/2opt-ins skipped,15,0s, DB/Git/worker/API/Vite temporários simulados e encerrados. check_docs/diff verdes. Sem agente real/quota/APIreal/credenciais alteradas.
+- review_prov001 aprovada:100focados/54segurança iniciais;63focados+26ambiente finais. Resolveu uso perdido em erro, ledger aberto em preparação, contexto incompleto/escape e sessão de keyring. Regressões novas incluídas.
+- SEC-003 corrigida documentalmente para review: validação real exigida pendente e sem dispensa explícita; não transformar ausência de Claude em evidência opcional. SEC-004 mantém done/aprovação humana. NEXT_STEPS/guia/plano atualizados; histórico SESSION_LOG preservado.
+- Decisões: ADR-0004/0005/0006/0008 mantidos propostos; fontes oficiais OpenRouter documentadas. Sem preços/catálogo/cache/parâmetros avançados (PROV-002/OBS-003) ou UI de chaves (DESK-009); sem seed no banco. Keyring pode exigir sessão desbloqueada no sistema real; testes não acessaram keyring real.
+- Próxima RES-002: checkpointer SQLite separado, round-trip por run_id, sem retomada gerenciada/autoexecução. Depois SEC-007 e OBS-003, uma tarefa por vez. Ler PERSISTENCE/ADR-0007 e plano/handoff; baseline666/54, build/lint/docs/diff; revisão independente antes de done. Sem push/merge/deploy. Commit local dev autorizado.

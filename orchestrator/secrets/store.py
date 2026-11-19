@@ -20,8 +20,6 @@ from keyring.backends.fail import Keyring as FailKeyring
 from keyring.backends.null import Keyring as NullKeyring
 from keyring.errors import KeyringError, PasswordDeleteError
 
-from .. import projects
-from ..project_store import connection
 
 DEFAULT_KEYRING_SERVICE = "multi-agent-orchestrator"
 _REF_PART_RE = re.compile(r"^[a-zA-Z0-9._:@/-]{1,128}$")
@@ -153,6 +151,8 @@ def bind_provider_credential(
     store: CredentialStore,
 ) -> str:
     """Save secret in keyring and store only credential_ref in provider_configs + audit log."""
+    from .. import projects
+    from ..project_store import connection
     with connection() as conn:
         conn.execute("BEGIN IMMEDIATE")
         row = conn.execute(
@@ -183,6 +183,8 @@ def remove_provider_credential(
     store: CredentialStore,
 ) -> bool:
     """Remove secret from keyring and clear credential_ref in provider_configs + audit log."""
+    from .. import projects
+    from ..project_store import connection
     with connection() as conn:
         conn.execute("BEGIN IMMEDIATE")
         row = conn.execute(
