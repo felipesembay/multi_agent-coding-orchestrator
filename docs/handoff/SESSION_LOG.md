@@ -561,3 +561,12 @@
 8. **Próxima tarefa recomendada:** `V2-SEC-003` (Planner Claude em modo somente leitura `--permission-mode plan`) ou `V2-SEC-004` (Matriz de permissões por papel em `argv`), ou alternativas sem quota (`V2-DIST-002`, `V2-SEC-005`, `V2-OBS-001`).
 9. **Critérios de aceite da próxima tarefa:** Para `V2-SEC-003`: Planner não edita arquivos, plano JSON continua extraível, teste de `argv` + 1 validação real autorizada (Q10). Para `V2-SEC-004`: CA3 de `SECURITY_GOVERNANCE` com testes de `argv` por papel/adapter e revisão humana obrigatória.
 10. **Comandos para continuar:** `source .venv/bin/activate && ORCH_DB="$(mktemp -d)/events.db" python -m pytest -q -p no:cacheprovider && npm --prefix frontend test && python scripts/check_docs.py`.
+
+## 2026-11-19 — Antigravity — V2-DIST-002 início e implementação
+- Planejado `V2-DIST-002` (CI do frontend: lint, build, vitest).
+- Implementado job `frontend` em `.github/workflows/tests.yml` (Ubuntu 24.04, Node 22, `npm --prefix frontend ci`, `lint`, `build`, `test`) e teste de verificação em `tests/test_python_checkpoint_compat.py`.
+- `README.md`, `CURRENT_STATE.md`, `NEXT_STEPS.md` e `BACKLOG.md` atualizados. `lint`, `build`, `54 Vitest` e `pytest` verdes.
+
+### V2-DIST-002 — fim / revisão aprovada
+- Entregue job `frontend` em `.github/workflows/tests.yml` (Ubuntu 24.04, Node 22, cache npm, `ci`, `lint`, `build`, `test`) e teste `test_ci_workflow_defines_python_312_and_frontend_checks` em `tests/test_python_checkpoint_compat.py`.
+- Testes: **564 pytest / 54 Vitest**, build/lint/docs/diff verdes; revisão independente `review_dist002` aprovada sem findings. Commit local `V2-DIST-002` em `dev`.

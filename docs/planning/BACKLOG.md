@@ -95,7 +95,7 @@ Fonte única de status das tarefas. Atualize a linha da tarefa ao iniciar (`doin
 | ID | Título | Status | P | C | Deps | Perfil | Critério de aceite | Testes |
 |---|---|---|---|---|---|---|---|---|
 | V2-DIST-001 | Bundles AppImage + .deb em CI | todo | P2 | L | DESK-003 | OPS | CA1/CA2 de DESKTOP_APP | Smoke de instalação |
-| V2-DIST-002 | CI do frontend (lint, build, vitest) | todo | P1 | S | — | OPS | Workflow GitHub Actions verde | CI |
+| V2-DIST-002 | CI do frontend (lint, build, vitest) | done | P1 | S | — | OPS | Workflow GitHub Actions verde | Job frontend (Node 22, lint, build, vitest) em `.github/workflows/tests.yml`; 564 pytest / 54 vitest; revisão review_dist002 aprovada (2026-11-19) |
 | V2-DIST-003 | E2E desktop (tauri-driver) | todo | P3 | L | DIST-001 | OPS | Fluxo mockado no app empacotado | CI |
 | V2-DIST-004 | Corrigir imagem do CI Python 3.9 incompatível com ubuntu-latest | done | P0 | S | — | OPS | CI fixa imagem com binário oficial e testes isolados; migração Python separada | Logs Actions44354266781; manifesto3.9.25/22.04; baseline521/38; revisão review_ci_fix aprovada; remoto não reexecutado |
 | V2-PROV-002 | OpenRouter: sync de catálogo, preços e parâmetros | todo | P2 | M | PROV-001, OBS-003 | BE | Preços com `source=openrouter_api` e data | HTTP mock |

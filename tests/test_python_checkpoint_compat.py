@@ -69,3 +69,15 @@ def test_sqlite_saver_state_graph_round_trip(tmp_path: Path) -> None:
         }
         history = list(reopened_graph.get_state_history(config))
         assert len(history) >= 3
+
+
+def test_ci_workflow_defines_python_312_and_frontend_checks() -> None:
+    """V2-F0-005 & V2-DIST-002: Verify GitHub Actions workflow includes Python 3.12 and frontend lint/build/test."""
+    workflow_path = Path(__file__).resolve().parents[1] / ".github" / "workflows" / "tests.yml"
+    content = workflow_path.read_text(encoding="utf-8")
+    assert 'python-version: "3.12"' in content
+    assert 'node-version: "22"' in content
+    assert "npm --prefix frontend ci" in content
+    assert "npm --prefix frontend run lint" in content
+    assert "npm --prefix frontend run build" in content
+    assert "npm --prefix frontend test" in content

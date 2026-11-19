@@ -1,4 +1,4 @@
-name: Python Tests
+name: CI Tests
 
 on: [push, pull_request]
 
@@ -16,3 +16,21 @@ jobs:
           pip install -r requirements.txt
       - name: Run tests
         run: ORCH_DB="$(mktemp -d)/events.db" python -m pytest -q -p no:cacheprovider
+
+  frontend:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+      - name: Lint frontend
+        run: npm --prefix frontend run lint
+      - name: Build frontend
+        run: npm --prefix frontend run build
+      - name: Run frontend unit tests
+        run: npm --prefix frontend test

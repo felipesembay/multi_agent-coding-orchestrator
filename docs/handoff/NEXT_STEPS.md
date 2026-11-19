@@ -13,6 +13,12 @@ O operador solicitou um documento geral para continuar o desenvolvimento com out
 
 **Comandos:** `git status/log`; `source .venv/bin/activate`; `ORCH_DB="$(mktemp -d)/events.db" python -m pytest -q -p no:cacheprovider`; `npm --prefix frontend test/build/lint`; `python scripts/check_docs.py`; `git diff --check`.
 
+## V2-DIST-002 concluída
+
+- `.github/workflows/tests.yml` agora executa tanto o job Python (`test`, Python 3.12) quanto o job `frontend` (Node 22, `npm --prefix frontend ci`, `lint`, `build`, `test`).
+- Teste `test_ci_workflow_defines_python_312_and_frontend_checks` adicionado em `tests/test_python_checkpoint_compat.py`.
+- Evidência: **564 pytest / 54 Vitest**, build/lint/docs verdes. Execução remota aguarda push autorizado.
+
 ## V2-F0-005 concluída
 
 - Ambiente `.venv` atualizado para **Python 3.12.3** dentro do workspace (validado previamente em venv temporário antes da substituição).

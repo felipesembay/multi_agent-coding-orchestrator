@@ -513,7 +513,7 @@ A configuração atual usa Chrome em `/usr/bin/google-chrome`; outro caminho pod
 - `PROJECTS_E2E_WRITE=1`: criação e edição de projetos em um banco/pasta temporários autorizados para esse teste.
 - `EXECUTION_E2E_MOCKED=1`: fluxo de execução contra o harness com agentes mockados; não transforma a API de produção em uma simulação.
 
-Os guardrails das suítes verificam os diretórios temporários esperados. Consulte [o guia operacional](docs/execution-manager.md#verificação-automatizada) antes de executar testes de escrita. A automação atual do GitHub Actions executa os testes Python; build, lint e testes do frontend também podem ser executados localmente pelos comandos acima.
+Os guardrails das suítes verificam os diretórios temporários esperados. Consulte [o guia operacional](docs/execution-manager.md#verificação-automatizada) antes de executar testes de escrita. A automação do GitHub Actions (`.github/workflows/tests.yml`) executa os testes Python (Python 3.12) e o lint, build e testes unitários do frontend (Node 22).
 
 ### Validação com providers reais
 
