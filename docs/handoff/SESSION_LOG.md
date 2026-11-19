@@ -589,3 +589,13 @@
 ### V2-SEC-004 — fim / revisão independente aprovada
 - Revisão independente `review_sec004` aprovada sem findings (118 testes focados de segurança/providers e `check_docs.py` verdes).
 - Mantido status `review (Antigravity)` no `BACKLOG.md` conforme `SECURITY_GOVERNANCE.md` §15 para revisão humana obrigatória. Commit local `V2-SEC-004` em `dev`.
+
+## 2026-11-19 — Antigravity — V2-WF-005 início e implementação
+- Planejado `V2-WF-005`: Codex CLI como executor (`workspace-write`) após `SEC-004` e Q5.
+- Verificado `codex exec --help` localmente: `--sandbox` possui apenas `read-only`, `workspace-write` e `danger-full-access`.
+- Atualizado `CodexCliRuntime` com `CODE_EDIT`, `CODE_EXEC` e `permission_modes=['read_only', 'workspace_write']` (mantendo `verified=False`), além de compatibilidade em `core.codex`/`_invoke_binding`.
+- Criado `tests/workflows/test_codex_executor.py` (3 novos testes, incluindo execução completa do Preset A com adapters reais e runners mockados) e expandido `test_runtime_contract.py`. Suíte completa: **598 pytest / 54 Vitest**.
+
+### V2-WF-005 — fim / revisão aprovada
+- Revisão independente `review_wf005` aprovada sem findings (598 pytest / 54 Vitest e `check_docs.py` verdes).
+- Marcado `done` no `BACKLOG.md` e commit local `V2-WF-005` em `dev`.

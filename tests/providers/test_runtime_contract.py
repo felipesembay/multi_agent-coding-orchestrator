@@ -14,7 +14,9 @@ from orchestrator.providers.runtimes.codex_cli import CodexCliRuntime
     (ClaudeCodeRuntime, 'planner', 'read_only', 'text'),
     (ClaudeCodeRuntime, 'implementer', 'workspace_write', 'text'),
     (CodexCliRuntime, 'reviewer', 'read_only', 'text'),
+    (CodexCliRuntime, 'implementer', 'workspace_write', 'text'),
     (AntigravityRuntime, 'planner', 'read_only', '{"status":"SUCCESS","response":"text"}'),
+    (AntigravityRuntime, 'implementer', 'workspace_write', '{"status":"SUCCESS","response":"text"}'),
 ])
 def test_runtime_injects_runner_and_passes_explicit_environment(runtime, role, permission, output):
     runner = Mock(return_value=output)
@@ -28,13 +30,16 @@ def test_runtime_injects_runner_and_passes_explicit_environment(runtime, role, p
     assert set(runner.call_args.kwargs['env']) <= {'LANG', 'GIT_CONFIG_GLOBAL', 'GIT_CONFIG_NOSYSTEM', 'ORCH_DISPATCH_TOKEN'}
 
 
-@pytest.mark.parametrize('runtime,permission', [
-    (CodexCliRuntime, 'workspace_write'),
+@pytest.mark.parametrize('runtime,role,permission', [
+    (ClaudeCodeRuntime, 'planner', 'workspace_write'),
+    (CodexCliRuntime, 'reviewer', 'workspace_write'),
+    (CodexCliRuntime, 'implementer', 'read_only'),
+    (AntigravityRuntime, 'reviewer', 'workspace_write'),
 ])
-def test_legacy_runtime_rejects_unimplemented_permission(runtime, permission):
+def test_runtime_rejects_disallowed_role_permission(runtime, role, permission):
     runner = Mock()
-    with pytest.raises(ValueError, match='requires'):
-        runtime(runner).invoke(InvocationRequest(prompt='task', cwd='/tmp', permission=permission))
+    with pytest.raises(ValueError, match='not permitted'):
+        runtime(runner).invoke(InvocationRequest(role=role, prompt='task', cwd='/tmp', permission=permission))
     runner.assert_not_called()
 
 

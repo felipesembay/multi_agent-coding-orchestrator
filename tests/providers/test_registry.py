@@ -54,9 +54,10 @@ def test_builtins_only_and_no_discovery_without_opt_in(discovery):
         assert '/private/' not in row.model_dump_json()
         assert Capability.USAGE_METRICS not in row.manifest.capabilities
         assert Capability.STRUCTURED_OUTPUT not in row.manifest.capabilities
-    assert catalog.get('codex_cli').manifest.permission_modes == ['read_only']
+    assert catalog.get('codex_cli').manifest.permission_modes == ['read_only', 'workspace_write']
     assert catalog.get('claude_code').manifest.permission_modes == ['read_only', 'workspace_write']
-    assert Capability.CODE_EDIT not in catalog.get('codex_cli').manifest.capabilities
+    assert Capability.CODE_EDIT in catalog.get('codex_cli').manifest.capabilities
+    assert Capability.CODE_EXEC in catalog.get('codex_cli').manifest.capabilities
     with pytest.raises(KeyError):
         catalog.get('not_installed')
 
@@ -145,8 +146,8 @@ def test_plugin_cannot_misidentify_its_adapter(discovery):
 def test_manifest_cannot_be_changed_through_listing(discovery):
     catalog = registry.ProviderRegistry()
     listing = next(row for row in catalog.list() if row.adapter == 'codex_cli')
-    listing.manifest.permission_modes.append('workspace_write')
-    assert catalog.get('codex_cli').manifest.permission_modes == ['read_only']
+    listing.manifest.permission_modes.clear()
+    assert catalog.get('codex_cli').manifest.permission_modes == ['read_only', 'workspace_write']
 
 
 def test_injected_runner_and_observer_make_builtin_usable_without_core(discovery):

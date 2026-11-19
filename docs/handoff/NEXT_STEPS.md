@@ -13,6 +13,12 @@ O operador solicitou um documento geral para continuar o desenvolvimento com out
 
 **Comandos:** `git status/log`; `source .venv/bin/activate`; `ORCH_DB="$(mktemp -d)/events.db" python -m pytest -q -p no:cacheprovider`; `npm --prefix frontend test/build/lint`; `python scripts/check_docs.py`; `git diff --check`.
 
+## V2-WF-005 concluída
+
+- `CodexCliRuntime` suporta `workspace_write` (`codex exec --sandbox workspace-write <prompt>`) e declara `CODE_EDIT` e `CODE_EXEC` (com `verified=False` até validação real).
+- Verificado em `codex exec --help` (v0.166.0) que os únicos modos de `--sandbox` são `read-only`, `workspace-write` e `danger-full-access`.
+- Testes em `tests/workflows/test_codex_executor.py` comprovam `argv` e integração mockada do Preset A (`default-v2`).
+
 ## V2-SEC-004 implementada (em `review`)
 
 - `orchestrator/policy/roles.py` impõe a matriz de permissões por papel (`planner`/`reviewer` → `read_only`, `implementer` → `workspace_write`, `documenter` → `read_only`|`workspace_write`) e gera `argv` determinístico para Claude (`--permission-mode plan` ou `--permission-mode acceptEdits --disallowedTools Bash`), Codex (`--sandbox read-only|workspace-write`) e Antigravity (`--mode plan|accept-edits`).
