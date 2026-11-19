@@ -599,3 +599,12 @@
 ### V2-WF-005 — fim / revisão aprovada
 - Revisão independente `review_wf005` aprovada sem findings (598 pytest / 54 Vitest e `check_docs.py` verdes).
 - Marcado `done` no `BACKLOG.md` e commit local `V2-WF-005` em `dev`.
+
+## 2026-11-19 — Antigravity — V2-WF-006 início e implementação
+- Planejado `V2-WF-006`: Antigravity como reviewer com saída JSON validada e fixtures.
+- Atualizado `AntigravityRuntime` para declarar `REVIEW` e `STRUCTURED_OUTPUT` e validar `{approved: bool, findings: list[str], test_suggestions?: list[str]}` quando `req.role == 'reviewer'`, populando `InvocationResult.structured`.
+- Criado `tests/workflows/test_antigravity_reviewer.py` (12 testes). Suíte completa: **610 pytest / 54 Vitest**.
+
+### V2-WF-006 — fim / revisão aprovada
+- Revisão independente `review_wf006` aprovada sem findings (48 testes focados e `check_docs.py` verdes).
+- Marcado `done` no `BACKLOG.md` e commit local `V2-WF-006` em `dev`.

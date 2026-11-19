@@ -13,6 +13,11 @@ O operador solicitou um documento geral para continuar o desenvolvimento com out
 
 **Comandos:** `git status/log`; `source .venv/bin/activate`; `ORCH_DB="$(mktemp -d)/events.db" python -m pytest -q -p no:cacheprovider`; `npm --prefix frontend test/build/lint`; `python scripts/check_docs.py`; `git diff --check`.
 
+## V2-WF-006 concluída
+
+- `AntigravityRuntime` declara `REVIEW` e `STRUCTURED_OUTPUT` e valida estritamente o JSON `{approved, findings, test_suggestions}` quando invocado como `reviewer`, recusando texto livre.
+- Testes em `tests/workflows/test_antigravity_reviewer.py` (12 casos) validam envelope, schema, recusa de texto livre e integração com `core.review`.
+
 ## V2-WF-005 concluída
 
 - `CodexCliRuntime` suporta `workspace_write` (`codex exec --sandbox workspace-write <prompt>`) e declara `CODE_EDIT` e `CODE_EXEC` (com `verified=False` até validação real).

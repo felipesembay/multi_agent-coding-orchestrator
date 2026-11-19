@@ -53,7 +53,10 @@ def test_builtins_only_and_no_discovery_without_opt_in(discovery):
         assert row.probe.credential_present is None
         assert '/private/' not in row.model_dump_json()
         assert Capability.USAGE_METRICS not in row.manifest.capabilities
-        assert Capability.STRUCTURED_OUTPUT not in row.manifest.capabilities
+        if row.adapter != 'antigravity':
+            assert Capability.STRUCTURED_OUTPUT not in row.manifest.capabilities
+    assert Capability.REVIEW in catalog.get('antigravity').manifest.capabilities
+    assert Capability.STRUCTURED_OUTPUT in catalog.get('antigravity').manifest.capabilities
     assert catalog.get('codex_cli').manifest.permission_modes == ['read_only', 'workspace_write']
     assert catalog.get('claude_code').manifest.permission_modes == ['read_only', 'workspace_write']
     assert Capability.CODE_EDIT in catalog.get('codex_cli').manifest.capabilities

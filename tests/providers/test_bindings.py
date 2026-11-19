@@ -47,7 +47,7 @@ def test_old_flat_snapshot_ignores_current_environment(monkeypatch):
 
 @pytest.mark.parametrize('role,change', [
     ('implementer', {'adapter': 'codex_cli'}),
-    ('reviewer', {'adapter': 'antigravity'}),
+    ('reviewer', {'adapter': 'claude_code'}),
     ('reviewer', {'permission': 'workspace_write'}),
     ('planner', {'model': 'not-supported-by-legacy-cli'}),
 ])
