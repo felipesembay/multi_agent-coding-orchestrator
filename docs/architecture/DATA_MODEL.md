@@ -90,3 +90,7 @@ Checkpoints LangGraph ficam em **arquivo separado** (`<ORCH_DB>.checkpoints.db`)
 ## Registro incremental WF-010
 
 Sem alteração de schema/migração: workflows estritos gravam eventos usage_record em events por invocação. call_id correlaciona agent_call; retry_of aponta à chamada anterior da cadeia, step_id/task_index identificam etapa/tarefa, attempt conta invocações cumulativas de implementação e chain_attempt a posição na cadeia. Conteúdo raw é omitido; token_source e billing_mode explícitos, valores desconhecidos null. A tabela usage_records planejada continua tarefa OBS-001/migração5: futuras projeções devem usar call_id para evitar duplicação. Não afirmar que a contabilidade universal já existe.
+
+## Checkpoints RES-002
+
+SqliteSaver persiste em arquivo separado `<ORCH_DB resolvido>.checkpoints.sqlite3`, com tabelas internas checkpoints/writes geridas pela biblioteca; não altera a migração do catálogo. Chave de thread é run_id, metadata inclui workflow_digest e estado por superstep. Arquivo privado0600 e serializer restrito, gravação síncrona antes do próximo nó. Presença de checkpoint bloqueia início repetido até inspeção RES-003/004. Caminho legado não foi migrado nesta entrega.

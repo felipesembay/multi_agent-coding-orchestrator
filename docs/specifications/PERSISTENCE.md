@@ -116,3 +116,11 @@ P1 (RES-001..004) · P2 (RES-005, 006).
 
 ## 15. Perfil recomendado
 Backend Python com experiência em concorrência/processos; revisão por segundo agente obrigatória (RES-003).
+
+## Implementação incremental RES-002 — 2026-11-19
+
+- Workflows estritos do worker usam SqliteSaver com `thread_id=run_id` e metadata workflow_digest. O banco é separado, no caminho ORCH_DB resolvido acrescido de `.checkpoints.sqlite3`; SQLite WAL/synchronous FULL e invocação LangGraph durability=sync asseguram confirmação antes do próximo nó.
+- Arquivo0600, symlink/hardlink/arquivo especial recusados; serializer sem pickle nem import de módulos dinâmicos para canais e metadados. A conexão encerra no fim da execução/erro. Mínimos declarados correspondem às APIs verificadas: LangGraph1.2.22, checkpoint4.3.2, checkpoint-sqlite3.1.3, Python3.12. Sem instalar dependências ou migrar catálogo nesta entrega.
+- Compilador aceita checkpointer opcional; host gerenciado estrito o fornece. Caminho legado/CLI permanece sem alteração; esta entrega não afirma checkpoint universal do legado. Dados incluem plano, saídas, contadores, revisão/evidências e próximo estado de controle após cada superstep.
+- Ler checkpoints não executa agentes. Se houver checkpoint do run, um novo início é recusado antes de preparar worktree/chamar provider: exige inspeção futura RES-003/004. Não existe endpoint de retomada, aprovação implícita ou invoke(None) em produção.
+- Falha/corrupção do banco de checkpoint não corrompe o catálogo; impede execução nova. Falha ao confirmar estado após planner impede o implementer. Crash após efeito externo e antes do checkpoint ainda requer ledger/inspeção humana; durabilidade não torna os dois bancos uma transação atômica. Retomada segura, reconciliação de ledger parcial e política de backup/retention permanecem tarefas próprias.

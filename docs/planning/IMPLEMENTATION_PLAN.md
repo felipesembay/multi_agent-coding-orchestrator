@@ -55,12 +55,13 @@ Não é necessário ler toda a pasta `docs/`. Leia apenas a especificação da �
 - `V2-WF-010` concluída: alternativas ordenadas por erro tipado seguro, snapshots de todos os candidatos e registros de uso no event store por chamada; tabela/contabilidade completa OBS-001 futura.
 - `V2-F0-005` concluída: migração para Python 3.12.3 validada localmente, `langgraph-checkpoint-sqlite` (`SqliteSaver`) testado com round-trip em `StateGraph`, CI atualizado para Python 3.12 em `ubuntu-24.04`.
 - Incrementos Antigravity: SEC-004/WF-005/006, DIST-002, OBS-001, SEC-005 e RES-001 concluídos; SEC-003 em review pela evidência real pendente. Python3.12 e CI atualizados; OBS-001 inclui usage_records/migração5.
+- RES-002 concluída: SqliteSaver separado/thread_id por run/durability sync e guard de não retomada;675pytest/54Vitest/build/lint/docs, revisão aprovada.
 - Baseline desta sessão: **624 pytest /54 Vitest**. PROV-001 concluída:666 pytest/54 Vitest,11E2E/2skip e build/lint/docs; resultados detalhados em CURRENT_STATE. Nenhum agente real/API de geração acionado.
 
 ## 5. Próximas tarefas
 
 1. **V2-PROV-001** concluída e revisada: OpenRouter básico integrado ao host/snapshot/keyring; testes HTTP em mocks, nenhuma chave real alterada.
-2. Depois **V2-RES-002**, **V2-SEC-007**, **V2-OBS-003**, uma tarefa por vez conforme BACKLOG/NEXT_STEPS.
+2. **V2-RES-002 concluída**; depois **V2-SEC-007**, **V2-OBS-003**, uma tarefa por vez conforme BACKLOG/NEXT_STEPS.
 3. **V2-SEC-003** em review: validação real exigida pendente, não opcional. **V2-F0-002** permanece parcial pela revisão formal dos ADRs. Não reabrir questões do operador já respondidas.
 
 Detalhes e evidências atuais: [CURRENT_STATE](../handoff/CURRENT_STATE.md) e [NEXT_STEPS](../handoff/NEXT_STEPS.md).

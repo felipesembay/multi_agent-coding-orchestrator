@@ -15,6 +15,7 @@ from ..providers.base import GenerationRequest, InvocationRequest, invoke_measur
 from ..providers.context import review_context
 from ..providers.errors import InvocationFailure
 from ..resilience.ledger import StepLedger, classify_side_effects, next_step_attempt
+from ..resilience.checkpointer import CheckpointError, checkpoint_config, open_checkpointer
 from .compiler import compile_workflow
 from .nodes import WorkflowLimitError, slot
 from .snapshot import validate_snapshot
@@ -219,19 +220,23 @@ def execute_snapshot(repo, scope, *, run_id, snapshot, config, registry, clock=t
             ledger.complete(step_exec_id, worktree=state['worktree'])
             return {'passed': False, 'error': 'Configured automated tests failed'}
 
-    graph = compile_workflow(snapshot.definition, snapshot.bindings,
-                             provider_configs={key: p.adapter for key, p in snapshot.providers.items()},
-                             registry=registry, executors={'plan': agent, 'implement': agent,
-                                                          'review': agent, 'document': agent, 'test': test},
-                             event_sink=core.event, clock=clock)
     repo_path = Path(repo).resolve()
-    with core.repository_lock(repo_path):
+    with core.repository_lock(repo_path), open_checkpointer() as saver:
+        saved_config = checkpoint_config(run_id)
+        if saver.get_tuple(saved_config) is not None:
+            raise CheckpointError('Existing checkpoint requires inspection before managed resume')
+        graph = compile_workflow(snapshot.definition, snapshot.bindings,
+                                 provider_configs={key: p.adapter for key, p in snapshot.providers.items()},
+                                 registry=registry, executors={'plan': agent, 'implement': agent,
+                                                              'review': agent, 'document': agent, 'test': test},
+                                 event_sink=core.event, clock=clock, checkpointer=saver)
         worktree = core.prepare(repo_path, run_id)
         state = {'run_id': run_id, 'repo': str(repo_path), 'worktree': str(worktree), 'scope': scope}
         core.event(state, 'started', {'repo': str(repo_path), 'worktree': str(worktree),
                                     'workflow_version_id': snapshot.workflow_version_id,
                                     'workflow_digest': snapshot.digest()})
-        result = graph.invoke(state)
+        result = graph.invoke(state,config={**saved_config,'metadata':{'workflow_digest':snapshot.digest()}},
+                              durability='sync')
         core.event(result, 'finished' if result['status'] == 'ready_for_human_review' else 'blocked',
                    {'status': result['status'], 'worktree': str(worktree)})
         return result

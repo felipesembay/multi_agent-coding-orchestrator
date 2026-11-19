@@ -41,7 +41,7 @@ def compile_legacy(*, state_schema, handlers, entry_point='plan'):
 
 
 def compile_workflow(definition, bindings, *, provider_configs, registry, executors,
-                     event_sink=None, clock=time.monotonic):
+                     event_sink=None, clock=time.monotonic, checkpointer=None):
     """Compile with executors keyed by type: execute(StepContext) -> dict payload.
 
     The host is responsible for runtime timeouts (context.timeout_s is remaining
@@ -174,4 +174,4 @@ def compile_workflow(definition, bindings, *, provider_configs, registry, execut
     graph.add_edge('__wf_finish', END)
     graph.add_edge('__wf_blocked', END)
     # One advance at most per declared stage execution plus fixed control nodes.
-    return graph.compile().with_config(recursion_limit=2 * definition.limits.max_total_steps + 4)
+    return graph.compile(checkpointer=checkpointer).with_config(recursion_limit=2 * definition.limits.max_total_steps + 4)

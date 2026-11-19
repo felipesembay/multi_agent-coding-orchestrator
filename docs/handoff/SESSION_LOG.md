@@ -665,3 +665,22 @@
 - SEC-003 corrigida documentalmente para review: validação real exigida pendente e sem dispensa explícita; não transformar ausência de Claude em evidência opcional. SEC-004 mantém done/aprovação humana. NEXT_STEPS/guia/plano atualizados; histórico SESSION_LOG preservado.
 - Decisões: ADR-0004/0005/0006/0008 mantidos propostos; fontes oficiais OpenRouter documentadas. Sem preços/catálogo/cache/parâmetros avançados (PROV-002/OBS-003) ou UI de chaves (DESK-009); sem seed no banco. Keyring pode exigir sessão desbloqueada no sistema real; testes não acessaram keyring real.
 - Próxima RES-002: checkpointer SQLite separado, round-trip por run_id, sem retomada gerenciada/autoexecução. Depois SEC-007 e OBS-003, uma tarefa por vez. Ler PERSISTENCE/ADR-0007 e plano/handoff; baseline666/54, build/lint/docs/diff; revisão independente antes de done. Sem push/merge/deploy. Commit local dev autorizado.
+
+## 2026-11-19 — Codex — V2-RES-002 início
+- PROV-001 commitada066baa0, árvore limpa; baseline imediato666pytest/54Vitest,build/lint/docs/E2E verdes, sem mudança externa. RES-002 inicia após concluir tarefa anterior. PERSISTENCE/ADR0007 lidos; SqliteSaver instalado e Python3.12.
+- Escopo: SQLite checkpoints separado do catálogo, thread_id=run_id, compilador/host estrito persistem estado por nó. Sem endpoint/resume/reexecução automática; checkpoint existente bloqueia novo dispatch do mesmo run até RES-003/004. Legado preservado.
+
+### RES-002 — marco checkpointer
+- Novo teste inicialmente vermelho por módulo ausente.25 focados passaram (8 novos) com sucesso/falha persistidos, reabertura, threads isoladas, recusa de reexecução e corrupção separada do catálogo, arquivo0600 e symlink recusado.
+- SqliteSaver integrado apenas ao workflow estrito; legado sem alteração. Serializer sem pickle e módulos dinâmicos; mínimos checkpoint4.3.2/sqlite3.1.3 declarados para API usada e já instalada, sem pip/chamada externa nesta sessão. Nenhuma quota/credencial/push.
+
+### RES-002 — marco revisão/durabilidade
+- Fullsuite anterior674passed. Revisor52focadosverdes encontrou defaultasync do LangGraph; host agora usa durability=sync e novo teste provoca falha depois de plano persistível: somente planner chamado.9 novos focados verdes, suitefinal em andamento. MínimoLangGraph1.2.22 acompanha API instalada/testada.
+
+### RES-002 — fim / revisão aprovada
+- Implementado resilience/checkpointer.py, compilador com checkpointer opcional e host estrito com thread_id/digest e duração do recurso. Banco separado `<ORCH_DB>.checkpoints.sqlite3`,0600/WAL/FULL, serializer restrito sempickle. durabilitysync impede próximo nó antes de confirmar estado. Guard de estado existente exige inspeção antes de prepare, sem auto-resume/API de retomada. Legado preservado.
+- Arquivos: checkpointer novo, compiler/execution, requirements mínimos já instalados,9novostestes workflows/test_checkpointer; PERSISTENCE/DATA_MODEL e handoffs/plano/backlog. Sem mudança de credencial/deploy/push ou instalação de pacote.
+- Baseline666pytest/54Vitest imediatamente anterior. Teste novo inicialmente móduloausente;25focados/674full antesajusterevisão. Final675pytest em24,41s,54Vitest/build/lint/docs/diff verdes. E2E não repetido,sem UI/legado alterado (últimoPROV00111passed/2skipped).
+- review_res002 aprovada:52focados, depois36checkpointer/compiler. Corrigiu defaultasync com durabilitysync e regressão do store falhando após planner que bloqueia implementer. Nenhum bloqueador restante.
+- Arquitetura ADR0007/PERSISTENCE incrementais, sem aceitar ADR formalmente. Persiste dados de workflows estritos; não equivale a retomada gerenciada ou atomicidade distribuída com ledger/eventos. MínimosLangGraph1.2.22/checkpoint4.3.2/sqlite3.1.3 refletem APIs testadas.
+- Pendências RES-003/004: inspeção humana de passo parcial, aprovação e redispatch; legado ainda não checkpointerizado. Próxima SEC-007 (auditoria estendida sem segredo), depois OBS-003. Ler SECURITY §6.6 e auditores existentes; testes de registros/mutações/recusa de payloads sensíveis e aprovação independente. Comandos baseline isolado/FEtest/build/lint/docs/diff, umatarefa porvez, commitsdev autorizados,sem push.

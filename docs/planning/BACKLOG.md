@@ -68,7 +68,7 @@ Fonte única de status das tarefas. Atualize a linha da tarefa ao iniciar (`doin
 | ID | Título | Status | P | C | Deps | Perfil | Critério de aceite | Testes |
 |---|---|---|---|---|---|---|---|---|
 | V2-RES-001 | Ledger `step_executions` + digest de árvore | done | P1 | M | WF-003 | BE | Ledger started/completed por nó | `orchestrator/resilience/{digest,ledger}.py`; 4 novos em `test_step_ledger.py` (624 pytest / 54 vitest); revisão review_res001 aprovada (2026-11-19) |
-| V2-RES-002 | Checkpointer SQLite LangGraph | todo | P1 | M | F0-005, WF-003 | BE | Round-trip do estado | Teste de checkpoint |
+| V2-RES-002 | Checkpointer SQLite LangGraph | done | P1 | M | F0-005, WF-003 | BE | SQLite separado, thread/run, sync e sem auto-resume | 675pytest/54Vitest;9novos;build/lint/docs;review_res002 aprovada;commit RES-002 dev |
 | V2-RES-003 | Retomada gerenciada com inspeção | todo | P1 | L | RES-001, RES-002, RES-004 | BE | CA1/CA2 de PERSISTENCE | Crash injection |
 | V2-RES-004 | Aprovações humanas persistidas (`approvals`) | todo | P1 | M | WF-002 | BE/FE | Plano/resultado/retomada aprováveis na UI | API + vitest |
 | V2-RES-005 | Artefatos do run (`run_artifacts`) | todo | P2 | S | RES-001 | BE | Plano, relatório de teste, revisão e handoff salvos | Unitário |

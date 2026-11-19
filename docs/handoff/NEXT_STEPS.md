@@ -7,7 +7,7 @@ O operador solicitou um documento geral para continuar o desenvolvimento com out
 ## Sequência atual — 2026-11-19
 
 1. **V2-PROV-001 concluída** —666 pytest/54 Vitest,11E2E/2skip,build/lint/docs; revisão independente aprovada. Nenhuma chamada real ou chave alterada.
-2. **V2-RES-002** — checkpointer SQLite, dependências F0-005/WF-003 concluídas. Persistir estado não equivale a liberar retomada gerenciada (RES-003).
+2. **V2-RES-002 concluída** —675pytest/54Vitest,9novos,build/lint/docs e revisão aprovados. Checkpoint síncrono separado, sem retomada automática. Próxima ativa sugerida SEC-007.
 3. **V2-SEC-007** — auditoria estendida sem segredos, conforme SECURITY §6.6.
 4. **V2-OBS-003** — catálogo de preços versionado manual/import, preservando custos históricos. OBS-001 concluída.
 
