@@ -617,3 +617,12 @@
 ### V2-OBS-001 — fim / revisão aprovada
 - Revisão independente `review_obs001` aprovada sem findings (57 testes focados de uso/migração/fallback e `check_docs.py` verdes).
 - Marcado `done` no `BACKLOG.md` e commit local `V2-OBS-001` em `dev`.
+
+## 2026-11-19 — Antigravity — V2-SEC-005 início e implementação
+- Planejado `V2-SEC-005`: Credential store com `keyring` e backend de testes em memória (`ADR-0008`).
+- Adicionado `keyring>=24,<26` em `requirements.txt` e criado `orchestrator/secrets/store.py` (`CredentialStore`, `InMemoryKeyringBackend`, `bind_provider_credential`, `remove_provider_credential`).
+- Criado `tests/security/test_credential_store.py` (6 testes). Suíte completa: **620 pytest / 54 Vitest**.
+
+### V2-SEC-005 — fim / revisão aprovada
+- Revisão independente `review_sec005` aprovada sem findings (620 pytest / 54 Vitest e `check_docs.py` verdes).
+- Marcado `done` no `BACKLOG.md` e commit local `V2-SEC-005` em `dev`.

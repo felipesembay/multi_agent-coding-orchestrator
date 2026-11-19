@@ -19,7 +19,7 @@ from orchestrator.providers.runtimes.antigravity import AntigravityRuntime
 from orchestrator.providers.runtimes.claude_code import ClaudeCodeRuntime
 from orchestrator.providers.runtimes.codex_cli import CodexCliRuntime
 
-AGY_OK = json.dumps({"status": "SUCCESS", "response": "ok"})
+AGY_OK = json.dumps({"status": "SUCCESS", "response": '{"approved": true, "findings": []}'})
 
 
 @pytest.mark.parametrize(
@@ -85,7 +85,7 @@ def test_antigravity_role_argv_matrix(role: str, permission: str, expected_argv:
     res = runtime.invoke(
         InvocationRequest(role=role, prompt="prompt", cwd="/tmp/wt", model="m1", permission=permission)
     )
-    assert res.text == "ok"
+    assert res.text == '{"approved": true, "findings": []}'
     assert runner.call_count == 1
     assert runner.call_args.args[0] == expected_argv
 

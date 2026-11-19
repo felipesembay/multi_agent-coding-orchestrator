@@ -48,7 +48,7 @@ Fonte única de status das tarefas. Atualize a linha da tarefa ao iniciar (`doin
 | V2-WF-009 | Editor de workflow em lista (MVP) | done | P1 | M | WF-008 | FE | Criar, validar, salvar versão, clonar preset | 534 pytest/54 Vitest;11 E2E,2 skipped; build/lint/docs; revisão review_wf009 aprovada; commit V2-WF-009 em dev |
 | V2-WF-010 | Fallbacks configuráveis por etapa | done | P1 | M | WF-003, CORE-002 | BE | CA5: fallback/uso por tentativa persistidos em events; tabela OBS-001 futura | 561 pytest/54 Vitest;27 novos fallback+1 dashboard;11e2e/2skip;build/lint/docs;review_wf010 aprovada;commit V2-WF-010 dev |
 | V2-PROV-001 | OpenRouter `ModelProvider` básico (plan/review) + chave no keyring | todo | P1 | M | CORE-003, SEC-005 | BE | CA4 de PROVIDER_SYSTEM | HTTP mock (200/401/402/429/5xx) |
-| V2-SEC-005 | Credential store com `keyring` | todo | P1 | M | F0-002 | SEC | Chave salva/lida/removida; nunca no SQLite | Teste com backend de keyring em memória |
+| V2-SEC-005 | Credential store com `keyring` | done | P1 | M | F0-002 | SEC | Chave salva/lida/removida; nunca no SQLite | `orchestrator/secrets/store.py` + `InMemoryKeyringBackend`; 6 novos em `test_credential_store.py` (620 pytest / 54 vitest); revisão review_sec005 aprovada (2026-11-19) |
 
 ## F3 — Observabilidade
 

@@ -13,6 +13,11 @@ O operador solicitou um documento geral para continuar o desenvolvimento com out
 
 **Comandos:** `git status/log`; `source .venv/bin/activate`; `ORCH_DB="$(mktemp -d)/events.db" python -m pytest -q -p no:cacheprovider`; `npm --prefix frontend test/build/lint`; `python scripts/check_docs.py`; `git diff --check`.
 
+## V2-SEC-005 concluída
+
+- `orchestrator/secrets/store.py` gerencia chaves via `keyring` (com `InMemoryKeyringBackend` para testes e recusa de backends `fail`/`null`).
+- `provider_configs.credential_ref` guarda apenas a referência lógica (`multi-agent-orchestrator:<adapter>:<config_id>`); varredura binária do SQLite comprova ausência do segredo em disco.
+
 ## V2-OBS-001 concluída
 
 - Migração 5 (`ACCOUNTING_MIGRATION`) entregue em `project_store.py`.
