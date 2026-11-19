@@ -55,7 +55,7 @@ def test_builtins_only_and_no_discovery_without_opt_in(discovery):
         assert Capability.USAGE_METRICS not in row.manifest.capabilities
         assert Capability.STRUCTURED_OUTPUT not in row.manifest.capabilities
     assert catalog.get('codex_cli').manifest.permission_modes == ['read_only']
-    assert catalog.get('claude_code').manifest.permission_modes == ['workspace_write']
+    assert catalog.get('claude_code').manifest.permission_modes == ['read_only', 'workspace_write']
     assert Capability.CODE_EDIT not in catalog.get('codex_cli').manifest.capabilities
     with pytest.raises(KeyError):
         catalog.get('not_installed')

@@ -155,10 +155,14 @@ def _record_agent_call(call: AgentCall):
         event(context[0], 'agent_call', call.model_dump(exclude={'usage': {'raw'}}))
 
 
-def claude(prompt: str, cwd: str, timeout: int = 600) -> str:
+def claude(prompt: str, cwd: str, timeout: int = 600,
+           permission: str = 'workspace_write') -> str:
     return ClaudeCodeRuntime(run_command, observer=_record_agent_call).invoke(_request(
-        prompt=prompt, cwd=cwd, timeout_s=timeout, permission='workspace_write',
+        prompt=prompt, cwd=cwd, timeout_s=timeout, permission=permission,
     )).text
+
+
+_DEFAULT_CLAUDE = claude
 
 
 def codex(prompt: str, cwd: str, timeout: int = 600) -> str:
@@ -192,7 +196,17 @@ def coding_agent(prompt: str, cwd: str, role: str, state: State | None = None) -
 def _invoke_binding(binding, prompt, cwd, role, timeout):
     # Preserve the legacy facade patch points and their exact call arguments.
     if binding.adapter == 'claude_code':
-        return claude(prompt, cwd, timeout)
+        context = _agent_context.get()
+        token = _agent_context.set((context[0] if context else None, role))
+        try:
+            if binding.permission == 'read_only':
+                if claude is _DEFAULT_CLAUDE:
+                    return ClaudeCodeRuntime(run_command, observer=_record_agent_call).invoke(_request(
+                        prompt=prompt, cwd=cwd, timeout_s=timeout, permission='read_only',
+                    )).text
+            return claude(prompt, cwd, timeout)
+        finally:
+            _agent_context.reset(token)
     if binding.adapter == 'codex_cli':
         return codex(prompt, cwd, timeout)
     if binding.adapter == 'antigravity':

@@ -570,3 +570,13 @@
 ### V2-DIST-002 — fim / revisão aprovada
 - Entregue job `frontend` em `.github/workflows/tests.yml` (Ubuntu 24.04, Node 22, cache npm, `ci`, `lint`, `build`, `test`) e teste `test_ci_workflow_defines_python_312_and_frontend_checks` em `tests/test_python_checkpoint_compat.py`.
 - Testes: **564 pytest / 54 Vitest**, build/lint/docs/diff verdes; revisão independente `review_dist002` aprovada sem findings. Commit local `V2-DIST-002` em `dev`.
+
+## 2026-11-19 — Antigravity — V2-SEC-003 início e implementação
+- Planejado `V2-SEC-003`: Planner Claude em modo somente leitura (`--permission-mode plan`), testes de `argv` e extração de JSON.
+- Atualizado `ClaudeCodeRuntime` para aceitar `read_only` (`--permission-mode plan`) e `workspace_write` (`--permission-mode acceptEdits`); `bindings.py` agora atribui e exige `read_only` para `planner` inclusive com `claude_code`. Patch point `core.claude` preservado.
+- Criado `tests/security/test_planner_readonly.py` (3 novos testes) e ajustados asserts de caracterização do planner Claude de `acceptEdits` para `plan`.
+- Suíte completa: **567 pytest / 54 Vitest**, build/lint/docs verdes. Submetido à revisão independente e mantido em `review (Antigravity)` conforme protocolo (revisão humana / 1 validação real pendente).
+
+### V2-SEC-003 — fim / revisão independente aprovada
+- Revisão independente `review_sec003` aprovada sem findings (102 testes focados de segurança/providers/fallback e `check_docs.py` verdes).
+- Mantido status `review (Antigravity)` no `BACKLOG.md` conforme `ANTIGRAVITY_HANDOFF.md` §7 e `SECURITY_GOVERNANCE.md` §15 para revisão humana / validação real. Commit local `V2-SEC-003` em `dev`.

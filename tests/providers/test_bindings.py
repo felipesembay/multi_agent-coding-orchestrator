@@ -20,7 +20,8 @@ def test_legacy_defaults_and_explicit_models_are_resolved():
     config = bindings.legacy_bindings({})
     assert config.planner.adapter == config.implementer.adapter == 'claude_code'
     assert config.reviewer.adapter == 'codex_cli'
-    assert config.planner.permission == 'workspace_write'
+    assert config.planner.permission == 'read_only'
+    assert config.implementer.permission == 'workspace_write'
     assert config.reviewer.permission == 'read_only'
     assert config.agent_timeout == 900
     assert config.planner_fallback.model == 'gemini-4-argon-medium'

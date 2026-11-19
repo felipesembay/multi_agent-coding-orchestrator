@@ -13,6 +13,13 @@ O operador solicitou um documento geral para continuar o desenvolvimento com out
 
 **Comandos:** `git status/log`; `source .venv/bin/activate`; `ORCH_DB="$(mktemp -d)/events.db" python -m pytest -q -p no:cacheprovider`; `npm --prefix frontend test/build/lint`; `python scripts/check_docs.py`; `git diff --check`.
 
+## V2-SEC-003 implementada (em `review`)
+
+- `ClaudeCodeRuntime` mapeia `read_only` → `--permission-mode plan` e `workspace_write` → `--permission-mode acceptEdits`.
+- `bindings.py` remove a exceção que permitia `planner` com `workspace_write` no Claude; todo planner agora roda com `read_only`.
+- Testes em `tests/security/test_planner_readonly.py` validam `argv`, recusa de `workspace_write` no planner e extração de plano JSON.
+- Mantida em `review (Antigravity)` conforme [ANTIGRAVITY_HANDOFF](ANTIGRAVITY_HANDOFF.md) §7 e [SECURITY_GOVERNANCE](../specifications/SECURITY_GOVERNANCE.md) §15 até validação real/revisão humana pelo operador.
+
 ## V2-DIST-002 concluída
 
 - `.github/workflows/tests.yml` agora executa tanto o job Python (`test`, Python 3.12) quanto o job `frontend` (Node 22, `npm --prefix frontend ci`, `lint`, `build`, `test`).

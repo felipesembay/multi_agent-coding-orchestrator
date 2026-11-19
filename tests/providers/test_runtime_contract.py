@@ -11,6 +11,7 @@ from orchestrator.providers.runtimes.codex_cli import CodexCliRuntime
 
 
 @pytest.mark.parametrize('runtime,permission,output', [
+    (ClaudeCodeRuntime, 'read_only', 'text'),
     (ClaudeCodeRuntime, 'workspace_write', 'text'),
     (CodexCliRuntime, 'read_only', 'text'),
     (AntigravityRuntime, 'read_only', '{"status":"SUCCESS","response":"text"}'),
@@ -28,7 +29,6 @@ def test_runtime_injects_runner_and_passes_explicit_environment(runtime, permiss
 
 
 @pytest.mark.parametrize('runtime,permission', [
-    (ClaudeCodeRuntime, 'read_only'),
     (CodexCliRuntime, 'workspace_write'),
 ])
 def test_legacy_runtime_rejects_unimplemented_permission(runtime, permission):

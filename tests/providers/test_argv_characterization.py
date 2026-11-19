@@ -41,15 +41,15 @@ def assert_process(call, argv, timeout):
                           timeout=timeout, check=False, pass_fds=())
 
 
-@pytest.mark.parametrize('role', ['planner', 'implementer'])
+@pytest.mark.parametrize('role,mode', [('planner', 'plan'), ('implementer', 'acceptEdits')])
 @pytest.mark.parametrize('timeout', [None, '123'])
-def test_claude_roles(process, monkeypatch, role, timeout):
+def test_claude_roles(process, monkeypatch, role, mode, timeout):
     if timeout:
         monkeypatch.setenv('AGENT_TIMEOUT', timeout)
     assert core.coding_agent(PROMPT, CWD, role) == 'output'
     assert process.call_count == 1
     assert_process(process.call_args,
-                   ['claude', '-p', '--permission-mode', 'acceptEdits', PROMPT],
+                   ['claude', '-p', '--permission-mode', mode, PROMPT],
                    int(timeout or '900'))
 
 
@@ -109,7 +109,7 @@ def test_planner_quota_fallback(process, monkeypatch):
     assert core.coding_agent(PROMPT, CWD, 'planner') == AGY_TEXT
     assert len(process.call_args_list) == 2
     assert_process(process.call_args_list[0],
-                   ['claude', '-p', '--permission-mode', 'acceptEdits', PROMPT], 234)
+                   ['claude', '-p', '--permission-mode', 'plan', PROMPT], 234)
     assert_process(process.call_args_list[1],
                    ['agy', '--print', PROMPT, '--model', 'fallback-model',
                     '--mode', 'plan', '--output-format', 'json'], 234)

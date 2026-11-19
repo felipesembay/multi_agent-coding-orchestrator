@@ -53,7 +53,7 @@ def legacy_agent_settings(environ: Optional[Mapping[str, str]] = None):
 
 def _legacy_binding(provider, role, model=None):
     adapter = ALIASES.get(provider, provider)
-    permission = 'workspace_write' if role == 'implementer' or (role == 'planner' and adapter == 'claude_code') else 'read_only'
+    permission = 'workspace_write' if role == 'implementer' else 'read_only'
     return RoleBinding(adapter=adapter, model=model if adapter == 'antigravity' else None, permission=permission)
 
 
@@ -131,8 +131,7 @@ def validate_bindings(config: AgentBindings, registry):
         if required == Capability.CODE_EDIT and not manifest.verified and not legacy_edit:
             raise ValueError('New code_edit runtimes must be verified')
         if role in ('planner', 'planner_fallback', 'reviewer') and binding.permission != 'read_only':
-            if not (role == 'planner' and binding.adapter == 'claude_code' and binding.permission == 'workspace_write'):
-                raise ValueError(f'{role} requires read_only permission')
+            raise ValueError(f'{role} requires read_only permission')
         if role == 'implementer' and binding.permission != 'workspace_write':
             raise ValueError('implementer requires workspace_write permission')
         if binding.adapter in ('claude_code', 'codex_cli') and binding.model is not None:
