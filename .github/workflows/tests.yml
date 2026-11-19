@@ -4,13 +4,12 @@ on: [push, pull_request]
 
 jobs:
   test:
-    # Keep Python 3.9 reproducible until the Python 3.12 migration (V2-F0-005).
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
+          python-version: "3.12"
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip

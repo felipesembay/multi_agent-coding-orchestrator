@@ -54,9 +54,9 @@ Tarefas sem dependência que podem começar em paralelo a qualquer momento após
 
 | Dependência | Uso | Estado | Risco |
 |---|---|---|---|
-| Python 3.9 (atual) → 3.12 (alvo autorizado Q3) | Backend, empacotamento | 3.9.7 ainda instalado; migração em F0-005 | Compatibilidade de libs/CI/checkpoint a validar no alvo |
-| LangGraph 0.6.11 (`<2` em requirements) | Engine | Instalado | Migração para 1.x pode exigir ajustes |
-| `langgraph-checkpoint-sqlite` | Checkpoints | Não instalado | Compatibilidade a verificar |
+| Python 3.9 → 3.12 (alvo autorizado Q3) | Backend, empacotamento | Python 3.12.3 ativo em `.venv` e CI (`V2-F0-005`) | Compatibilidade validada com 563 testes pytest |
+| LangGraph 1.2.22 (`>=0.2,<2` em requirements) | Engine | Instalado | Validado em Python 3.12 |
+| `langgraph-checkpoint-sqlite` (`>=2,<4`) | Checkpoints | Instalado (3.1.3) | Importação e round-trip `SqliteSaver` validados em `V2-F0-005`; integração do motor em `V2-RES-002` |
 | `keyring` + libsecret/Secret Service | Credenciais | Não instalado | Sem D-Bus em headless |
 | Tauri 2 CLI + `libwebkit2gtk-4.1-dev` | Desktop | Rust presente; Tauri ausente | WebKitGTK |
 | PyInstaller (ou alternativa) | Sidecar | Não instalado | Tamanho/tempo de start |

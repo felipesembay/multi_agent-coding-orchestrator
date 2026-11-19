@@ -1,14 +1,15 @@
 # Estado atual
 
-Atualizado: 2026-11-18 · Por: Codex (V2-WF-010)
+Atualizado: 2026-11-18 · Por: Antigravity (V2-F0-005)
 
 ## Repositório
-- Branch `dev`; commits testados/revisados autorizados pelo operador. Sem merge/deploy/main/master. Push solicitado pelo operador em 2026-11-18 concluído até 7431745 em origin/dev; sem force/main/master. Commits WF-007 e CI-DIST-004 continuam locais; WF-008 (58051a2), WF-009 (1d05736) e WF-010 também ficam locais; nenhum novo push solicitado. Sem novo push solicitado.
+- Branch `dev`; commits testados/revisados autorizados pelo operador. Sem merge/deploy/main/master. Push solicitado pelo operador em 2026-11-18 concluído até 7431745 em origin/dev; sem force/main/master. Commits WF-007 (6f1c167), CI-DIST-004 (feb4caf), WF-008 (58051a2), WF-009 (1d05736), WF-010 (2986229) e F0-005 ficam locais; nenhum novo push solicitado.
 - Baseline `f8e6949`; CORE-001..004 em `87a034f`, `56e44d2`, `6737c2f`, `db12642`. Histórico remoto dev atualizado até 7431745 nesta sessão.
-- SEC-001 `8d94e7d`, SEC-002 `065d9ed`, SEC-006 `7ac3634`, WF-001 `caee20e`, WF-002 `fc93cd1` locais. WF-003 `1474f4b`. Registro parcial F0-002 em `588c6db`. WF-004 em `7431745` (já em origin/dev). WF-007 em `6f1c167`, CI-DIST-004 em `feb4caf`. WF-008 no commit `V2-WF-008: expose workflow APIs and execution selection`; consultar git log para hash final.
+- SEC-001 `8d94e7d`, SEC-002 `065d9ed`, SEC-006 `7ac3634`, WF-001 `caee20e`, WF-002 `fc93cd1` locais. WF-003 `1474f4b`. Registro parcial F0-002 em `588c6db`. WF-004 em `7431745` (já em origin/dev). WF-007 em `6f1c167`, CI-DIST-004 em `feb4caf`, WF-008 em `58051a2`, WF-009 em `1d05736`, WF-010 em `2986229`.
 - WIP original de tema/exclusão/migração v3 preservado no baseline. Nenhum WIP externo identificado.
 
 ## Implementado
+- **F0-005 concluída:** ambiente `.venv` migrado para Python 3.12.3 (auto-contido no workspace, removendo symlink externo de Python 3.9.7), `langgraph-checkpoint-sqlite>=2,<4` adicionado a `requirements.txt`, CI `.github/workflows/tests.yml` atualizado para Python 3.12 em `ubuntu-24.04` e novo teste `tests/test_python_checkpoint_compat.py` validando runtime `>=3.12` e round-trip persistente de `SqliteSaver` com `StateGraph`. Evidência: **563 pytest / 54 Vitest**, build/lint/docs verdes, zero warnings do LangGraph em Python 3.12; revisão independente `review_f0005` aprovada. Retomada gerenciada não foi adiantada (permanece em `V2-RES-002`/`003`).
 - **WF-010 concluída:** fallbacks ordenados com erro tipado/no-effects, candidatos congelados/validados, limites cumulativos, IDs de chamadas e uso persistido no event store; sem migração OBS-001 antecipada. Guia geral Antigravity criado.561 pytest/54 Vitest,11E2E/2skip,build/lint/docs verdes; revisão review_wf010 aprovada; commit local dev, sem push.
 - **WF-009 concluída:** editor `/workflows`, etapas opcionais/reordenação/limites, cópias e histórico de versões imutáveis, validação estrutural ao vivo sem bindings. URL fixa versão-base e refresh com falha preserva rascunhos; primeiro teste sincroniza política. Evidência:534 pytest/54 Vitest,11 E2E/2 opt-ins skipped, build/lint/docs verdes; revisão independente review_wf009 aprovada. Commit local autorizado em dev; sem push.
 - v1 preservada: worker separado, fila SQLite, worktrees/locks, idempotência e contratos legados. DOC-001 verificador de documentação concluído.
@@ -63,10 +64,10 @@ Atualizado: 2026-11-18 · Por: Codex (V2-WF-010)
 - Licença específica, assinatura, valor de orçamento, identidade final e revisão integral dos ADRs continuam pendentes nos seus respectivos escopos.
 
 ## Ambiente
-Python 3.9.7 (.venv), LangGraph 0.6.11, Node 22.18.0, Git 2.43.0. Sem dependências novas ou alterações em credenciais.
+Python 3.12.3 (.venv), LangGraph 1.2.22, langgraph-checkpoint-sqlite 3.1.3, Node 22.18.0, Git 2.43.0. Sem alterações em credenciais.
 
 ## CI e versão de Python
-O email remoto não descrevia testes vermelhos: o setup não encontrou3.9 para26.04. Imagem compatível22.04 fixada em commit separado; migração3.12 continua em F0-005, já autorizada. CI remoto só poderá ser declarado verde após push/execução dos commits novos.
+O email remoto anterior descrevia falha de setup do Python 3.9 em `ubuntu-latest` (26.04), corrigida em `V2-DIST-004` (`feb4caf`). Com `V2-F0-005`, o workflow `.github/workflows/tests.yml` passa a usar `ubuntu-24.04` e `python-version: "3.12"`, alinhado ao ambiente local validado. CI remoto só poderá ser declarado verde após push/execução autorizados dos commits novos.
 
 ## Marco WF-009 — início
 HEAD58051a2 jácommitado e árvore limpa, dev ahead3. Editor de definições versionadas, binding/modelos permanecem por run na confirmação conformeADR0005; sem persistir campos que seriam descartados. Validação estrutural sem providers para salvar rascunhos, snapshots e readonly preservados. Baseline532pytest/44vitest verdes.
@@ -112,3 +113,10 @@ Cadeia de alternativas tipadas no envelope, snapshots incluem todos os candidato
 | Documentação | check_docs e diff limpos; guia Antigravity revisado |
 
 Próxima recomendada F0-005 (Python3.12/SqliteSaver), alternativa de continuidade sem quota DIST-002/SEC-005; sequência completa no guia. Backlog:19 done/43 todo/1 blocked. WIP da tarefa incluído no commit local V2-WF-010; nenhum push/merge/deploy.
+
+## Marco V2-F0-005 — implementação e validação em Python 3.12
+- `.venv` migrado para Python 3.12.3 local ao workspace (eliminando o symlink antigo que apontava para Python 3.9.7 fora da raiz do repositório).
+- `langgraph-checkpoint-sqlite>=2,<4` adicionado a `requirements.txt` (instalado `3.1.3` com `langgraph 1.2.22`).
+- `.github/workflows/tests.yml` atualizado para `ubuntu-24.04` com `python-version: "3.12"`.
+- Novo teste `tests/test_python_checkpoint_compat.py` verifica versão `sys.version_info >= (3, 12)` e round-trip persistente em SQLite com `SqliteSaver` e `StateGraph`.
+- Resultado: **563 pytest passed** (22,53s, zero warnings), **54 Vitest passed**, `build`, `lint`, `check_docs.py` e `git diff --check` verdes. Revisão independente `review_f0005` aprovada sem findings. Backlog: **20 done / 42 todo / 1 blocked**. Nenhum agente CLI real acionado.

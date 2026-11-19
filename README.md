@@ -151,7 +151,7 @@ A API pode ser reiniciada sem encerrar o worker. O worker precisa ser iniciado s
 | Requisito | Observação |
 | --- | --- |
 | Linux | A supervisão utiliza `/proc`, grupos de processos e locks de arquivo; criação controlada de projetos também utiliza recursos Linux |
-| Python 3.9+ | Ambiente local validado com Python 3.9; dependências em `requirements.txt` |
+| Python 3.12+ | Ambiente local validado com Python 3.12; dependências em `requirements.txt` |
 | Node.js | Linha 22 a partir de 22.13 ou linha 24; ambiente local validado com Node 22.18, compatível com as ferramentas atuais de build e testes |
 | npm | Instalação reproduzível pelo `frontend/package-lock.json` |
 | Git | Necessário para registrar repositórios, criar worktrees e preparar o código para revisão |

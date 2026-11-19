@@ -53,13 +53,14 @@ Não é necessário ler toda a pasta `docs/`. Leia apenas a especificação da �
 - `V2-DIST-004` corrige CI localmente: Python3.9 indisponível no ubuntu-latest26.04 antes dos testes; imagem22.04 fixada. Actions remoto aguarda push/run; Python3.12 fica em F0-005.
 - `V2-WF-009` concluída: editor em lista, validação ao vivo, cópias e versões imutáveis; bindings continuam por run.
 - `V2-WF-010` concluída: alternativas ordenadas por erro tipado seguro, snapshots de todos os candidatos e registros de uso no event store por chamada; tabela/contabilidade completa OBS-001 futura.
-- Validação final WF-010: **561 pytest /54 vitest**, build/lint/docs verdes; revisão independente aprovada (2026-11-18). E2E:11 passed/2 skipped com mocks em QA isolado, serviços encerrados. Nenhum CLI de agente real.
+- `V2-F0-005` concluída: migração para Python 3.12.3 validada localmente, `langgraph-checkpoint-sqlite` (`SqliteSaver`) testado com round-trip em `StateGraph`, CI atualizado para Python 3.12 em `ubuntu-24.04`.
+- Validação atual: **563 pytest / 54 vitest**, build/lint/docs verdes. Nenhum CLI de agente real acionado.
 
 ## 5. Próxima tarefa
 
-1. **`V2-F0-005`** — validar Python3.12 e compatibilidade SqliteSaver/CI, alvo já autorizado. Continuidade sugerida no [guia Antigravity](../handoff/ANTIGRAVITY_HANDOFF.md), uma tarefa por vez; WF-010 concluída e revisada; tabela de contabilidade continua OBS-001.
-2. **`V2-F0-002`** — decisões Q2–Q12 registradas em [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md), Q7 adiada; revisão integral dos ADRs ainda pendente. Alvo Python3.12 e quota limitada dos spikes autorizados; não reabrir bloqueios de perguntas respondidas.
-3. Depois: SEC-003/004, WF-005/006, OBS-001 e demais tarefas liberadas, uma por vez. SEC-003 tem validação real autorizada no escopo de Q10; SEC-004 também tem revisão humana obrigatória conforme especificação.
+1. **`V2-SEC-003` / `V2-SEC-004`** — Planner Claude somente leitura (`--permission-mode plan`) e matriz de permissões por papel em `argv`, ou alternativas sem quota real (`V2-DIST-002`, `V2-SEC-005`, `V2-OBS-001`), conforme [guia Antigravity](../handoff/ANTIGRAVITY_HANDOFF.md), uma tarefa por vez.
+2. **`V2-F0-002`** — decisões Q2–Q12 registradas em [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md), Q7 adiada; revisão integral dos ADRs ainda pendente.
+3. Depois: WF-005/006, OBS-001, RES-001/002 e demais tarefas liberadas, uma por vez.
 
 Detalhes e comandos: [NEXT_STEPS.md](../handoff/NEXT_STEPS.md).
 

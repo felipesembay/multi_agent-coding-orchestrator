@@ -4,15 +4,22 @@
 
 O operador solicitou um documento geral para continuar o desenvolvimento com outro agente: [ANTIGRAVITY_HANDOFF](ANTIGRAVITY_HANDOFF.md). Contém contexto, decisões, invariantes, mapa de código, testes e prompt pronto para colar. Nenhuma tarefa nova foi iniciada automaticamente.
 
-## Próxima tarefa recomendada: V2-F0-005 — Python3.12 e compatibilidade de checkpoints
+## Próxima tarefa recomendada: V2-SEC-003 (ou V2-SEC-004 / V2-DIST-002 sem quota real)
 
-**Objetivo:** validar ambiente Python3.12 e langgraph-checkpoint-sqlite/SqliteSaver; atualizar CI e documentação conforme compatibilidade comprovada. Q3 já autoriza o alvo, não pedir nova decisão sobre a versão. Preservar ambiente atual até validar substituto e não confundir alvo aprovado com migração já entregue.
+**Objetivo:** Com `V2-F0-005` concluída (Python 3.12.3 + `SqliteSaver` + CI 3.12), a sequência recomendada em [ANTIGRAVITY_HANDOFF](ANTIGRAVITY_HANDOFF.md) segue para:
+- **`V2-SEC-003`** — Planner Claude em modo somente leitura (`--permission-mode plan`), com testes de `argv` e extração de JSON (observando que o critério de aceite exige 1 validação real autorizada sob Q10; se realizada sem chamada real por preservação de quota, manter em `review`/`blocked` conforme protocolo).
+- **`V2-SEC-004`** — Matriz de permissões por papel aplicada em `argv` nos adapters (`CA3` de `SECURITY_GOVERNANCE`), com revisão humana obrigatória conforme especificação.
+- **Alternativas 100% sem quota/agentes reais:** **`V2-DIST-002`** (CI do frontend: lint, build, vitest), **`V2-SEC-005`** (Credential store com `keyring` e backend em memória nos testes) ou **`V2-OBS-001`** (Migração 5 + gravação de `usage_records`).
 
-**Aceite:** import/round-trip mínimo do checkpoint no ambiente alvo, suites Python/frontend e CI coerentes com runtime suportado. Não implementar retomada gerenciada, que depende de RES. Não alterar dependências sem verificar seu impacto; não declarar Actions verde sem run remoto autorizado.
+**Comandos:** `git status/log`; `source .venv/bin/activate`; `ORCH_DB="$(mktemp -d)/events.db" python -m pytest -q -p no:cacheprovider`; `npm --prefix frontend test/build/lint`; `python scripts/check_docs.py`; `git diff --check`.
 
-**Alternativas / sequência:** SEC-003, SEC-004, WF-005, WF-006 e OBS-001 conforme guia Antigravity, uma por vez. Para trabalhar sem quota de agentes reais, considerar DIST-002 ou SEC-005 com mocks e revisão pertinente; segurança exige evidência e revisão humana conforme especificação. F0-002 formal/ADRs permanece parcial, sem reabrir perguntas já respondidas.
+## V2-F0-005 concluída
 
-**Comandos:** git status/log; source .venv/bin/activate; ORCH_DB="$(mktemp -d)/events.db" python -m pytest -q -p no:cacheprovider; npm --prefix frontend test/build/lint; python scripts/check_docs.py; git diff --check. Consultar novo ambiente-alvo ao migrar. Revisão/handoff/commit dev após verdes; sem push/merge/deploy automático.
+- Ambiente `.venv` atualizado para **Python 3.12.3** dentro do workspace (validado previamente em venv temporário antes da substituição).
+- `langgraph-checkpoint-sqlite>=2,<4` adicionado ao `requirements.txt` e testado com `SqliteSaver` em round-trip de `StateGraph` (`tests/test_python_checkpoint_compat.py`).
+- CI `.github/workflows/tests.yml` atualizado para `ubuntu-24.04` e `python-version: "3.12"`.
+- Documentação sincronizada (`README.md`, `OPEN_QUESTIONS.md`, `DEPENDENCIES.md`, `PERSISTENCE.md`, `ADR-0001`, `ADR-0007`, `IMPLEMENTATION_PLAN.md`, `ANTIGRAVITY_HANDOFF.md`).
+- Evidência: **563 pytest / 54 Vitest**, build/lint/docs verdes. Retomada gerenciada não foi antecipada (permanece em `V2-RES-002`/`003`).
 
 ## WF-010 concluída
 

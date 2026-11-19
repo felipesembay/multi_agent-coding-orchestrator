@@ -81,7 +81,7 @@ checkpoint (automático LangGraph após o nó)
 - Escritas de uso/evento dentro da mesma transação de `ledger.complete`.
 
 ### 6.5 Compatibilidade Python
-`langgraph-checkpoint-sqlite` — verificar versão compatível com LangGraph 0.6.11 e Python 3.9 (hipótese: versões novas exigem 3.10+). Resultado define se F4 depende de `V2-F0-005` (upgrade Python).
+`langgraph-checkpoint-sqlite` — compatibilidade de `SqliteSaver` verificada e testada com Python 3.12 e LangGraph em `V2-F0-005` (`tests/test_python_checkpoint_compat.py`), desbloqueando `V2-RES-002`.
 
 ## 7. Componentes afetados
 `core.py`/compilador, `execution_runner.py`, `worker.py` (reconcile + redispatch), `execution_manager.py`, `api.py`, frontend Details.

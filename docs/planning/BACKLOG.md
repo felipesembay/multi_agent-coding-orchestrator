@@ -16,7 +16,7 @@ Fonte única de status das tarefas. Atualize a linha da tarefa ao iniciar (`doin
 | V2-F0-002 | Revisar ADRs 0001–0010 e responder OPEN_QUESTIONS | blocked | P0 | S | F0-000 | HUM | Cada ADR com status `aceito` ou `rejeitado`; Q1–Q12 respondidas ou adiadas com data | 2026-11-18: Q2–Q12 registradas (Q7 adiada); aceitação/rejeição integral dos ADRs ainda pendente. Revisão documental review_decisions_f0002 aprovada; perguntas respondidas não bloqueiam suas tarefas específicas. |
 | V2-F0-003 | Spike de telemetria dos CLIs (Claude, Codex, agy) | todo | P0 | M | F0-002 | BE | Documento `docs/specifications/telemetry/*.md` com formato real por versão; fixtures redigidas | Exige autorização para consumir quota |
 | V2-F0-004 | Spike Tauri 2 + WebKitGTK + sidecar Python | todo | P1 | M | F0-002 | RS | Protótipo descartável fora de `master` cumprindo validação do ADR-0002 | Relatório no ADR-0002 |
-| V2-F0-005 | Decidir versão de Python e verificar compat `langgraph-checkpoint-sqlite` | todo | P0 | S | F0-002 | HUM/BE | Versão-alvo registrada; CI atualizado se mudar | Teste importando SqliteSaver no ambiente alvo |
+| V2-F0-005 | Decidir versão de Python e verificar compat `langgraph-checkpoint-sqlite` | done | P0 | S | F0-002 | HUM/BE | Versão-alvo registrada; CI atualizado se mudar | Python 3.12.3 + SqliteSaver round-trip (2 novos; 563 pytest / 54 vitest); CI 3.12 em ubuntu-24.04; revisão review_f0005 aprovada (2026-11-18) |
 
 ## F1 — Núcleo extensível + baseline de segurança
 

@@ -19,7 +19,7 @@ Runs gerenciados interrompidos não podem ser retomados. Chamadas de agente modi
 | Replay de eventos (como `resume` legado) | Já existe para CLI; frágil para grafos configuráveis |
 
 ## Consequências
-Operador autorizou Python 3.12 em 2026-11-18 (Q3); verificar `langgraph-checkpoint-sqlite` com o alvo e LangGraph atual em V2-F0-005 antes de RES-002. Ambiente atual ainda Python 3.9.7.
+Operador autorizou Python 3.12 em 2026-11-18 (Q3); compatibilidade de `langgraph-checkpoint-sqlite` (`SqliteSaver`) com Python 3.12 e LangGraph validada em V2-F0-005. Integração do checkpointer ao motor permanece em V2-RES-002.
 
 ## Decisão específica Q11 — 2026-11-18
 
