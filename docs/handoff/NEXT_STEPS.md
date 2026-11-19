@@ -40,18 +40,18 @@ O operador solicitou um documento geral para continuar o desenvolvimento com out
 - Verificado em `codex exec --help` (v0.166.0) que os únicos modos de `--sandbox` são `read-only`, `workspace-write` e `danger-full-access`.
 - Testes em `tests/workflows/test_codex_executor.py` comprovam `argv` e integração mockada do Preset A (`default-v2`).
 
-## V2-SEC-004 implementada (em `review`)
+## V2-SEC-004 implementada (done)
 
 - `orchestrator/policy/roles.py` impõe a matriz de permissões por papel (`planner`/`reviewer` → `read_only`, `implementer` → `workspace_write`, `documenter` → `read_only`|`workspace_write`) e gera `argv` determinístico para Claude (`--permission-mode plan` ou `--permission-mode acceptEdits --disallowedTools Bash`), Codex (`--sandbox read-only|workspace-write`) e Antigravity (`--mode plan|accept-edits`).
 - Testes em `tests/security/test_role_argv.py` (23 casos) comprovam CA3 de `SECURITY_GOVERNANCE.md`.
-- Mantida em `review (Antigravity)` para revisão humana obrigatória conforme `SECURITY_GOVERNANCE.md` §15.
+- Revisão humana (§15) aprovada pelo operador em 2026-11-19.
 
-## V2-SEC-003 implementada (em `review`)
+## V2-SEC-003 implementada (done)
 
 - `ClaudeCodeRuntime` mapeia `read_only` → `--permission-mode plan` e `workspace_write` → `--permission-mode acceptEdits`.
 - `bindings.py` remove a exceção que permitia `planner` com `workspace_write` no Claude; todo planner agora roda com `read_only`.
 - Testes em `tests/security/test_planner_readonly.py` validam `argv`, recusa de `workspace_write` no planner e extração de plano JSON.
-- Mantida em `review (Antigravity)` conforme [ANTIGRAVITY_HANDOFF](ANTIGRAVITY_HANDOFF.md) §7 e [SECURITY_GOVERNANCE](../specifications/SECURITY_GOVERNANCE.md) §15 até validação real/revisão humana pelo operador.
+- Revisão humana aprovada pelo operador em 2026-11-19; validação real com Claude CLI (Q10) não executada (pendência opcional).
 
 ## V2-DIST-002 concluída
 

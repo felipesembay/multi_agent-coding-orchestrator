@@ -635,3 +635,7 @@
 ### V2-RES-001 — fim / revisão aprovada
 - Revisão independente `review_res001` aprovada sem findings (624 pytest / 54 Vitest e `check_docs.py` verdes).
 - Marcado `done` no `BACKLOG.md` e commit local `V2-RES-001` em `dev`.
+
+## 2026-11-19 — Antigravity — aprovação humana de SEC-003 e SEC-004
+- O operador aprovou explicitamente a revisão humana e autorizou marcar `V2-SEC-003` e `V2-SEC-004` como `done`.
+- [FATO] A validação real do Planner com o Claude CLI (Q10) não foi executada: `claude` não está no PATH do ambiente e nenhum agente real foi chamado. Registrada como pendência opcional no BACKLOG, não como evidência obtida.
