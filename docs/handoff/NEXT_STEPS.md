@@ -8,7 +8,7 @@ O operador solicitou um documento geral para continuar o desenvolvimento com out
 
 1. **V2-PROV-001 concluída** —666 pytest/54 Vitest,11E2E/2skip,build/lint/docs; revisão independente aprovada. Nenhuma chamada real ou chave alterada.
 2. **V2-RES-002 concluída** —675pytest/54Vitest,9novos,build/lint/docs e revisão aprovados. Checkpoint síncrono separado, sem retomada automática. Próxima ativa sugerida SEC-007.
-3. **V2-SEC-007** — auditoria estendida sem segredos, conforme SECURITY §6.6.
+3. **V2-SEC-007 concluída** —700pytest/54Vitest/build/lint/docs; revisão independente aprovada. Contratos de eventos futuros não antecipam decisões/retomada. Próxima OBS-003.
 4. **V2-OBS-003** — catálogo de preços versionado manual/import, preservando custos históricos. OBS-001 concluída.
 
 **SEC-003 permanece em review:** código/mock/revisões aprovados, mas validação real exigida não executada (Claude ausente no ambiente anterior). Não houve dispensa explícita do critério; pendência não é opcional. Nenhum CLI real será chamado nesta sessão. SEC-004 mantém aprovação humana registrada.

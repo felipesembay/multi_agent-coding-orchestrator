@@ -684,3 +684,21 @@
 - review_res002 aprovada:52focados, depois36checkpointer/compiler. Corrigiu defaultasync com durabilitysync e regressão do store falhando após planner que bloqueia implementer. Nenhum bloqueador restante.
 - Arquitetura ADR0007/PERSISTENCE incrementais, sem aceitar ADR formalmente. Persiste dados de workflows estritos; não equivale a retomada gerenciada ou atomicidade distribuída com ledger/eventos. MínimosLangGraph1.2.22/checkpoint4.3.2/sqlite3.1.3 refletem APIs testadas.
 - Pendências RES-003/004: inspeção humana de passo parcial, aprovação e redispatch; legado ainda não checkpointerizado. Próxima SEC-007 (auditoria estendida sem segredo), depois OBS-003. Ler SECURITY §6.6 e auditores existentes; testes de registros/mutações/recusa de payloads sensíveis e aprovação independente. Comandos baseline isolado/FEtest/build/lint/docs/diff, umatarefa porvez, commitsdev autorizados,sem push.
+
+## 2026-11-19 — Codex — V2-SEC-007 início
+- RES-002 commitada0be622d, árvore limpa; baseline imediato675pytest/54Vitest/build/lint/docs. SECURITY§6.6 e auditores atuais lidos. Uma tarefa: contrato estrito para novos eventos de workflow/provider/credential/approval/budget/run, sem dados sensíveis nem implementação antecipada de aprovações/retomada.
+
+### SEC-007 — marco auditoria
+- Teste novo inicialmente vermelho por policy.audit ausente. Implementado contrato de8eventos workflow/version/provider/credentials/approval/budget/run em projects.audit, IDsemvalores, referência de keyring canônica, extras/ações desconhecidas do domínio rejeitados. Legado project/request/execution preservado.
+- Testes novos de registro e tipos/secretos, rollback da mutação na mesma transação, e auditoria de produtores HTTP reais sem nomes/corpos. Primeiro teste usava created_at em vez do campo existente at, corrigido sem alteração de schema. Revisão e fullsuite a seguir.
+
+### SEC-007 — revisão aprovada / suites
+- Fullsuite700passed,22,80s (25novos). review_sec007 aprovou30focados auditoria/credentialstore e difflimpo. Sem bloqueador; tipos futuros explícitos apenas como contratos, não domínios implementados. Frontend/build/lint finais em andamento.
+
+### SEC-007 — fim / revisão aprovada
+- Implementado contrato estrito de8ações em policy/audit.py, ligado ao writer projects.audit; required/opcionais, IDs/tipos, credentialrefcanônica, decisionenum e erro genérico sem ecoar segredos. Produtores existentes herdam validação. Namespaceestendido desconhecido e campos extras recusados. Não altera audit legado deproject/request/execution.
+- Arquivos: policy/audit.py novo, projects.py, tests/security/test_extended_audit.py novo, testeHTTP workflow_api; SECURITY_GOVERNANCE e handoffs/plano/backlog. Sem novos endpoints/migração ou decisões humanas fabricadas.
+- Baseline675pytest/54Vitest. Novoteste vermelho por móduloausente; corrigida premissa do timestampat,sem schema novo.44focadosverdes e final700pytest,22,80s,54Vitest/build/lint/docs/diff verdes.25novos. E2E não repetido, sem UI/execução alterada; últimoPROV00111passed/2skip.
+- review_sec007 aprovada,30focados de auditoria/keyring e difflimpo. Nenhum achado bloqueante. Testes cobrem rollback de mutação SQL e payloads sensíveis/nested. Sem chave real/quotas/CLIsreais/push/merge/deploy.
+- Decisões SECURITY§6.6/ADR0009; não muda status formal de ADRs. Ações futuras approval.decided/budget.override/run.resumed são contratos de audit, não implementam RES003/004/OBS005. Auditoria não é transação atômica com keyringexterno. Atualizações de histórico não foram reescritas.
+- Próxima OBS-003: catálogo manual/import versionado, origem/vigência/preços imutáveis via API e custos históricos preservados. OBS-001 done. Ler TOKEN_ACCOUNTING/DATA_MODEL/ADR0006; implementar uma tarefa com testes de vigência/valores e revisão independente; baseline700/54,build/lint/docs/diff. Commit localdev autorizado; sem push.

@@ -1,6 +1,6 @@
 # Estado atual
 
-Atualizado: 2026-11-19 · Por: Codex (V2-RES-002)
+Atualizado: 2026-11-19 · Por: Codex (V2-SEC-007)
 
 ## Repositório
 - Branch `dev`; commits testados/revisados autorizados pelo operador. Sem merge/deploy/main/master. Push solicitado pelo operador em 2026-11-18 concluído até 7431745 em origin/dev; sem force/main/master. Commits WF-007 (6f1c167), CI-DIST-004 (feb4caf), WF-008 (58051a2), WF-009 (1d05736), WF-010 (2986229), F0-005 (a85d13f), DIST-002 (57bacaf), SEC-003 (db340b4), SEC-004 (0ec638d), WF-005 (dd172fb), WF-006 (6c387d4), OBS-001 (09ce461), SEC-005 (76d37bd) e RES-001 ficam locais; nenhum novo push solicitado.
@@ -201,3 +201,12 @@ Arquivo de checkpoints separado derivado de ORCH_DB, modo0600/WAL e SqliteSaver 
 - Checkpoints de workflows estritos em banco separado derivado de ORCH_DB, privado0600/WAL/FULL, thread_id=run_id, metadata workflow_digest. Serialização restrita, sem pickle/dynamicimports. durability=sync antes do próximo nó. Presença de estado anterior bloqueia início repetido antes de worktree/agentes, sem liberação de retomada gerenciada.
 - Baseline imediato666pytest/54Vitest. Final675pytest,24,41s;54Vitest/build/lint/docs verdes.9novoscheckpointer, incluindo corrupção isolada e falha de gravação que impede implementer. review_res002 aprovada:52focados iniciais,36checkpointer/compiler apóssync. E2E não repetido nesta tarefa sem UI/fluxo legado alterado; último PROV00111passed/2skipped.
 - requirements mínimos LangGraph1.2.22/checkpoint4.3.2/sqlite3.1.3, versões já instaladas. Sem pip/credenciais/quota/chamada real. Commit local RES-002 dev; próxima SEC-007, depois OBS-003. Legado e endpoints de retomada permanecem fora desta entrega.
+
+## Marco SEC-007 — implementação em revisão
+Auditoria de ações estendidas validada por allowlist de campos/tipos/IDs, sem segredo/freetext/nestedpayload; produtores existentes passam pelo mesmo projects.audit. Eventos futuros de aprovação/override/resume têm contrato validado mas nenhum fluxo foi ativado. Testes de registros/rollback/produtores reais HTTP/keyring mockados em andamento. Sem schema novo/credenciais reais/quota.
+
+## SEC-007 concluída
+
+- policy.audit valida metadados dos eventos estendidos antes de projects.audit inserir; IDs/referência canônica/decision enum e nenhuma chave/objeto/freetext extra. Produtores de workflow/versão/provider/credential integrados; contratos futuros approval/budget/resume não ativam fluxos de domínio. Legado project/request/execution preservado.
+- Baseline675pytest/54Vitest; final700pytest,22,80s/54Vitest/build/lint/docs verdes.25novos incluindo integração HTTP sem nomes/corpos e rollback SQL. review_sec007 aprovada com30focados/diff limpo. E2E não repetido:sem UI/execução alterada, último PROV00111passed/2skip.
+- Sem nova migração/endpoints/credenciais/quota/push. Commit local SEC-007 dev autorizado; próxima OBS-003. SEC-003 segue review por evidência real pendente.

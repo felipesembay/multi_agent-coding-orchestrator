@@ -205,3 +205,21 @@ def test_new_version_renames_metadata_without_mutating_previous_version(workflow
     saved = next(row for row in client.get('/workflows').json() if row['id'] == 'wf')
     assert saved['name'] == 'Edited workflow name'
     assert client.get('/workflows/wf/versions').json()[0] == initial
+
+
+def test_existing_mutations_audit_only_safe_identifiers(workflow_client):
+    import json
+    client,case=workflow_client
+    definition={**case[2],'name':'sentinel-display-never-audit'}
+    created=client.post('/workflows',json={'definition':definition})
+    assert created.status_code==201
+    workflow_id=created.json()['id']
+    assert client.post(f'/workflows/{workflow_id}/versions',json={'definition':definition}).status_code==201
+    configured=client.post('/provider-configs',json={'adapter':'fake','display_name':'sentinel-display-never-audit'})
+    assert configured.status_code==201
+    with connection() as conn:
+        rows=conn.execute("SELECT action,details FROM platform_audit WHERE action LIKE 'workflow.%' OR action='provider.configured'").fetchall()
+        assert any(row['action']=='workflow.created' for row in rows)
+        assert any(row['action']=='workflow.version_created' for row in rows)
+        assert any(row['action']=='provider.configured' for row in rows)
+        assert 'sentinel-display-never-audit' not in json.dumps([dict(row) for row in rows])

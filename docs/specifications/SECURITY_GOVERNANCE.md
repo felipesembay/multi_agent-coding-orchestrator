@@ -145,3 +145,11 @@ P0: SEC-001, 002, 003, 006 · P1: SEC-004, 005, 007 · P3: SEC-008.
 
 ## 15. Perfil recomendado
 Engenheiro de segurança/back-end; revisão humana obrigatória para SEC-003 e SEC-004 (mudam comportamento).
+
+## Implementação incremental SEC-007 — 2026-11-19
+
+projects.audit valida ações de workflow.created/version_created, provider.configured, credential.set/removed, approval.decided, budget.override e run.resumed por contrato de campos obrigatório/opcionais e tipos/IDs. Nomes, prompts, settings, valores de chave, texto livre e objetos aninhados não são aceitos nesses eventos. Referência de credencial, quando presente, deve ser canônica para adapter/config; não é valor da chave. Falha retorna erro genérico sem ecoar payload e ocorre antes do INSERT.
+
+Produtores atuais de workflow/versão/provider/credencial passam pelo mesmo writer. A auditoria participa da transação da mutação SQL do chamador; falha reverte essa mutação. Isso não torna o keyring externo parte da transação SQLite. Registros legados project/request/execution preservam contrato existente, inclusive caminhos de catálogo previamente auditados; não houve reescrita/expurgo do histórico.
+
+Eventos futuros exigem vínculos por IDs: approval.decided tem approval_id/decision(approve|reject), opcional kind/actor_id; budget.override tem budget_id/approval_id; run.resumed tem run_id/approval_id e checkpoint_id opcional. Este contrato **não** cria aprovação, override ou retomada. RES-003/004 e OBS-005 devem emitir evento na transação de suas futuras decisões reais; não há endpoint para fabricar decisão por audit. Namespace/ação estendida desconhecida é recusada para evitar bypass por typo.

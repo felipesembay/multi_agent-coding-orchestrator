@@ -155,6 +155,8 @@ def parent_identity(path):
 
 
 def audit(conn, action, project_id=None, **details):
+    from .policy.audit import validate_audit
+    details = validate_audit(action, details)
     conn.execute('INSERT INTO platform_audit(action,project_id,details) VALUES(?,?,?)',
                  (action, project_id, json.dumps(details, ensure_ascii=False)))
 

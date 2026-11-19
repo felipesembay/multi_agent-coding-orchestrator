@@ -31,7 +31,7 @@ Fonte única de status das tarefas. Atualize a linha da tarefa ao iniciar (`doin
 | V2-SEC-003 | Planner Claude em modo somente leitura (`--permission-mode plan`) | review | P0 | S | CORE-001 | SEC/HUM | Planner não edita arquivos; plano JSON continua extraível | 3 novos em `test_planner_readonly.py` (567 pytest / 54 vitest); revisão independente review_sec003 aprovada; revisão humana aprovada pelo operador em 2026-11-19. Validação real exigida pelo aceite NÃO executada; pendente por Claude ausente do PATH. Aprovação humana não substitui essa evidência; não houve dispensa explícita do critério. Correção documental em 2026-11-19 |
 | V2-SEC-006 | Desabilitar hooks/config insegura do Git em `prepare`/`run_command` | done | P0 | S | — | SEC | CA4 de SECURITY_GOVERNANCE | 323 pytest / 38 vitest; 22 casos Git com controles positivos; build/lint/docs verdes; revisão review_sec006 (69 focados, 2026-11-18) |
 | V2-SEC-004 | Matriz de permissões por papel aplicada em argv | done | P1 | M | CORE-004 | SEC | CA3 de SECURITY_GOVERNANCE | 23 novos em `test_role_argv.py` (590 pytest / 54 vitest); revisão independente review_sec004 aprovada; revisão humana obrigatória (§15) aprovada pelo operador em 2026-11-19 |
-| V2-SEC-007 | Auditoria estendida (workflows, providers, credenciais, aprovações) | todo | P1 | S | CORE-003 | BE | Ações listadas em SECURITY §6.6 auditadas sem valores sensíveis | Teste de registros |
+| V2-SEC-007 | Auditoria estendida (workflows, providers, credenciais, aprovações) | done | P1 | S | CORE-003 | BE | Contratos SECURITY §6.6 sem segredos, produtores atuais integrados | 700pytest/54Vitest;25novos;build/lint/docs;review_sec007 aprovada;commit SEC-007 dev |
 
 ## F2 — Workflows configuráveis
 
